@@ -1,0 +1,18 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # XAMPP local: descomente a linha abaixo (ajuste o caminho se necessário)
+    # RewriteBase /producao/votacao/
+
+    # Hostinger / subdomínio na raiz: não use RewriteBase ou use RewriteBase /
+
+    RewriteRule ^assets/(.*)$ public/assets/$1 [L]
+
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    RewriteRule ^$ public/index.php?r=auth/login [L,QSA]
+    RewriteRule ^public/(.*)$ public/$1 [L,QSA]
+    RewriteRule ^(.*)$ public/index.php?r=$1 [L,QSA]
+</IfModule>
