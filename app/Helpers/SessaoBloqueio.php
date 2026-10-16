@@ -62,4 +62,29 @@ final class SessaoBloqueio
         header('Location: ' . $redirectUrl);
         exit;
     }
+
+    /** Sessão publicada (pauta/roteiro/ata fechados). Encerrada ainda pode editar a ata. */
+    public static function isPublicada(?array $sessao): bool
+    {
+        if (!$sessao) {
+            return false;
+        }
+
+        return trim((string) ($sessao['publicada_em'] ?? '')) !== '';
+    }
+
+    public static function abortSePublicada(?array $sessao, string $redirectUrl): void
+    {
+        if (!self::isPublicada($sessao)) {
+            return;
+        }
+
+        $sep = str_contains($redirectUrl, '?') ? '&' : '?';
+        if (!str_contains($redirectUrl, 'sessao_bloqueada')) {
+            $redirectUrl .= $sep . 'sessao_bloqueada=1';
+        }
+
+        header('Location: ' . $redirectUrl);
+        exit;
+    }
 }

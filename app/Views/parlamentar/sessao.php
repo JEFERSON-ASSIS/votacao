@@ -2,6 +2,7 @@
 <?php
 $sessao = $sessao ?? [];
 $passoAtual = $passoAtual ?? null;
+$anexosPasso = $anexosPasso ?? [];
 $stats = $stats ?? ['total' => 0, 'concluidos' => 0];
 $pauta = $pauta ?? [];
 $rodadaAberta = $rodadaAberta ?? null;
@@ -150,18 +151,32 @@ $percentual = $totalPassos > 0 ? (int) round(($concluidos / $totalPassos) * 100)
         </article>
     <?php endif; ?>
 
+    <article class="panel-card parl-anexos-card" style="grid-column:1/-1;<?= $anexosPasso === [] ? 'display:none;' : '' ?>" id="parl-anexos-panel">
+        <h3 class="parl-leitura-label">Conteúdo e documentos deste passo</h3>
+        <p class="panel-meta">Abra os links, documentos e imagens disponibilizados para o momento atual.</p>
+        <div class="parl-anexos-grid" id="parl-anexos-grid">
+            <?php foreach ($anexosPasso as $anexo): ?>
+                <a class="parl-anexo" href="<?= e((string) $anexo['href']) ?>" target="_blank" rel="noopener">
+                    <?php if (!empty($anexo['imagem'])): ?><img src="<?= e((string) $anexo['href']) ?>" alt=""><?php endif; ?>
+                    <span class="parl-anexo-texto">
+                        <strong><?= e((string) ($anexo['titulo'] ?: ($anexo['nome'] ?: 'Link externo'))) ?></strong>
+                        <span class="parl-anexo-tipo"><?= e($anexo['tipo'] === 'URL' ? 'URL externa' : (!empty($anexo['imagem']) ? 'Imagem' : 'Documento')) ?></span>
+                    </span>
+                </a>
+            <?php endforeach; ?>
+        </div>
+    </article>
+
+    <?php if ($pauta !== []): ?>
     <article class="panel-card" style="grid-column:1/-1;">
-        <details class="parl-pauta-details">
+        <details class="parl-pauta-details"<?= ($rodadaAberta && $itemRodadaId > 0) ? ' open' : '' ?>>
             <summary class="parl-pauta-summary">
                 <span class="panel-label" style="margin:0;">Pauta da sessão</span>
-                <span class="panel-meta"><?= count($pauta) ?> matéria(s)</span>
+                <span class="panel-meta"><?= count($pauta) ?> matéria(s)<?= ($rodadaAberta && $itemRodadaId > 0) ? ' — há matéria em votação' : '' ?></span>
             </summary>
             <p class="panel-meta" style="margin-top:12px;">Abra uma matéria para ver o conteúdo completo. Quando uma matéria específica estiver em votação, ela aparecerá destacada.</p>
-            <?php if ($pauta === []): ?>
-                <p class="panel-meta">Nenhuma matéria na pauta.</p>
-            <?php else: ?>
-                <ol class="parl-pauta-list">
-                    <?php foreach ($pauta as $item): ?>
+            <ol class="parl-pauta-list">
+                <?php foreach ($pauta as $item): ?>
                         <?php
                         $itemId = (int) $item['id'];
                         $emVotacao = $rodadaAberta
@@ -181,11 +196,11 @@ $percentual = $totalPassos > 0 ? (int) round(($concluidos / $totalPassos) * 100)
                                 <?= $emVotacao ? 'Ver e votar' : 'Ver matéria' ?>
                             </a>
                         </li>
-                    <?php endforeach; ?>
-                </ol>
-            <?php endif; ?>
+                <?php endforeach; ?>
+            </ol>
         </details>
     </article>
+    <?php endif; ?>
 </section>
 <script src="<?= e(asset_url('assets/js/parlamentar-acompanhar.js')) ?>" defer></script>
 <?php $content = ob_get_clean(); ?>

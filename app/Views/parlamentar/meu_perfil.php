@@ -16,7 +16,7 @@ $dataNasc = (string) ($user['data_nascimento_formatada'] ?? User::formatarDataNa
         <div class="panel-meta">Atualize seus dados exibidos no painel e na votação.</div>
     </article>
     <?php if ($salvo): ?>
-        <article class="panel-card" style="grid-column:1/-1;"><div class="panel-meta" style="color:var(--accent-2);">Perfil salvo.</div></article>
+        <article class="panel-card" style="grid-column:1/-1;"><div class="sapl-ok">Perfil salvo.</div></article>
     <?php endif; ?>
     <article class="panel-card usuario-form-card" style="grid-column:1/-1;">
         <?php if ($error): ?><div class="auth-error" style="margin-bottom:14px;"><?= e($error) ?></div><?php endif; ?>

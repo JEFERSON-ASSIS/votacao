@@ -35,7 +35,7 @@ $podePublicar = !empty($sessao) && sessao_pode_publicar($sessao, $roteiroStats);
                 <div class="roteiro-panel-progress-track" role="progressbar" aria-valuenow="<?= $progressoPct ?>" aria-valuemin="0" aria-valuemax="100">
                     <div class="roteiro-panel-progress-fill" style="width:<?= $progressoPct ?>%"></div>
                 </div>
-                <span class="roteiro-panel-progress-hint">concluidos</span>
+                <span class="roteiro-panel-progress-hint">concluídos</span>
             </div>
         <?php endif; ?>
     </header>
@@ -71,7 +71,7 @@ $podePublicar = !empty($sessao) && sessao_pode_publicar($sessao, $roteiroStats);
         <p class="roteiro-panel-empty">Salve a sessão para gerar o roteiro.</p>
     <?php elseif (!$conducaoConfigurada): ?>
         <p class="roteiro-panel-empty">
-            Modelos ausentes. Execute <code>php scripts/migrate_conducao.php</code>
+            Modelos de condução ainda não estão configurados. Contate o suporte técnico para instalar os modelos.
         </p>
     <?php else: ?>
         <ol class="roteiro-fluxo" aria-label="Fluxo do roteiro">
@@ -147,7 +147,7 @@ $podePublicar = !empty($sessao) && sessao_pode_publicar($sessao, $roteiroStats);
                 </div>
                 <?php if ($passosAtivos < $totalPassos): ?>
                     <div class="meta-box">
-                        <div class="k">Fora (⊘)</div>
+                        <div class="k">Fora da condução</div>
                         <div class="v"><?= $totalPassos - $passosAtivos ?></div>
                     </div>
                 <?php endif; ?>

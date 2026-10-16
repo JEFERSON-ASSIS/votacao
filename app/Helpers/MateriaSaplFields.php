@@ -15,6 +15,8 @@ final class MateriaSaplFields
         7 => 'Indicacao',
         8 => 'Mocao',
         9 => 'Emenda',
+        10 => 'Mocao de Aplauso',
+        11 => 'Mocao de Apoio',
     ];
 
     public const REGIME_SAPL = [

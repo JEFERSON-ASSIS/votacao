@@ -20,14 +20,14 @@ $sectionRows = $sectionRows ?? [
         <?php foreach (pauta_rows($sectionRows['despachos'] ?? [], ['comissao' => '', 'situacao' => '', 'observacao' => '', 'arquivo' => '']) as $idx => $row): ?>
             <div class="repeat-item">
                 <div class="modal-grid">
-                    <div class="wide-3"><label class="panel-label">Comissao</label><input class="field" name="despachos[<?= $idx ?>][comissao]" value="<?= e((string) ($row['comissao'] ?? '')) ?>"></div>
-                    <div><label class="panel-label">Situacao</label><input class="field" name="despachos[<?= $idx ?>][situacao]" value="<?= e((string) ($row['situacao'] ?? '')) ?>"></div>
-                    <div class="wide-3"><label class="panel-label">Observacao</label><textarea class="field" name="despachos[<?= $idx ?>][observacao]" rows="3"><?= e((string) ($row['observacao'] ?? '')) ?></textarea></div>
+                    <div class="wide-3"><label class="panel-label">Comissão</label><input class="field" name="despachos[<?= $idx ?>][comissao]" value="<?= e((string) ($row['comissao'] ?? '')) ?>"></div>
+                    <div><label class="panel-label">Situação</label><input class="field" name="despachos[<?= $idx ?>][situacao]" value="<?= e((string) ($row['situacao'] ?? '')) ?>"></div>
+                    <div class="wide-3"><label class="panel-label">Observação</label><textarea class="field" name="despachos[<?= $idx ?>][observacao]" rows="3"><?= e((string) ($row['observacao'] ?? '')) ?></textarea></div>
                     <div class="wide-3"><label class="panel-label">Arquivo</label><input class="field" type="file" name="despachos[<?= $idx ?>][arquivo]"></div>
                 </div>
                 <div class="repeat-actions">
-                    <button class="btn btn-soft" type="button" data-remove-row>-</button>
-                    <button class="btn btn-soft" type="button" data-add-row="despachos">+</button>
+                    <button class="btn btn-soft" type="button" data-remove-row aria-label="Remover linha">−</button>
+                    <button class="btn btn-soft" type="button" data-add-row="despachos" aria-label="Adicionar linha">+</button>
                 </div>
             </div>
         <?php endforeach; ?>
@@ -46,8 +46,8 @@ $sectionRows = $sectionRows ?? [
                     <div class="wide-3"><label class="panel-label">Arquivo</label><input class="field" type="file" name="documentos[<?= $idx ?>][arquivo]"></div>
                 </div>
                 <div class="repeat-actions">
-                    <button class="btn btn-soft" type="button" data-remove-row>-</button>
-                    <button class="btn btn-soft" type="button" data-add-row="documentos">+</button>
+                    <button class="btn btn-soft" type="button" data-remove-row aria-label="Remover linha">−</button>
+                    <button class="btn btn-soft" type="button" data-add-row="documentos" aria-label="Adicionar linha">+</button>
                 </div>
             </div>
         <?php endforeach; ?>
@@ -60,13 +60,13 @@ $sectionRows = $sectionRows ?? [
             <div class="repeat-item">
                 <div class="modal-grid">
                     <div class="wide-2"><label class="panel-label">Norma</label><input class="field" name="legislacoes[<?= $idx ?>][norma]" value="<?= e((string) ($row['norma'] ?? '')) ?>"></div>
-                    <div><label class="panel-label">Disposicao</label><input class="field" name="legislacoes[<?= $idx ?>][disposicao]" value="<?= e((string) ($row['disposicao'] ?? '')) ?>"></div>
-                    <div class="wide-3"><label class="panel-label">Observacao</label><textarea class="field" name="legislacoes[<?= $idx ?>][observacao]" rows="3"><?= e((string) ($row['observacao'] ?? '')) ?></textarea></div>
+                    <div><label class="panel-label">Disposição</label><input class="field" name="legislacoes[<?= $idx ?>][disposicao]" value="<?= e((string) ($row['disposicao'] ?? '')) ?>"></div>
+                    <div class="wide-3"><label class="panel-label">Observação</label><textarea class="field" name="legislacoes[<?= $idx ?>][observacao]" rows="3"><?= e((string) ($row['observacao'] ?? '')) ?></textarea></div>
                     <div class="wide-3"><label class="panel-label">Arquivo</label><input class="field" type="file" name="legislacoes[<?= $idx ?>][arquivo]"></div>
                 </div>
                 <div class="repeat-actions">
-                    <button class="btn btn-soft" type="button" data-remove-row>-</button>
-                    <button class="btn btn-soft" type="button" data-add-row="legislacoes">+</button>
+                    <button class="btn btn-soft" type="button" data-remove-row aria-label="Remover linha">−</button>
+                    <button class="btn btn-soft" type="button" data-add-row="legislacoes" aria-label="Adicionar linha">+</button>
                 </div>
             </div>
         <?php endforeach; ?>
@@ -84,8 +84,8 @@ $sectionRows = $sectionRows ?? [
                     <div><label class="panel-label">Data</label><input class="field" type="date" name="numeracoes[<?= $idx ?>][data_doc]" value="<?= e((string) ($row['data_doc'] ?? '')) ?>"></div>
                 </div>
                 <div class="repeat-actions">
-                    <button class="btn btn-soft" type="button" data-remove-row>-</button>
-                    <button class="btn btn-soft" type="button" data-add-row="numeracao">+</button>
+                    <button class="btn btn-soft" type="button" data-remove-row aria-label="Remover linha">−</button>
+                    <button class="btn btn-soft" type="button" data-add-row="numeracao" aria-label="Adicionar linha">+</button>
                 </div>
             </div>
         <?php endforeach; ?>
@@ -104,8 +104,8 @@ $sectionRows = $sectionRows ?? [
                     <div class="wide-3"><label class="panel-label">Arquivo</label><input class="field" type="file" name="tramitacoes[<?= $idx ?>][arquivo]"></div>
                 </div>
                 <div class="repeat-actions">
-                    <button class="btn btn-soft" type="button" data-remove-row>-</button>
-                    <button class="btn btn-soft" type="button" data-add-row="tramitacoes">+</button>
+                    <button class="btn btn-soft" type="button" data-remove-row aria-label="Remover linha">−</button>
+                    <button class="btn btn-soft" type="button" data-add-row="tramitacoes" aria-label="Adicionar linha">+</button>
                 </div>
             </div>
         <?php endforeach; ?>
@@ -119,12 +119,12 @@ $sectionRows = $sectionRows ?? [
                 <div class="modal-grid">
                     <div><label class="panel-label">Relator</label><input class="field" name="relatorias[<?= $idx ?>][relator]" value="<?= e((string) ($row['relator'] ?? '')) ?>"></div>
                     <div><label class="panel-label">Data</label><input class="field" type="date" name="relatorias[<?= $idx ?>][data_relatoria]" value="<?= e((string) ($row['data_relatoria'] ?? '')) ?>"></div>
-                    <div class="wide-3"><label class="panel-label">Observacao</label><textarea class="field" name="relatorias[<?= $idx ?>][observacao]" rows="3"><?= e((string) ($row['observacao'] ?? '')) ?></textarea></div>
+                    <div class="wide-3"><label class="panel-label">Observação</label><textarea class="field" name="relatorias[<?= $idx ?>][observacao]" rows="3"><?= e((string) ($row['observacao'] ?? '')) ?></textarea></div>
                     <div class="wide-3"><label class="panel-label">Arquivo</label><input class="field" type="file" name="relatorias[<?= $idx ?>][arquivo]"></div>
                 </div>
                 <div class="repeat-actions">
-                    <button class="btn btn-soft" type="button" data-remove-row>-</button>
-                    <button class="btn btn-soft" type="button" data-add-row="relatorias">+</button>
+                    <button class="btn btn-soft" type="button" data-remove-row aria-label="Remover linha">−</button>
+                    <button class="btn btn-soft" type="button" data-add-row="relatorias" aria-label="Adicionar linha">+</button>
                 </div>
             </div>
         <?php endforeach; ?>

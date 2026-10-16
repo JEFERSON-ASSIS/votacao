@@ -7,6 +7,7 @@ if (defined('PLENARIO_BOOTSTRAP_LOADED')) {
 define('PLENARIO_BOOTSTRAP_LOADED', true);
 
 require_once __DIR__ . '/Helpers/AppConfig.php';
+\App\Helpers\AppConfig::loadDotEnv();
 \App\Helpers\AppConfig::applyDatabaseEnv();
 
 $config = \App\Helpers\AppConfig::load();
@@ -14,6 +15,24 @@ $config = \App\Helpers\AppConfig::load();
 date_default_timezone_set($config['timezone'] ?? 'America/Cuiaba');
 ini_set('display_errors', !empty($config['debug']) ? '1' : '0');
 error_reporting(!empty($config['debug']) ? E_ALL : 0);
+
+register_shutdown_function(static function (): void {
+    $err = error_get_last();
+    if ($err === null) {
+        return;
+    }
+    $fatalTypes = [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR];
+    if (!in_array($err['type'], $fatalTypes, true)) {
+        return;
+    }
+    $line = '[' . date('Y-m-d H:i:s') . '] FATAL: ' . $err['message']
+        . ' in ' . $err['file'] . ':' . $err['line'] . PHP_EOL;
+    $logDir = dirname(__DIR__) . '/logs';
+    if (!is_dir($logDir)) {
+        @mkdir($logDir, 0775, true);
+    }
+    @file_put_contents($logDir . '/app.log', $line, FILE_APPEND);
+});
 
 $sessionName = (string) (($config['session']['name'] ?? null) ?: 'plenario_session');
 session_name($sessionName);
@@ -113,11 +132,12 @@ function favicon_url(): string
 
 function app_log(string $message): void
 {
+    $line = '[' . date('Y-m-d H:i:s') . '] ' . $message;
     $logDir = dirname(__DIR__) . '/logs';
     if (!is_dir($logDir)) {
         @mkdir($logDir, 0775, true);
     }
-
-    $line = '[' . date('Y-m-d H:i:s') . '] ' . $message . PHP_EOL;
-    @file_put_contents($logDir . '/app.log', $line, FILE_APPEND);
+    @file_put_contents($logDir . '/app.log', $line . PHP_EOL, FILE_APPEND);
+    // Também vai para o error_log do Apache/Hostinger (mais fácil de ver no painel).
+    @error_log('Plenario: ' . $message);
 }

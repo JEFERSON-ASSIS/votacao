@@ -2,13 +2,8 @@
 .env.local
 
 /logs/
-/storage/
 /public/uploads/
-/test-results/
-/tmp_browser/
-
-headers.txt
-tmp_apply_browser_test.sql
 
 .vscode/
 *.log
+error_log

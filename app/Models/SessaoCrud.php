@@ -45,6 +45,29 @@ final class SessaoCrud
         return $row ?: null;
     }
 
+    public static function existeDuplicada(string $tipo, int $numero, int $ano, ?int $excludeId = null): bool
+    {
+        $sql = 'SELECT id FROM sessoes WHERE tipo = :tipo AND numero = :numero AND ano = :ano';
+        $params = ['tipo' => $tipo, 'numero' => $numero, 'ano' => $ano];
+        if ($excludeId !== null) {
+            $sql .= ' AND id != :exclude_id';
+            $params['exclude_id'] = $excludeId;
+        }
+        $stmt = DB::conn()->prepare($sql . ' LIMIT 1');
+        $stmt->execute($params);
+        return $stmt->fetchColumn() !== false;
+    }
+
+    public static function proximoNumero(string $tipo, int $ano): int
+    {
+        $stmt = DB::conn()->prepare(
+            'SELECT COALESCE(MAX(numero), 0) + 1 FROM sessoes WHERE tipo = :tipo AND ano = :ano'
+        );
+        $stmt->execute(['tipo' => $tipo, 'ano' => $ano]);
+
+        return max(1, (int) $stmt->fetchColumn());
+    }
+
     public static function findAnteriorSugerida(int $sessaoId): ?array
     {
         $atual = self::find($sessaoId);
@@ -263,8 +286,74 @@ final class SessaoCrud
 
     public static function delete(int $id): void
     {
-        $stmt = DB::conn()->prepare('DELETE FROM sessoes WHERE id = :id');
-        $stmt->execute(['id' => $id]);
+        $pdo = DB::conn();
+        $ownTransaction = !$pdo->inTransaction();
+        if ($ownTransaction) {
+            $pdo->beginTransaction();
+        }
+
+        try {
+            // Outras sessões podem apontar esta como "sessão anterior" da ata.
+            $pdo->prepare(
+                'UPDATE sessoes SET sessao_anterior_id = NULL WHERE sessao_anterior_id = :id'
+            )->execute(['id' => $id]);
+
+            $stmt = $pdo->prepare('DELETE FROM sessoes WHERE id = :id');
+            $stmt->execute(['id' => $id]);
+
+            if ($ownTransaction) {
+                $pdo->commit();
+            }
+        } catch (\Throwable $e) {
+            if ($ownTransaction && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
+        }
+    }
+
+    /**
+     * Volta a sessão para "Criado" apagando só o que a condução gerou
+     * (presenças, votações, votos, eventos, condução). Pauta, roteiro,
+     * cerimonial e ata ficam como estão. Uso: ensaios/testes.
+     */
+    public static function resetarAndamento(int $id): void
+    {
+        $pdo = DB::conn();
+        $ownTransaction = !$pdo->inTransaction();
+        if ($ownTransaction) {
+            $pdo->beginTransaction();
+        }
+
+        try {
+            // Deletes explícitos (sem depender de ON DELETE CASCADE, que o SQLite pode não ter).
+            $rodadas = 'SELECT id FROM sessao_votacao_rodadas WHERE sessao_id = :id';
+            $sqls = [
+                "DELETE FROM sessao_votacao_eleitores WHERE rodada_id IN ($rodadas)",
+                'DELETE FROM sessao_votos_desempate WHERE sessao_id = :id',
+                'DELETE FROM sessao_votos WHERE sessao_id = :id',
+                'DELETE FROM sessao_votacao_rodadas WHERE sessao_id = :id',
+                'DELETE FROM sessao_presentes WHERE sessao_id = :id',
+                'DELETE FROM sessao_conducao_historico WHERE sessao_id = :id',
+                'DELETE FROM sessao_conducao WHERE sessao_id = :id',
+                'DELETE FROM sessao_eventos WHERE sessao_id = :id',
+                "UPDATE sessao_roteiro SET status_execucao = 'PENDENTE' WHERE sessao_id = :id",
+                "UPDATE pauta_itens SET status = 'PENDENTE' WHERE sessao_id = :id",
+                "UPDATE sessoes SET status = 'CRIADO', publicada_em = NULL, publicada_por = NULL WHERE id = :id",
+            ];
+            foreach ($sqls as $sql) {
+                $pdo->prepare($sql)->execute(['id' => $id]);
+            }
+
+            if ($ownTransaction) {
+                $pdo->commit();
+            }
+        } catch (\Throwable $e) {
+            if ($ownTransaction && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
+        }
     }
 
     public static function marcarPublicada(int $id, ?int $userId = null): void

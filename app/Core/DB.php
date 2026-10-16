@@ -23,6 +23,18 @@ final class DB
         $pass = (string) getenv('DB_PASS') ?: '';
         $charset = (string) getenv('DB_CHARSET') ?: 'utf8mb4';
 
+        if (function_exists('app_log')) {
+            app_log(sprintf(
+                'DB: conectando driver=%s host=%s port=%s name=%s user=%s pass=%s',
+                $driver,
+                $host,
+                $port,
+                $name !== '' ? $name : '(vazio)',
+                $user !== '' ? $user : '(vazio)',
+                $pass !== '' ? '(definida)' : '(vazia)'
+            ));
+        }
+
         try {
             if ($driver === 'sqlite') {
                 $path = (string) getenv('DB_PATH') ?: dirname(__DIR__, 2) . '/database/plenario.sqlite';
@@ -37,8 +49,18 @@ final class DB
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                     PDO::ATTR_EMULATE_PREPARES => false,
                 ]);
+                // CURRENT_TIMESTAMP/NOW() no mesmo fuso do PHP; senão o cronômetro
+                // lê o início da votação "no futuro" e trava no tempo cheio.
+                self::$pdo->prepare('SET time_zone = ?')->execute([date('P')]);
+                self::ensureTemporizadorColumns(self::$pdo);
+            }
+            if (function_exists('app_log')) {
+                app_log('DB: conexão OK');
             }
         } catch (\Throwable $e) {
+            if (function_exists('app_log')) {
+                app_log('DB: FALHA — ' . $e->getMessage());
+            }
             throw new \RuntimeException('Falha ao conectar no banco configurado: ' . $e->getMessage(), 0, $e);
         }
 
@@ -61,6 +83,8 @@ final class DB
             self::rebuildSessaoPresentesTable($pdo);
             self::rebuildSessaoVotosTable($pdo);
             self::rebuildSessaoEventosTable($pdo);
+            self::ensureSessaoConducaoTables($pdo);
+            self::ensureTemporizadorColumns($pdo);
             $pdo->commit();
         } catch (\Throwable $e) {
             $pdo->rollBack();
@@ -68,6 +92,103 @@ final class DB
         } finally {
             $pdo->exec('PRAGMA foreign_keys = ON');
         }
+    }
+
+    /** Garante colunas de temporizador (destaque / votação) em SQLite e MySQL. */
+    public static function ensureTemporizadorColumns(?PDO $pdo = null): void
+    {
+        $pdo = $pdo ?? self::conn();
+        $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+
+        $hasCol = static function (PDO $pdo, string $table, string $column) use ($driver): bool {
+            if ($driver === 'sqlite') {
+                $stmt = $pdo->query("PRAGMA table_info($table)");
+                foreach ($stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [] as $row) {
+                    if ((string) ($row['name'] ?? '') === $column) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            $stmt = $pdo->query('SHOW COLUMNS FROM `' . str_replace('`', '``', $table) . '`');
+            foreach ($stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [] as $row) {
+                if ((string) ($row['Field'] ?? '') === $column) {
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        try {
+            if (!$hasCol($pdo, 'sessao_conducao', 'destaque_tempo_seg')) {
+                if ($driver === 'sqlite') {
+                    $pdo->exec('ALTER TABLE sessao_conducao ADD COLUMN destaque_tempo_seg INTEGER NULL');
+                } else {
+                    $pdo->exec('ALTER TABLE sessao_conducao ADD COLUMN destaque_tempo_seg INT NULL AFTER destaque_em');
+                }
+            }
+        } catch (\Throwable $e) {
+            // Tabela pode não existir ainda em ambientes novos.
+        }
+
+        try {
+            if (!$hasCol($pdo, 'sessao_votacao_rodadas', 'tempo_limite_seg')) {
+                if ($driver === 'sqlite') {
+                    $pdo->exec('ALTER TABLE sessao_votacao_rodadas ADD COLUMN tempo_limite_seg INTEGER NULL');
+                } else {
+                    $pdo->exec('ALTER TABLE sessao_votacao_rodadas ADD COLUMN tempo_limite_seg INT NULL AFTER resultado');
+                }
+            }
+        } catch (\Throwable $e) {
+            // Tabela pode não existir ainda em ambientes novos.
+        }
+    }
+
+    private static function ensureSessaoConducaoTables(PDO $pdo): void
+    {
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS sessao_conducao (
+                sessao_id INTEGER PRIMARY KEY,
+                titular_user_id INTEGER NOT NULL,
+                condutor_user_id INTEGER NOT NULL,
+                atualizado_por INTEGER NOT NULL,
+                destaque_user_id INTEGER NULL,
+                destaque_em TEXT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )'
+        );
+        $conducaoCols = self::tableColumns($pdo, 'sessao_conducao');
+        if ($conducaoCols !== [] && !isset($conducaoCols['destaque_user_id'])) {
+            $pdo->exec('ALTER TABLE sessao_conducao ADD COLUMN destaque_user_id INTEGER NULL');
+        }
+        if ($conducaoCols !== [] && !isset($conducaoCols['destaque_em'])) {
+            $pdo->exec('ALTER TABLE sessao_conducao ADD COLUMN destaque_em TEXT NULL');
+        }
+        if ($conducaoCols !== [] && !isset($conducaoCols['destaque_tempo_seg'])) {
+            $pdo->exec('ALTER TABLE sessao_conducao ADD COLUMN destaque_tempo_seg INTEGER NULL');
+        }
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS sessao_conducao_historico (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                sessao_id INTEGER NOT NULL,
+                tipo TEXT NOT NULL,
+                condutor_anterior_id INTEGER NOT NULL,
+                condutor_novo_id INTEGER NOT NULL,
+                realizado_por INTEGER NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )'
+        );
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS sessao_votos_desempate (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                sessao_id INTEGER NOT NULL,
+                rodada_id INTEGER NOT NULL UNIQUE,
+                condutor_user_id INTEGER NOT NULL,
+                voto TEXT NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )'
+        );
     }
 
     private static function rebuildUsersTable(PDO $pdo): void

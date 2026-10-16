@@ -14,7 +14,7 @@ $sessoesConducao = $sessoesConducao ?? [];
                     <?php if ($sessao): ?>
                         #<?= e((string) $sessao['numero']) ?>/<?= e((string) $sessao['ano']) ?> — <?= e(sessao_status_label((string) $sessao['status'])) ?>
                     <?php else: ?>
-                        Abra uma sessão (status Aberta) em Sessões para operar a plenária.
+                        Quando o admin marcar a sessão como Criado, inicie-a em Sessões para operar a plenária.
                     <?php endif; ?>
                 </div>
             </div>

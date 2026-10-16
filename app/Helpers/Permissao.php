@@ -5,6 +5,7 @@ namespace App\Helpers;
 
 use App\Core\Auth;
 use App\Models\UserPermissao;
+use App\Models\SessaoConducao;
 
 final class Permissao
 {
@@ -26,6 +27,34 @@ final class Permissao
         $user = Auth::user();
         $role = (string) ($user['role'] ?? '');
         $userId = (int) ($user['id'] ?? 0);
+
+        $chavesCondutor = [
+            'presidencia.conduzir', 'presidencia.avancar', 'presidencia.voltar',
+            'presidencia.encerrarSessao', 'presidencia.destacarParlamentar', 'presidencia.limparDestaque',
+            'presidencia.transferirConducao', 'presidencia.devolverConducao',
+            'votacao.painel', 'votacao.abrirRodada', 'votacao.encerrarRodada', 'votacao.votarRodada',
+            'votacao.estadoRodada', 'votacao.streamRodada',
+        ];
+        if (in_array($chave, $chavesCondutor, true)) {
+            $sessaoId = SessaoConducao::sessaoIdDaRota($chave);
+            if ($sessaoId > 0 && SessaoConducao::estado($sessaoId) !== null) {
+                return SessaoConducao::usuarioPodeConduzir($sessaoId, $userId);
+            }
+        }
+
+        $chavesParlamentarSessao = [
+            'parlamentar.sessao', 'parlamentar.estado', 'parlamentar.stream',
+            'parlamentar.materia', 'parlamentar.votar',
+        ];
+        if (in_array($chave, $chavesParlamentarSessao, true)) {
+            $sessaoId = $chave === 'parlamentar.votar'
+                ? (int) ($_POST['sessao_id'] ?? 0)
+                : SessaoConducao::sessaoIdDaRota($chave);
+            if ($sessaoId > 0 && SessaoConducao::estado($sessaoId) !== null
+                && SessaoConducao::usuarioPodeAcompanharComoParlamentar($sessaoId, $userId)) {
+                return true;
+            }
+        }
 
         if (!empty($_SESSION['permissoes_personalizado'])) {
             $perms = $_SESSION['permissoes'] ?? [];
@@ -56,6 +85,19 @@ final class Permissao
 
         if (in_array($chaveRota, ['votacao.estadoRodada', 'votacao.streamRodada'], true)
             && self::usuarioAtualPode('votacao.painel')) {
+            return true;
+        }
+
+        if ($chaveRota === 'roteiro.anexoSalvar' && self::usuarioAtualPode('roteiro.salvar')) {
+            return true;
+        }
+        if ($chaveRota === 'roteiro.anexoExcluir' && self::usuarioAtualPode('roteiro.excluir')) {
+            return true;
+        }
+
+        // Tela dedicada de ata herda a permissão de editar sessão.
+        if (in_array($chaveRota, ['sessao.ata', 'sessao.salvarAta'], true)
+            && self::usuarioAtualPode('sessao.form')) {
             return true;
         }
 

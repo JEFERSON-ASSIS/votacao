@@ -14,8 +14,7 @@ $filtro = $filtro ?? '';
         <article class="panel-card" style="grid-column:1/-1;">
             <div class="auth-error">
                 Tabela de auditoria ainda não existe no banco. No SSH, execute:
-                <code style="display:block;margin-top:8px;">php scripts/migrate_historico_auditoria.php</code>
-                ou <code>php scripts/migrate_all.php</code>
+                <code style="display:block;margin-top:8px;">php scripts/migrate.php</code>
             </div>
         </article>
     <?php endif; ?>

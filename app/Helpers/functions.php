@@ -12,7 +12,8 @@ function sessao_status_label(?string $status): string
     $key = strtoupper(trim((string) $status));
     $labels = [
         'RASCUNHO' => 'Rascunho',
-        'ABERTA' => 'Aberta',
+        'CRIADO' => 'Criada',
+        'ABERTA' => 'Em andamento',
         'EM_VOTACAO' => 'Em Votação',
         'ENCERRADA' => 'Encerrada',
     ];
@@ -33,6 +34,8 @@ function sessao_status_chip_class(?string $status): string
         'EM_VOTACAO' => 'vote',
         'ENCERRADA' => 'closed',
         'ABERTA' => 'open',
+        'CRIADO' => 'created',
+        'RASCUNHO' => 'draft',
         default => 'open',
     };
 }
@@ -165,6 +168,17 @@ function votacao_rotulo_resultado(?string $resultado): string
     };
 }
 
+/** Status da rodada/votação para exibição. */
+function votacao_rotulo_status(?string $status): string
+{
+    return match (strtoupper(trim((string) $status))) {
+        'ABERTA' => 'Aberta',
+        'ENCERRADA' => 'Encerrada',
+        'CANCELADA' => 'Cancelada',
+        default => $status !== '' && $status !== null ? (string) $status : '—',
+    };
+}
+
 function user_iniciais(string $nome): string
 {
     $partes = preg_split('/\s+/', trim($nome)) ?: [];
@@ -187,11 +201,13 @@ function user_foto_url(?array $user): ?string
     if (str_starts_with($foto, 'http://') || str_starts_with($foto, 'https://')) {
         return $foto;
     }
-    if (str_starts_with($foto, 'uploads/')) {
-        return asset_url($foto);
+    $relativo = str_starts_with($foto, 'uploads/') ? $foto : 'uploads/vereadores/' . ltrim($foto, '/');
+    // Arquivo apagado/não copiado para o servidor: avatar padrão em vez de imagem quebrada.
+    if (!is_file(dirname(__DIR__, 2) . '/public/' . $relativo)) {
+        return asset_url('assets/img/default-user.svg');
     }
 
-    return asset_url('uploads/vereadores/' . ltrim($foto, '/'));
+    return asset_url($relativo);
 }
 
 /** Extrai URL http(s) de texto ou link. */
@@ -364,4 +380,70 @@ function materia_extensao_rotulo(string $url): string
         'png', 'jpg', 'jpeg', 'gif', 'webp' => 'Imagem',
         default => strtoupper($ext !== '' ? $ext : 'Arquivo'),
     };
+}
+
+/** Opções de tempo para fala / votação (segundos => rótulo). */
+function sessao_tempo_opcoes(): array
+{
+    return [
+        0 => 'Sem limite',
+        120 => '2 min',
+        300 => '5 min',
+        600 => '10 min',
+        900 => '15 min',
+    ];
+}
+
+function sessao_tempo_normalizar(mixed $segundos): int
+{
+    $seg = (int) $segundos;
+
+    return array_key_exists($seg, sessao_tempo_opcoes()) ? $seg : 0;
+}
+
+/**
+ * Payload de temporizador a partir do início e da duração.
+ *
+ * @return array{segundos:int,fim_ts:int,restante_seg:int,esgotado:bool,label:string}|null
+ */
+function sessao_tempo_payload(mixed $segundos, mixed $inicioEm): ?array
+{
+    $seg = sessao_tempo_normalizar($segundos);
+    if ($seg <= 0) {
+        return null;
+    }
+    $inicioRaw = trim((string) $inicioEm);
+    if ($inicioRaw === '') {
+        return null;
+    }
+    $inicioTs = ctype_digit($inicioRaw)
+        ? (int) $inicioRaw
+        : strtotime($inicioRaw);
+    if ($inicioTs === false || $inicioTs <= 0) {
+        return null;
+    }
+    $agora = time();
+    // MySQL TIMESTAMP vs timezone do PHP: início "no futuro" = relógio dessincronizado.
+    if ($inicioTs > $agora + 15) {
+        $inicioTs = $agora;
+    }
+    $fimTs = $inicioTs + $seg;
+    $restante = max(0, $fimTs - $agora);
+
+    return [
+        'segundos' => $seg,
+        'fim_ts' => $fimTs,
+        'restante_seg' => $restante,
+        'esgotado' => $restante <= 0,
+        'label' => (string) (sessao_tempo_opcoes()[$seg] ?? ($seg . 's')),
+    ];
+}
+
+function sessao_tempo_formatar(int $segundosRestantes): string
+{
+    $segundosRestantes = max(0, $segundosRestantes);
+    $m = intdiv($segundosRestantes, 60);
+    $s = $segundosRestantes % 60;
+
+    return sprintf('%d:%02d', $m, $s);
 }

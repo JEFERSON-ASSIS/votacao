@@ -56,19 +56,44 @@ final class SessaoVotacaoRodada
         string $titulo,
         ?int $roteiroPassoId = null,
         ?int $itemId = null,
-        ?string $descricao = null
+        ?string $descricao = null,
+        array $eleitoresIds = [],
+        int $tempoLimiteSeg = 0
     ): int {
         $pdo = DB::conn();
+        if ($eleitoresIds === []) {
+            throw new \RuntimeException('Nenhum parlamentar presente foi registrado para esta sessão.');
+        }
+
+        $tempoLimiteSeg = function_exists('sessao_tempo_normalizar')
+            ? sessao_tempo_normalizar($tempoLimiteSeg)
+            : 0;
+
+        $ownTransaction = !$pdo->inTransaction();
+        if ($ownTransaction) {
+            $pdo->beginTransaction();
+        }
+        try {
+        $lockSql = 'SELECT id FROM sessoes WHERE id = :id';
+        if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql') {
+            $lockSql .= ' FOR UPDATE';
+        }
+        $lock = $pdo->prepare($lockSql);
+        $lock->execute(['id' => $sessaoId]);
+        if (!$lock->fetchColumn()) {
+            throw new \RuntimeException('Sessão não encontrada.');
+        }
+
         $aberta = self::findAberta($sessaoId);
         if ($aberta) {
-            self::encerrar((int) $aberta['id']);
+            throw new \RuntimeException('Já existe uma votação aberta nesta sessão.');
         }
 
         $stmt = $pdo->prepare(
             'INSERT INTO sessao_votacao_rodadas
-                (sessao_id, roteiro_passo_id, item_id, titulo, descricao, status)
+                (sessao_id, roteiro_passo_id, item_id, titulo, descricao, status, tempo_limite_seg)
              VALUES
-                (:sessao_id, :roteiro_passo_id, :item_id, :titulo, :descricao, \'ABERTA\')'
+                (:sessao_id, :roteiro_passo_id, :item_id, :titulo, :descricao, \'ABERTA\', :tempo_limite_seg)'
         );
         $stmt->execute([
             'sessao_id' => $sessaoId,
@@ -76,11 +101,25 @@ final class SessaoVotacaoRodada
             'item_id' => $itemId,
             'titulo' => $titulo,
             'descricao' => $descricao,
+            'tempo_limite_seg' => $tempoLimiteSeg > 0 ? $tempoLimiteSeg : null,
         ]);
+
+        $rodadaId = (int) $pdo->lastInsertId();
+        RodadaEleitor::criarFotografia($rodadaId, $eleitoresIds);
 
         Sessao::updateStatus($sessaoId, 'EM_VOTACAO');
 
-        return (int) $pdo->lastInsertId();
+        if ($ownTransaction) {
+            $pdo->commit();
+        }
+
+        return $rodadaId;
+        } catch (\Throwable $e) {
+            if ($ownTransaction && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
+        }
     }
 
     /** @return array{resultado: string, resumo: array<string, int>} */
@@ -93,10 +132,18 @@ final class SessaoVotacaoRodada
 
         $resumo = SessaoVoto::resumoPorRodada($rodadaId);
         $resultado = SessaoVoto::resultadoFromResumo($resumo);
+        if ($resultado === 'EMPATADO') {
+            $desempate = SessaoVotoDesempate::voto($rodadaId);
+            if ($desempate === 'SIM') {
+                $resultado = 'APROVADO';
+            } elseif ($desempate === 'NAO') {
+                $resultado = 'REJEITADO';
+            }
+        }
 
         $stmt = DB::conn()->prepare(
             "UPDATE sessao_votacao_rodadas
-             SET status = 'ENCERRADA', resultado = :resultado, encerrada_em = NOW()
+             SET status = 'ENCERRADA', resultado = :resultado, encerrada_em = CURRENT_TIMESTAMP
              WHERE id = :id"
         );
         $stmt->execute(['id' => $rodadaId, 'resultado' => $resultado]);

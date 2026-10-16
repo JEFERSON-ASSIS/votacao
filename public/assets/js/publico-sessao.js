@@ -73,7 +73,7 @@
 
     function parlamentarCardGrande(p) {
         var foto = p.foto_url
-            ? '<img src="' + escapeAttr(p.foto_url) + '" alt="" loading="lazy">'
+            ? '<img src="' + escapeAttr(p.foto_url) + '" alt="" onerror="this.onerror=null;this.remove()">'
             : '<span class="public-vereador-iniciais">' + escapeHtml(p.iniciais || '?') + '</span>';
         var voto = p.voto
             ? '<span class="voto-chip ' +
@@ -122,17 +122,56 @@
         );
     }
 
+    function slideDestaqueHtml(d) {
+        var dest = d && d.destaque ? d.destaque : null;
+        if (!dest || !dest.ativo) {
+            return '';
+        }
+        var foto = dest.foto_url
+            ? '<img class="public-destaque-foto" src="' +
+              escapeAttr(dest.foto_url) +
+              '" alt="' +
+              escapeAttr(dest.nome || '') +
+              '">'
+            : '<div class="public-destaque-foto public-destaque-foto--iniciais" aria-hidden="true">' +
+              escapeHtml(dest.iniciais || '?') +
+              '</div>';
+        var meta = [];
+        if ((dest.partido || '').trim()) {
+            meta.push('<span class="public-destaque-partido">Partido ' + escapeHtml(dest.partido) + '</span>');
+        }
+        return (
+            '<article class="public-carrossel-slide public-carrossel-slide--destaque">' +
+            '<p class="public-carrossel-kicker">Parlamentar em destaque</p>' +
+            '<div class="public-destaque-body">' +
+            '<div class="public-destaque-pessoa">' +
+            foto +
+            '<h2 class="public-carrossel-titulo public-destaque-nome">' +
+            escapeHtml(dest.nome || '') +
+            '</h2>' +
+            (meta.length
+                ? '<p class="public-destaque-meta">' + meta.join('<span class="public-destaque-sep" aria-hidden="true">·</span>') + '</p>'
+                : '') +
+            '</div>' +
+            '<div class="public-destaque-info">' +
+            (d.momento_titulo
+                ? '<p class="public-destaque-momento">' + escapeHtml(d.momento_titulo) + '</p>'
+                : '') +
+            (dest.tempo && window.SessaoTimer
+                ? window.SessaoTimer.html(dest.tempo, { className: 'sessao-timer--telao sessao-timer--destaque', label: 'Tempo de fala' })
+                : '') +
+            '</div></div></article>'
+        );
+    }
+
     function slideMomentoHtml(d) {
-        var txt = (d.texto_momento || '').trim();
         return (
             '<article class="public-carrossel-slide public-carrossel-slide--momento">' +
             '<p class="public-carrossel-kicker">Em discussão na sessão</p>' +
             '<h2 class="public-carrossel-titulo">' +
             escapeHtml(d.momento_titulo || 'Sessão plenária') +
             '</h2>' +
-            (txt
-                ? '<p class="public-carrossel-texto">' + escapeHtml(txt) + '</p>'
-                : '<p class="public-carrossel-texto public-carrossel-texto--suave">Acompanhe o andamento da sessão plenária.</p>') +
+            '<p class="public-carrossel-texto public-carrossel-texto--suave">Acompanhe o andamento da sessão plenária.</p>' +
             '</article>'
         );
     }
@@ -157,6 +196,9 @@
             '</h2>' +
             badge +
             '</div>' +
+            (aoVivo && r.tempo && window.SessaoTimer
+                ? window.SessaoTimer.html(r.tempo, { className: 'sessao-timer--telao', label: 'Tempo da votação' })
+                : '') +
             placarTelaoHtml(r.resumo) +
             '</header>' +
             '<div class="public-carrossel-slide-corpo">' +
@@ -185,6 +227,15 @@
                 {
                     key: 'votacao-' + d.rodada_aberta.id,
                     html: slideVotacaoHtml(d.rodada_aberta, true),
+                },
+            ];
+        }
+
+        if (d.destaque && d.destaque.ativo) {
+            return [
+                {
+                    key: 'destaque-' + (d.destaque.user_id || '0'),
+                    html: slideDestaqueHtml(d),
                 },
             ];
         }
@@ -295,6 +346,10 @@
     function aplicarEstado(d) {
         if (!d || !d.ok) return;
 
+        if (window.SessaoTimer && d.ts) {
+            window.SessaoTimer.sincronizar(d.ts);
+        }
+
         var eraVotacao = ultimoEstado && ultimoEstado.em_votacao;
         var agoraVotacao = emVotacaoAtiva(d);
         if (eraVotacao && !agoraVotacao && !rodadaPausaResultado) {
@@ -316,6 +371,11 @@
         }
 
         ultimoEstado = d;
+
+        var tituloEl = document.getElementById('publico-sessao-titulo');
+        if (tituloEl && d.sessao_titulo) {
+            tituloEl.textContent = d.sessao_titulo;
+        }
 
         root.classList.toggle('publico-sessao--votando', !!d.em_votacao);
         root.classList.toggle('publico-sessao--ocioso', !d.em_votacao);

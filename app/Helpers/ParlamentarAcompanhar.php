@@ -4,9 +4,11 @@ declare(strict_types=1);
 namespace App\Helpers;
 
 use App\Helpers\SessaoAtaUpload;
+use App\Models\RodadaEleitor;
 use App\Models\SessaoCrud;
 use App\Models\SessaoItem;
 use App\Models\SessaoRoteiro;
+use App\Models\SessaoRoteiroAnexo;
 use App\Models\SessaoVotacaoRodada;
 use App\Models\SessaoVoto;
 
@@ -16,11 +18,15 @@ final class ParlamentarAcompanhar
     public static function contexto(int $sessaoId, int $userId): ?array
     {
         $sessao = SessaoCrud::find($sessaoId);
-        if (!$sessao || ($sessao['status'] ?? '') === 'RASCUNHO') {
+        $statusGate = strtoupper((string) ($sessao['status'] ?? ''));
+        if (!$sessao || in_array($statusGate, ['RASCUNHO', 'CRIADO'], true)) {
             return null;
         }
 
         $passoAtual = SessaoRoteiro::passoAtual($sessaoId);
+        $anexosPasso = $passoAtual
+            ? array_map([SessaoRoteiroAnexo::class, 'publico'], SessaoRoteiroAnexo::allByPasso((int) $passoAtual['id']))
+            : [];
         $rodadaAberta = SessaoVotacaoRodada::findAberta($sessaoId);
         $stats = SessaoRoteiro::contagem($sessaoId);
         $pauta = SessaoItem::allBySessao($sessaoId);
@@ -44,9 +50,13 @@ final class ParlamentarAcompanhar
         }
 
         $statusRaw = strtoupper((string) ($sessao['status'] ?? ''));
+        $usuarioApto = $rodadaAberta
+            ? RodadaEleitor::usuarioApto((int) $rodadaAberta['id'], $userId)
+            : false;
         $podeVotar = $rodadaAberta
             && ($rodadaAberta['status'] ?? '') === 'ABERTA'
-            && in_array($statusRaw, ['ABERTA', 'EM_VOTACAO'], true);
+            && in_array($statusRaw, ['ABERTA', 'EM_VOTACAO'], true)
+            && $usuarioApto;
 
         $modo = self::resolverModo($podeVotar, $meuVoto, $passoAtual, $exibirAta, $rodadaAberta);
         $jaVotou = $meuVoto !== null && $meuVoto !== '';
@@ -55,6 +65,7 @@ final class ParlamentarAcompanhar
         return [
             'sessao' => $sessao,
             'passoAtual' => $passoAtual,
+            'anexosPasso' => $anexosPasso,
             'stats' => $stats,
             'pauta' => $pauta,
             'rodadaAberta' => $rodadaAberta,
@@ -68,6 +79,7 @@ final class ParlamentarAcompanhar
             'textoLeitura' => self::textoLeitura($passoAtual, $rodadaAberta),
             'tituloMomento' => self::tituloMomento($passoAtual, $rodadaAberta),
             'podeVotar' => $podeVotar,
+            'usuarioApto' => $usuarioApto,
             'podeRegistrarVoto' => $podeRegistrarVoto,
             'jaVotou' => $jaVotou,
             'meuVoto' => $meuVoto,
@@ -111,6 +123,7 @@ final class ParlamentarAcompanhar
             'passo_titulo' => $passo ? (string) ($passo['titulo'] ?? '') : '',
             'titulo_momento' => $ctx['tituloMomento'],
             'texto_leitura' => $ctx['textoLeitura'],
+            'anexos' => $ctx['anexosPasso'],
             'exibir_ata' => $ctx['exibirAta'],
             'progresso_pct' => $total > 0 ? (int) round(($concluidos / $total) * 100) : 0,
             'progresso_label' => $concluidos . '/' . $total,
@@ -272,11 +285,11 @@ final class ParlamentarAcompanhar
         if (($passo['tipo_passo'] ?? '') === 'INSTRUCAO') {
             $t = trim((string) ($passo['texto_instrucao'] ?? $passo['texto_fala'] ?? ''));
 
-            return ConducaoTexto::acentuarTextoPresidente($t);
+            return ConducaoRichText::plain($t);
         }
         $principal = trim((string) ($passo['texto_fala'] ?? ''));
 
-        return ConducaoTexto::acentuarTextoPresidente($principal);
+        return ConducaoRichText::plain($principal);
     }
 
     /** @param array<string, mixed>|null $passo */

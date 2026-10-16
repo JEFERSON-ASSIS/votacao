@@ -76,7 +76,11 @@ foreach ($votos ?? [] as $v) {
                                 <?= e((string) $h['titulo']) ?>
                             </a>
                             <span class="status-chip <?= ($h['status'] ?? '') === 'ABERTA' ? 'open' : 'closed' ?>">
-                                <?= e(votacao_rotulo_resultado((string) ($h['resultado'] ?? $h['status'] ?? ''))) ?>
+                                <?php if (!empty($h['resultado'])): ?>
+                                    <?= e(votacao_rotulo_resultado((string) $h['resultado'])) ?>
+                                <?php else: ?>
+                                    <?= e(votacao_rotulo_status((string) ($h['status'] ?? ''))) ?>
+                                <?php endif; ?>
                             </span>
                         </li>
                     <?php endforeach; ?>
@@ -114,6 +118,16 @@ foreach ($votos ?? [] as $v) {
             <?php if (($_GET['votacao_erro'] ?? '') === 'empate_presidente'): ?>
                 <div class="conducao-presidente-alert conducao-presidente-alert--inline" style="grid-column:1/-1;" role="alert">
                     Empate entre Sim e Não: registre o voto de desempate do presidente antes de encerrar a votação.
+                </div>
+            <?php endif; ?>
+            <?php if (($_GET['votacao_erro'] ?? '') === 'votos_pendentes'): ?>
+                <div class="conducao-presidente-alert" role="alert">
+                    A votação não foi concluída porque ainda existem vereadores presentes sem voto registrado.
+                </div>
+            <?php endif; ?>
+            <?php if (($_GET['votacao_erro'] ?? '') === 'sem_eleitores'): ?>
+                <div class="conducao-presidente-alert" role="alert">
+                    Não é possível abrir a votação sem parlamentares presentes registrados.
                 </div>
             <?php endif; ?>
 

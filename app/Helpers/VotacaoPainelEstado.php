@@ -6,7 +6,10 @@ namespace App\Helpers;
 use App\Core\Auth;
 use App\Models\SessaoVotacaoRodada;
 use App\Models\SessaoVoto;
+use App\Models\RodadaEleitor;
 use App\Models\User;
+use App\Models\SessaoConducao;
+use App\Models\SessaoVotoDesempate;
 
 final class VotacaoPainelEstado
 {
@@ -29,7 +32,10 @@ final class VotacaoPainelEstado
         }
 
         $parlamentares = [];
-        foreach (User::parlamentaresParaVotacao() as $u) {
+        $usuariosRodada = RodadaEleitor::total($rodadaId) > 0
+            ? RodadaEleitor::eleitores($rodadaId)
+            : User::parlamentaresParaVotacao();
+        foreach ($usuariosRodada as $u) {
             $uid = (int) $u['id'];
             $vReg = $votosPorUser[$uid] ?? null;
             $voto = $vReg ? (string) ($vReg['voto'] ?? '') : '';
@@ -48,9 +54,9 @@ final class VotacaoPainelEstado
 
         $auth = Auth::user();
         $authId = (int) ($auth['id'] ?? 0);
-        $authRole = (string) ($auth['role'] ?? '');
-        $ehPresidente = UserPerfil::matches($authRole, UserPerfil::PRESIDENTE);
-        $presidenteVoto = $authId > 0 ? SessaoVoto::votoUsuarioRodada($rodadaId, $authId) : null;
+        $sessaoId = (int) ($rodada['sessao_id'] ?? 0);
+        $ehPresidente = SessaoConducao::usuarioPodeConduzir($sessaoId, $authId);
+        $presidenteVoto = SessaoVotoDesempate::voto($rodadaId);
         $presidentePodeVotar = $aberta && $empate && $ehPresidente;
         $presidenteVotouDesempate = self::presidenteVotouDesempate($rodadaId);
         $encerramento = self::validarEncerramento($rodadaId);
@@ -74,6 +80,7 @@ final class VotacaoPainelEstado
             'presidente_votou_desempate' => $presidenteVotouDesempate,
             'pode_encerrar' => $encerramento['permitido'],
             'encerrar_mensagem' => $encerramento['mensagem'],
+            'pendentes' => $encerramento['pendentes'],
         ];
     }
 
@@ -88,30 +95,31 @@ final class VotacaoPainelEstado
 
     public static function presidenteVotouDesempate(int $rodadaId): bool
     {
-        $stmt = \App\Core\DB::conn()->prepare(
-            "SELECT 1 FROM sessao_votos sv
-             INNER JOIN users u ON u.id = sv.user_id
-             WHERE sv.rodada_id = :rid
-               AND UPPER(TRIM(u.role)) = :perfil
-               AND sv.voto IN ('SIM', 'NAO')
-             LIMIT 1"
-        );
-        $stmt->execute([
-            'rid' => $rodadaId,
-            'perfil' => UserPerfil::PRESIDENTE,
-        ]);
-
-        return (bool) $stmt->fetchColumn();
+        return SessaoVotoDesempate::existe($rodadaId);
     }
 
     /**
-     * @return array{permitido: bool, mensagem: string, empate: bool, presidente_votou: bool}
+     * @return array{permitido: bool, mensagem: string, empate: bool, presidente_votou: bool, pendentes: list<array<string, mixed>>}
      */
     public static function validarEncerramento(int $rodadaId): array
     {
+        $pendentes = RodadaEleitor::total($rodadaId) > 0 ? RodadaEleitor::pendentes($rodadaId) : [];
         $resumoParl = SessaoVoto::resumoParlamentaresPorRodada($rodadaId);
         $empate = self::empateParlamentares($resumoParl);
         $presidenteVotou = self::presidenteVotouDesempate($rodadaId);
+
+        if ($pendentes !== []) {
+            $nomes = array_map(static fn (array $row): string => (string) ($row['nome'] ?? ''), $pendentes);
+            return [
+                'permitido' => false,
+                'mensagem' => 'Aguardando ' . count($pendentes) . ' '
+                    . (count($pendentes) === 1 ? 'voto' : 'votos') . ': '
+                    . implode(', ', $nomes) . '.',
+                'empate' => $empate,
+                'presidente_votou' => $presidenteVotou,
+                'pendentes' => $pendentes,
+            ];
+        }
 
         if (!$empate) {
             return [
@@ -119,6 +127,7 @@ final class VotacaoPainelEstado
                 'mensagem' => '',
                 'empate' => false,
                 'presidente_votou' => $presidenteVotou,
+                'pendentes' => [],
             ];
         }
 
@@ -128,6 +137,7 @@ final class VotacaoPainelEstado
                 'mensagem' => '',
                 'empate' => true,
                 'presidente_votou' => true,
+                'pendentes' => [],
             ];
         }
 
@@ -136,6 +146,7 @@ final class VotacaoPainelEstado
             'mensagem' => 'Empate entre Sim e Não: o presidente precisa registrar o voto de desempate antes de encerrar.',
             'empate' => true,
             'presidente_votou' => false,
+            'pendentes' => [],
         ];
     }
 

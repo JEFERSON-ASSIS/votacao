@@ -4,12 +4,16 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Core\View;
+use App\Core\Auth;
 use App\Helpers\Auditoria;
+use App\Helpers\ConducaoRichText;
 use App\Helpers\Permissao;
+use App\Helpers\RoteiroAnexoUpload;
 use App\Helpers\SessaoBloqueio;
 use App\Models\SessaoCrud;
 use App\Models\SessaoEvento;
 use App\Models\SessaoRoteiro;
+use App\Models\SessaoRoteiroAnexo;
 use App\Services\RoteiroGerador;
 
 final class RoteiroController
@@ -37,7 +41,7 @@ final class RoteiroController
             $count = RoteiroGerador::gerar($sessaoId, $incluirTribuna);
         } catch (\Throwable $e) {
             app_log('[RoteiroController::gerar] erro sessaoId=' . $sessaoId . ' msg=' . $e->getMessage());
-            header('Location: ' . base_url('?r=sessao/form/' . $sessaoId . '&roteiro_erro=' . rawurlencode('Não foi possível gerar o roteiro. Execute scripts/migrate_conducao.php.') . '#roteiro'));
+            header('Location: ' . base_url('?r=sessao/form/' . $sessaoId . '&roteiro_erro=' . rawurlencode('Não foi possível gerar o roteiro. Contate o suporte para configurar os modelos de condução.') . '#roteiro'));
             exit;
         }
         app_log('[RoteiroController::gerar] sessaoId=' . $sessaoId . ' passos=' . $count);
@@ -52,12 +56,47 @@ final class RoteiroController
         exit;
     }
 
-    public function salvar(int $sessaoId, int $id): void
+    public function salvar(int $sessaoId, ?int $id = null): void
     {
         Permissao::exigir('roteiro.salvar');
         if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !csrf_check($_POST['csrf_token'] ?? null)) {
             http_response_code(400);
             echo 'Requisição inválida.';
+            return;
+        }
+
+        if ($id === null && !empty($_POST['criar_novo'])) {
+            $sessao = SessaoCrud::find($sessaoId);
+            if (!$sessao) {
+                http_response_code(404);
+                echo 'Sessão não encontrada.';
+                return;
+            }
+
+            SessaoBloqueio::abortSeBloqueada($sessao, base_url('?r=roteiro/montar/' . $sessaoId));
+
+            $id = SessaoRoteiro::insert([
+                'sessao_id' => $sessaoId,
+                'ordem' => SessaoRoteiro::proximaOrdem($sessaoId),
+                'tipo_item' => 'CONDUCAO',
+                'titulo' => 'Novo passo',
+                'texto_fala' => '',
+                'texto_instrucao' => null,
+                'tipo_passo' => 'FALA',
+                'gera_votacao' => false,
+                'ativo' => true,
+            ]);
+
+            Auditoria::log('criar', 'roteiro_passo', $id, 'Passo manual na sessão ' . $sessaoId);
+            SessaoEvento::registrar($sessaoId, 'roteiro', 'Novo passo manual adicionado ao roteiro');
+
+            header('Location: ' . base_url('?r=roteiro/montar/' . $sessaoId . '&passo=' . $id . '&novo=1'));
+            exit;
+        }
+
+        if ($id === null) {
+            http_response_code(400);
+            echo 'Passo não informado.';
             return;
         }
 
@@ -74,6 +113,10 @@ final class RoteiroController
         if (!in_array($tipoPasso, ['FALA', 'INSTRUCAO'], true)) {
             $tipoPasso = 'FALA';
         }
+        $geraVotacao = !empty($_POST['gera_votacao']);
+        if ($geraVotacao) {
+            $tipoPasso = 'INSTRUCAO';
+        }
 
         $ativo = array_key_exists('ativo', $_POST)
             ? !empty($_POST['ativo'])
@@ -81,11 +124,17 @@ final class RoteiroController
 
         SessaoRoteiro::update($id, [
             'ordem' => (int) ($_POST['ordem'] ?? $passo['ordem']),
-            'titulo' => trim((string) ($_POST['titulo'] ?? '')),
-            'texto_fala' => trim((string) ($_POST['texto_fala'] ?? '')),
-            'texto_instrucao' => trim((string) ($_POST['texto_instrucao'] ?? '')),
+            'titulo' => array_key_exists('titulo', $_POST)
+                ? trim((string) $_POST['titulo'])
+                : (string) ($passo['titulo'] ?? ''),
+            'texto_fala' => array_key_exists('texto_fala', $_POST)
+                ? ConducaoRichText::sanitize((string) $_POST['texto_fala'])
+                : (string) ($passo['texto_fala'] ?? ''),
+            'texto_instrucao' => array_key_exists('texto_instrucao', $_POST)
+                ? trim((string) $_POST['texto_instrucao'])
+                : (string) ($passo['texto_instrucao'] ?? ''),
             'tipo_passo' => $tipoPasso,
-            'gera_votacao' => !empty($_POST['gera_votacao']),
+            'gera_votacao' => $geraVotacao,
             'ativo' => $ativo,
         ]);
 
@@ -122,9 +171,94 @@ final class RoteiroController
             'sessao' => $sessao,
             'roteiro' => $roteiro,
             'passoAtual' => $passoAtual,
+            'anexosPasso' => $passoAtual ? SessaoRoteiroAnexo::allByPasso((int) $passoAtual['id']) : [],
             'roteiroStats' => SessaoRoteiro::contagem($sessaoId),
             'sessaoBloqueada' => SessaoBloqueio::isLocked($sessao),
         ]);
+    }
+
+    public function anexoSalvar(int $sessaoId, int $passoId): void
+    {
+        Permissao::exigir('roteiro.salvar');
+        $voltar = base_url('?r=roteiro/montar/' . $sessaoId . '&passo=' . $passoId);
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !csrf_check($_POST['csrf_token'] ?? null)) {
+            http_response_code(400);
+            echo 'Requisição inválida.';
+            return;
+        }
+        $passo = SessaoRoteiro::find($passoId);
+        if (!$passo || (int) $passo['sessao_id'] !== $sessaoId) {
+            http_response_code(404);
+            echo 'Passo não encontrado.';
+            return;
+        }
+        SessaoBloqueio::abortSeBloqueada(SessaoCrud::find($sessaoId), $voltar);
+
+        $url = trim((string) ($_POST['url'] ?? ''));
+        $titulo = mb_substr(trim((string) ($_POST['titulo_anexo'] ?? '')), 0, 180);
+        $temArquivo = isset($_FILES['arquivo']) && (int) ($_FILES['arquivo']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
+        try {
+            if (($url === '') === !$temArquivo) {
+                throw new \RuntimeException('Informe uma URL ou selecione um arquivo, apenas um por vez.');
+            }
+            $dadosArquivo = [
+                'tipo' => 'URL', 'arquivo' => null, 'nome_original' => null,
+                'mime_type' => null, 'tamanho_bytes' => null,
+            ];
+            if ($temArquivo) {
+                $dadosArquivo = RoteiroAnexoUpload::salvar($_FILES['arquivo'], $sessaoId, $passoId);
+                $url = '';
+            } elseif (!filter_var($url, FILTER_VALIDATE_URL) || !in_array(strtolower((string) parse_url($url, PHP_URL_SCHEME)), ['http', 'https'], true)) {
+                throw new \RuntimeException('Informe uma URL válida iniciada por http:// ou https://.');
+            }
+            try {
+                $id = SessaoRoteiroAnexo::insert([
+                    'sessao_id' => $sessaoId,
+                    'roteiro_passo_id' => $passoId,
+                    'tipo' => $dadosArquivo['tipo'],
+                    'titulo' => $titulo !== '' ? $titulo : null,
+                    'url' => $url !== '' ? $url : null,
+                    'arquivo' => $dadosArquivo['arquivo'],
+                    'nome_original' => $dadosArquivo['nome_original'],
+                    'mime_type' => $dadosArquivo['mime_type'],
+                    'tamanho_bytes' => $dadosArquivo['tamanho_bytes'],
+                    'criado_por' => (int) (Auth::user()['id'] ?? 0) ?: null,
+                ]);
+            } catch (\Throwable $e) {
+                RoteiroAnexoUpload::excluir($dadosArquivo['arquivo']);
+                throw $e;
+            }
+            Auditoria::log('criar', 'roteiro_anexo', $id, 'Anexo incluído no passo ' . $passoId);
+            SessaoEvento::registrar($sessaoId, 'roteiro', 'Anexo incluído no roteiro');
+            header('Location: ' . $voltar . '&anexo_ok=1');
+        } catch (\Throwable $e) {
+            header('Location: ' . $voltar . '&anexo_erro=' . rawurlencode($e->getMessage()));
+        }
+        exit;
+    }
+
+    public function anexoExcluir(int $sessaoId, int $passoId, int $anexoId): void
+    {
+        Permissao::exigir('roteiro.excluir');
+        $voltar = base_url('?r=roteiro/montar/' . $sessaoId . '&passo=' . $passoId);
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !csrf_check($_POST['csrf_token'] ?? null)) {
+            http_response_code(400);
+            echo 'Requisição inválida.';
+            return;
+        }
+        SessaoBloqueio::abortSeBloqueada(SessaoCrud::find($sessaoId), $voltar);
+        $anexo = SessaoRoteiroAnexo::find($anexoId);
+        if (!$anexo || (int) $anexo['sessao_id'] !== $sessaoId || (int) $anexo['roteiro_passo_id'] !== $passoId) {
+            http_response_code(404);
+            echo 'Anexo não encontrado.';
+            return;
+        }
+        SessaoRoteiroAnexo::delete($anexoId);
+        RoteiroAnexoUpload::excluir($anexo['arquivo'] ?? null);
+        Auditoria::log('excluir', 'roteiro_anexo', $anexoId, 'Anexo removido do passo ' . $passoId);
+        SessaoEvento::registrar($sessaoId, 'roteiro', 'Anexo removido do roteiro');
+        header('Location: ' . $voltar . '&anexo_excluido=1');
+        exit;
     }
 
     public function reordenar(int $sessaoId): void
@@ -197,9 +331,15 @@ final class RoteiroController
 
         SessaoBloqueio::abortSeBloqueada(SessaoCrud::find($sessaoId), base_url('?r=roteiro/montar/' . $sessaoId));
 
+        $arquivosAnexos = SessaoRoteiroAnexo::allByPasso($id);
         $pdo = \App\Core\DB::conn();
         $stmt = $pdo->prepare('DELETE FROM sessao_roteiro WHERE id = :id AND sessao_id = :sessao_id');
         $stmt->execute(['id' => $id, 'sessao_id' => $sessaoId]);
+        if ($stmt->rowCount() > 0) {
+            foreach ($arquivosAnexos as $anexo) {
+                RoteiroAnexoUpload::excluir($anexo['arquivo'] ?? null);
+            }
+        }
 
         $return = trim((string) ($_POST['return_to'] ?? ''));
         if ($return === 'montar') {

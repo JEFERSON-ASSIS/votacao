@@ -79,6 +79,16 @@ final class SessaoRoteiro
         return (int) DB::conn()->lastInsertId();
     }
 
+    public static function proximaOrdem(int $sessaoId): int
+    {
+        $stmt = DB::conn()->prepare(
+            'SELECT COALESCE(MAX(ordem), 0) + 1 FROM sessao_roteiro WHERE sessao_id = :sessao_id'
+        );
+        $stmt->execute(['sessao_id' => $sessaoId]);
+
+        return max(1, (int) $stmt->fetchColumn());
+    }
+
     public static function update(int $id, array $data): void
     {
         $stmt = DB::conn()->prepare(

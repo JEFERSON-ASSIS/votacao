@@ -41,4 +41,37 @@ final class SessaoPresenca
         $stmt->execute(['sessao_id' => $sessaoId]);
         return (int) $stmt->fetchColumn();
     }
+
+    /** @return list<int> */
+    public static function idsPresentes(int $sessaoId): array
+    {
+        $stmt = DB::conn()->prepare(
+            'SELECT user_id FROM sessao_presentes WHERE sessao_id = :sessao_id AND presente = 1 ORDER BY user_id'
+        );
+        $stmt->execute(['sessao_id' => $sessaoId]);
+        return array_values(array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN)));
+    }
+
+    /** @param list<int> $userIds */
+    public static function substituirPresentes(int $sessaoId, array $userIds): void
+    {
+        $pdo = DB::conn();
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare('DELETE FROM sessao_presentes WHERE sessao_id = :sessao_id')
+                ->execute(['sessao_id' => $sessaoId]);
+            $stmt = $pdo->prepare(
+                'INSERT INTO sessao_presentes (sessao_id, user_id, presente) VALUES (:sessao_id, :user_id, 1)'
+            );
+            foreach (array_values(array_unique(array_map('intval', $userIds))) as $userId) {
+                if ($userId > 0) {
+                    $stmt->execute(['sessao_id' => $sessaoId, 'user_id' => $userId]);
+                }
+            }
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+    }
 }

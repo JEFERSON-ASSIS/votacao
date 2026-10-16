@@ -6,10 +6,12 @@ namespace App\Controllers;
 use App\Core\Auth;
 use App\Core\View;
 use App\Helpers\Auditoria;
+use App\Helpers\ConducaoRichText;
 use App\Helpers\Permissao;
 use App\Helpers\UserPerfil;
 use App\Helpers\VotacaoPainelEstado;
 use App\Models\Sessao;
+use App\Models\RodadaEleitor;
 use App\Models\SessaoCrud;
 use App\Models\SessaoEvento;
 use App\Models\SessaoItem;
@@ -17,7 +19,10 @@ use App\Models\SessaoPresenca;
 use App\Models\SessaoRoteiro;
 use App\Models\SessaoVotacaoRodada;
 use App\Models\SessaoVoto;
+use App\Models\SessaoVotoDesempate;
+use App\Models\SessaoConducao;
 use App\Models\User;
+use App\Services\VotacaoEncerramentoService;
 
 final class VotacaoController
 {
@@ -28,15 +33,20 @@ final class VotacaoController
         $sessaoId = $sessao ? (int) $sessao['id'] : 0;
 
         $roteiroStats = $sessao ? SessaoRoteiro::contagem($sessaoId) : ['total' => 0, 'concluidos' => 0];
+        $rodadaAberta = $sessao ? SessaoVotacaoRodada::findAberta($sessaoId) : null;
+        $rodadaId = (int) ($rodadaAberta['id'] ?? 0);
+        $usuarios = $rodadaId > 0 && RodadaEleitor::total($rodadaId) > 0
+            ? RodadaEleitor::eleitores($rodadaId)
+            : User::parlamentaresParaVotacao();
 
         View::render('votacao/index', [
             'sessao' => $sessao,
             'status' => $sessao ? strtoupper((string) $sessao['status']) : null,
             'itens' => $sessao ? Sessao::pauta($sessaoId) : [],
-            'usuarios' => User::parlamentaresParaVotacao(),
+            'usuarios' => $usuarios,
             'presencas' => $sessao ? SessaoPresenca::allBySessao($sessaoId) : [],
             'eventos' => $sessao ? SessaoEvento::allBySessao($sessaoId) : [],
-            'rodadaAberta' => $sessao ? SessaoVotacaoRodada::findAberta($sessaoId) : null,
+            'rodadaAberta' => $rodadaAberta,
             'historicoRodadas' => $sessao ? SessaoVotacaoRodada::historico($sessaoId, 10) : [],
             'roteiroStats' => $roteiroStats,
             'usaRoteiro' => ($roteiroStats['total'] ?? 0) > 0,
@@ -86,9 +96,9 @@ final class VotacaoController
             'podeEncerrar' => $encerramento['permitido'],
             'encerrarMensagem' => $encerramento['mensagem'],
             'presidenteVotouDesempate' => $encerramento['presidente_votou'],
-            'ehPresidente' => UserPerfil::matches((string) ($auth['role'] ?? ''), UserPerfil::PRESIDENTE),
+            'ehPresidente' => SessaoConducao::usuarioPodeConduzir($sessaoId, $authId),
             'presidenteId' => $authId,
-            'presidenteVoto' => $authId > 0 ? SessaoVoto::votoUsuarioRodada($rid, $authId) : null,
+            'presidenteVoto' => SessaoVotoDesempate::voto($rid),
             'historicoRodadas' => SessaoVotacaoRodada::historico($sessaoId, 15),
         ]);
     }
@@ -177,6 +187,12 @@ final class VotacaoController
             return;
         }
 
+        $statusSessao = strtoupper((string) ($sessao['status'] ?? ''));
+        if (!in_array($statusSessao, ['ABERTA', 'EM_VOTACAO'], true)) {
+            header('Location: ' . base_url('?r=presidencia/conduzir/' . $sessaoId . '&sessao_erro=nao_iniciada'));
+            exit;
+        }
+
         $roteiroPassoId = (int) ($_POST['roteiro_passo_id'] ?? 0) ?: null;
         $itemId = (int) ($_POST['item_id'] ?? 0) ?: null;
         $titulo = trim((string) ($_POST['titulo'] ?? ''));
@@ -189,7 +205,7 @@ final class VotacaoController
                     $titulo = trim((string) ($passo['titulo'] ?? ''));
                 }
                 if ($descricao === '') {
-                    $descricao = trim((string) ($passo['texto_fala'] ?: $passo['texto_instrucao'] ?? ''));
+                    $descricao = ConducaoRichText::plain((string) ($passo['texto_fala'] ?: $passo['texto_instrucao'] ?? ''));
                 }
                 if (!$itemId && !empty($passo['pauta_item_id'])) {
                     $itemId = (int) $passo['pauta_item_id'];
@@ -201,9 +217,34 @@ final class VotacaoController
             $titulo = 'Votação';
         }
 
-        $rodadaId = SessaoVotacaoRodada::abrir($sessaoId, $titulo, $roteiroPassoId, $itemId, $descricao !== '' ? $descricao : null);
+        $eleitoresIds = SessaoConducao::eleitoresPresentes($sessaoId);
+        $tempoSeg = sessao_tempo_normalizar($_POST['tempo_seg'] ?? 0);
+        try {
+            $rodadaId = SessaoVotacaoRodada::abrir(
+                $sessaoId,
+                $titulo,
+                $roteiroPassoId,
+                $itemId,
+                $descricao !== '' ? $descricao : null,
+                $eleitoresIds,
+                $tempoSeg
+            );
+        } catch (\Throwable $e) {
+            app_log('[VotacaoController::abrirRodada] sessaoId=' . $sessaoId . ' msg=' . $e->getMessage());
+            $return = trim((string) ($_POST['return_to'] ?? ''));
+            $destino = $return === 'conduzir'
+                ? '?r=presidencia/conduzir/' . $sessaoId . '&votacao_erro=sem_eleitores'
+                : '?r=votacao/painel/' . $sessaoId . '&votacao_erro=sem_eleitores';
+            header('Location: ' . base_url($destino));
+            exit;
+        }
         Auditoria::log('abrir', 'votacao_rodada', $rodadaId, $titulo);
-        SessaoEvento::registrar($sessaoId, 'votacao', 'Votação aberta: ' . $titulo, $itemId ?: null);
+        SessaoEvento::registrar(
+            $sessaoId,
+            'votacao',
+            'Votação aberta: ' . $titulo . ' — fotografia com ' . count($eleitoresIds) . ' eleitor(es)',
+            $itemId ?: null
+        );
 
         $return = trim((string) ($_POST['return_to'] ?? ''));
         if ($return === 'conduzir') {
@@ -233,7 +274,7 @@ final class VotacaoController
         $validacao = VotacaoPainelEstado::validarEncerramento($rodadaId);
         if (!$validacao['permitido']) {
             $return = trim((string) ($_POST['return_to'] ?? ''));
-            $erro = 'empate_presidente';
+            $erro = !empty($validacao['pendentes']) ? 'votos_pendentes' : 'empate_presidente';
             if ($return === 'conduzir') {
                 header('Location: ' . base_url('?r=presidencia/conduzir/' . $sessaoId . '&votacao_erro=' . $erro));
             } else {
@@ -242,7 +283,17 @@ final class VotacaoController
             exit;
         }
 
-        $apuracao = SessaoVotacaoRodada::encerrar($rodadaId);
+        $encerramento = VotacaoEncerramentoService::encerrar($sessaoId, $rodadaId);
+        if (!$encerramento['permitido']) {
+            $return = trim((string) ($_POST['return_to'] ?? ''));
+            $erro = !empty($encerramento['pendentes']) ? 'votos_pendentes' : 'empate_presidente';
+            $destino = $return === 'conduzir'
+                ? '?r=presidencia/conduzir/' . $sessaoId . '&votacao_erro=' . $erro
+                : '?r=votacao/painel/' . $sessaoId . '&rodada=' . $rodadaId . '&votacao_erro=' . $erro;
+            header('Location: ' . base_url($destino));
+            exit;
+        }
+        $apuracao = $encerramento['apuracao'] ?? [];
         Auditoria::log('encerrar', 'votacao_rodada', $rodadaId, (string) ($apuracao['resultado'] ?? ''));
         SessaoEvento::registrar(
             $sessaoId,
@@ -282,6 +333,29 @@ final class VotacaoController
         $userId = (int) ($_POST['user_id'] ?? 0);
         $voto = votacao_normalizar_voto(trim((string) ($_POST['voto'] ?? ''))) ?? '';
         $observacao = trim((string) ($_POST['observacao'] ?? ''));
+
+        if (SessaoConducao::usuarioPodeConduzir($sessaoId, $authId)) {
+            if ($userId !== $authId) {
+                http_response_code(403);
+                echo 'O condutor só registra o próprio voto de desempate.';
+                return;
+            }
+            $resumoParl = SessaoVoto::resumoParlamentaresPorRodada($rodadaId);
+            if (!VotacaoPainelEstado::empateParlamentares($resumoParl)) {
+                http_response_code(400);
+                echo 'O voto de desempate só é permitido quando houver empate entre Sim e Não.';
+                return;
+            }
+            if (!in_array($voto, ['SIM', 'NAO'], true)) {
+                http_response_code(400);
+                echo 'Selecione Sim ou Não para desempatar.';
+                return;
+            }
+            SessaoVotoDesempate::registrar($sessaoId, $rodadaId, $authId, $voto);
+            Auditoria::log('desempatar', 'votacao_rodada', $rodadaId, 'Voto de desempate do condutor em exercício');
+            header('Location: ' . base_url('?r=votacao/painel/' . $sessaoId . '&rodada=' . $rodadaId));
+            exit;
+        }
 
         $alvo = $userId > 0 ? User::find($userId) : null;
         if ($alvo && UserPerfil::ehParlamentar((string) ($alvo['role'] ?? ''))) {
@@ -429,7 +503,18 @@ final class VotacaoController
 
         $aberta = SessaoVotacaoRodada::findAberta($sessaoId);
         if ($aberta) {
-            SessaoVotacaoRodada::encerrar((int) $aberta['id']);
+            $validacao = VotacaoPainelEstado::validarEncerramento((int) $aberta['id']);
+            if (!$validacao['permitido']) {
+                $erro = !empty($validacao['pendentes']) ? 'votos_pendentes' : 'empate_presidente';
+                header('Location: ' . base_url('?r=votacao/painel/' . $sessaoId . '&rodada=' . (int) $aberta['id'] . '&votacao_erro=' . $erro));
+                exit;
+            }
+            $encerramento = VotacaoEncerramentoService::encerrar($sessaoId, (int) $aberta['id']);
+            if (!$encerramento['permitido']) {
+                $erro = !empty($encerramento['pendentes']) ? 'votos_pendentes' : 'empate_presidente';
+                header('Location: ' . base_url('?r=votacao/painel/' . $sessaoId . '&rodada=' . (int) $aberta['id'] . '&votacao_erro=' . $erro));
+                exit;
+            }
         }
 
         Sessao::updateStatus($sessaoId, 'ENCERRADA');

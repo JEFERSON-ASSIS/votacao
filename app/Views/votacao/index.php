@@ -32,7 +32,7 @@ $podeConduzir = !empty($sessao) && sessao_pode_conduzir($sessao);
                 <?php elseif ($sessao && $status !== 'EM_VOTACAO' && !$sessaoBloqueada): ?>
                     <form method="post" action="<?= e(base_url('?r=votacao/abrir/' . $sessaoId)) ?>">
                         <?= csrf_field() ?>
-                        <button class="btn btn-soft" type="submit">Modo legado: abrir votação por matéria</button>
+                        <button class="btn btn-soft" type="submit">Abrir votação por matéria (fluxo antigo)</button>
                     </form>
                 <?php endif; ?>
                 <?php if ($sessao && $status === 'EM_VOTACAO' && !$usaRoteiro): ?>
@@ -102,7 +102,7 @@ $podeConduzir = !empty($sessao) && sessao_pode_conduzir($sessao);
                     <?php foreach ($usuarios as $u): ?>
                         <tr>
                             <td><strong><?= e($u['nome']) ?></strong><div style="color:var(--muted);font-size:12px;"><?= e($u['email']) ?></div></td>
-                            <td><?= e($u['role']) ?></td>
+                            <td><?= e(user_perfil_label((string) ($u['role'] ?? ''))) ?></td>
                             <td>
                                 <div class="action-row">
                                     <form method="post" action="<?= e(base_url('?r=votacao/presenca/' . $sessaoId)) ?>">
@@ -191,9 +191,9 @@ $podeConduzir = !empty($sessao) && sessao_pode_conduzir($sessao);
                 <?php foreach ($historicoRodadas as $rod): ?>
                     <li>
                         <?= e((string) ($rod['titulo'] ?? 'Votação')) ?>
-                        — <?= e((string) ($rod['status'] ?? '')) ?>
+                        — <?= e(votacao_rotulo_status((string) ($rod['status'] ?? ''))) ?>
                         <?php if (!empty($rod['resultado'])): ?>
-                            (<?= e((string) $rod['resultado']) ?>)
+                            (<?= e(votacao_rotulo_resultado((string) $rod['resultado'])) ?>)
                         <?php endif; ?>
                         <a class="btn btn-soft" style="margin-left:8px;" href="<?= e(base_url('?r=votacao/apuracaoRodada/' . (int) $rod['id'])) ?>">Apuração</a>
                     </li>

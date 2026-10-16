@@ -8,23 +8,19 @@ use App\Models\SessaoItem;
 use App\Models\SessaoRoteiro;
 use App\Models\SessaoVotacaoRodada;
 use App\Models\SessaoVoto;
+use App\Models\RodadaEleitor;
+use App\Models\SessaoConducao;
 use App\Models\User;
 
 /** Estado da sessão para visão pública / telão (sem login, sem dados operacionais). */
 final class PublicoSessaoEstado
 {
-    /** Passos de condução que não devem aparecer no telão público. */
-    private const PASSOS_PRIVADOS = [
-        'abertura da sessão',
-        'ata da sessão anterior',
-        'encerramento da sessão',
-    ];
-
     /** @return array<string, mixed> */
     public static function estadoJson(int $sessaoId): array
     {
         $sessao = SessaoCrud::find($sessaoId);
-        if (!$sessao || strtoupper((string) ($sessao['status'] ?? '')) === 'RASCUNHO') {
+        $statusGate = strtoupper((string) ($sessao['status'] ?? ''));
+        if (!$sessao || in_array($statusGate, ['RASCUNHO', 'CRIADO'], true)) {
             return ['ok' => false];
         }
 
@@ -55,7 +51,6 @@ final class PublicoSessaoEstado
             'status_label' => sessao_status_label($statusRaw),
             'status_chip' => sessao_status_chip_class($statusRaw),
             'momento_titulo' => self::tituloMomento($passoAtual, $rodadaAberta),
-            'texto_momento' => self::textoMomento($passoAtual, $rodadaAberta),
             'progresso_label' => ((int) ($stats['concluidos'] ?? 0)) . '/' . ((int) ($stats['total'] ?? 0)),
             'progresso_pct' => (int) ($stats['total'] ?? 0) > 0
                 ? (int) round(((int) ($stats['concluidos'] ?? 0) / (int) $stats['total']) * 100)
@@ -63,6 +58,35 @@ final class PublicoSessaoEstado
             'em_votacao' => $rodadaAoVivo !== null,
             'rodada_aberta' => $rodadaAoVivo,
             'historico' => $historico,
+            'destaque' => self::destaquePublico($sessaoId),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private static function destaquePublico(int $sessaoId): array
+    {
+        $estado = SessaoConducao::estado($sessaoId);
+        $userId = (int) ($estado['destaque_user_id'] ?? 0);
+        if ($userId <= 0) {
+            return ['ativo' => false];
+        }
+        $user = User::find($userId);
+        if (!$user) {
+            return ['ativo' => false];
+        }
+
+        return [
+            'ativo' => true,
+            'user_id' => $userId,
+            'nome' => (string) ($user['nome'] ?? ''),
+            'partido' => trim((string) ($user['partido'] ?? '')),
+            'gabinete' => trim((string) ($user['gabinete'] ?? '')),
+            'foto_url' => user_foto_url($user),
+            'iniciais' => user_iniciais((string) ($user['nome'] ?? '')),
+            'tempo' => sessao_tempo_payload(
+                $estado['destaque_tempo_seg'] ?? 0,
+                $estado['destaque_em'] ?? null
+            ),
         ];
     }
 
@@ -80,7 +104,6 @@ final class PublicoSessaoEstado
         return [
             'id' => $rodadaId,
             'titulo' => (string) ($rodada['titulo'] ?? 'Votação'),
-            'descricao' => trim((string) ($rodada['descricao'] ?? '')),
             'tipo_label' => self::tipoLabelRodada($rodada, $item),
             'item_id' => $itemId,
             'item_titulo' => $item ? (string) ($item['titulo'] ?? '') : '',
@@ -98,6 +121,9 @@ final class PublicoSessaoEstado
             'total_votos' => (int) ($resumo['SIM'] ?? 0) + (int) ($resumo['NAO'] ?? 0) + (int) ($resumo['ABSTENCAO'] ?? 0),
             'parlamentares' => self::parlamentaresRodada($rodadaId),
             'encerrada_em' => (string) ($rodada['encerrada_em'] ?? ''),
+            'tempo' => $aoVivo
+                ? sessao_tempo_payload($rodada['tempo_limite_seg'] ?? 0, $rodada['created_at'] ?? null)
+                : null,
         ];
     }
 
@@ -135,7 +161,10 @@ final class PublicoSessaoEstado
         }
 
         $lista = [];
-        foreach (User::parlamentaresParaVotacao() as $u) {
+        $usuariosRodada = RodadaEleitor::total($rodadaId) > 0
+            ? RodadaEleitor::eleitores($rodadaId)
+            : User::parlamentaresParaVotacao();
+        foreach ($usuariosRodada as $u) {
             $uid = (int) $u['id'];
             $reg = $votosPorUser[$uid] ?? null;
             $voto = $reg ? (string) ($reg['voto'] ?? '') : '';
@@ -163,54 +192,23 @@ final class PublicoSessaoEstado
         return $lista;
     }
 
-    /** @param array<string, mixed>|null $passo */
-    /** @param array<string, mixed>|null $rodada */
+    /**
+     * Só o título vai ao telão: falas, instruções e descrições do roteiro
+     * são roteiro do presidente e não podem aparecer para o público.
+     *
+     * @param array<string, mixed>|null $passo
+     * @param array<string, mixed>|null $rodada
+     */
     public static function tituloMomento(?array $passo, ?array $rodada): string
     {
         if ($rodada && ($rodada['titulo'] ?? '') !== '') {
             return (string) $rodada['titulo'];
-        }
-        if (self::passoEhPrivado($passo)) {
-            return 'Sessão plenária';
         }
         if ($passo && ($passo['titulo'] ?? '') !== '') {
             return (string) $passo['titulo'];
         }
 
         return 'Sessão plenária';
-    }
-
-    /** @param array<string, mixed>|null $passo */
-    /** @param array<string, mixed>|null $rodada */
-    public static function textoMomento(?array $passo, ?array $rodada): string
-    {
-        if ($rodada && trim((string) ($rodada['descricao'] ?? '')) !== '') {
-            return ConducaoTexto::acentuarTextoPresidente((string) $rodada['descricao']);
-        }
-        if (self::passoEhPrivado($passo)) {
-            return '';
-        }
-        if (!$passo) {
-            return '';
-        }
-        if (($passo['tipo_passo'] ?? '') === 'INSTRUCAO') {
-            return ConducaoTexto::acentuarTextoPresidente(
-                trim((string) ($passo['texto_instrucao'] ?? $passo['texto_fala'] ?? ''))
-            );
-        }
-
-        return ConducaoTexto::acentuarTextoPresidente(trim((string) ($passo['texto_fala'] ?? '')));
-    }
-
-    /** @param array<string, mixed>|null $passo */
-    private static function passoEhPrivado(?array $passo): bool
-    {
-        if (!$passo) {
-            return false;
-        }
-
-        $titulo = mb_strtolower(trim((string) ($passo['titulo'] ?? '')));
-        return in_array($titulo, self::PASSOS_PRIVADOS, true);
     }
 
     public static function hashEstado(array $estado): string

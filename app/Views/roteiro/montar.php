@@ -1,7 +1,11 @@
 <?php declare(strict_types=1); ?>
 <?php
+use App\Helpers\ConducaoRichText;
+use App\Models\SessaoRoteiroAnexo;
+
 $roteiro = $roteiro ?? [];
 $passoAtual = $passoAtual ?? null;
+$anexosPasso = $anexosPasso ?? [];
 $sessao = $sessao ?? ['id' => 0, 'titulo' => ''];
 $passoId = $passoAtual ? (int) $passoAtual['id'] : 0;
 $passoNúmero = 0;
@@ -36,7 +40,7 @@ function roteiro_preview_texto(?array $passo): string
         $texto = trim((string) ($passo['texto_fala'] ?? ''));
     }
 
-    return \App\Helpers\ConducaoTexto::acentuarTextoPresidente($texto);
+    return ConducaoRichText::plain($texto);
 }
 
 $sessaoBloqueada = !empty($sessaoBloqueada) || (!empty($sessao) && sessao_esta_bloqueada($sessao));
@@ -63,7 +67,6 @@ $sessaoBloqueada = !empty($sessaoBloqueada) || (!empty($sessao) && sessao_esta_b
             </div>
         </div>
         <div class="action-row">
-            <a class="btn btn-soft" href="<?= e(base_url('?r=sessao/form/' . (int) $sessao['id'] . '#roteiro')) ?>">Voltar à sessão</a>
             <?php if ($roteiro !== [] && sessao_pode_conduzir($sessao)): ?>
                 <a class="btn btn-primary" href="<?= e(base_url('?r=presidencia/conduzir/' . (int) $sessao['id'])) ?>">Conduzir sessão</a>
             <?php elseif ($sessaoBloqueada): ?>
@@ -73,10 +76,25 @@ $sessaoBloqueada = !empty($sessaoBloqueada) || (!empty($sessao) && sessao_esta_b
     </header>
 
     <?php if (!empty($_GET['roteiro_ok'])): ?>
-        <div class="sapl-ok" style="margin-bottom:12px;">Roteiro gerado com <?= (int) $_GET['roteiro_ok'] ?> passo(s). Ajuste a ordem e os textos abaixo.</div>
+        <div class="sapl-ok roteiro-auto-dismiss" data-auto-dismiss="5000" style="margin-bottom:12px;">Roteiro gerado com <?= (int) $_GET['roteiro_ok'] ?> passo(s). Ajuste a ordem e os textos abaixo.</div>
+    <?php endif; ?>
+    <?php if (!empty($_GET['sessao_ok']) && $_GET['sessao_ok'] === 'criada'): ?>
+        <div class="sapl-ok roteiro-auto-dismiss" data-auto-dismiss="5000" style="margin-bottom:12px;">Sessão criada. Revise e ajuste o roteiro antes de conduzir.</div>
+    <?php endif; ?>
+    <?php if (!empty($_GET['anexo_ok'])): ?>
+        <div class="sapl-ok roteiro-auto-dismiss" data-auto-dismiss="5000" style="margin-bottom:12px;">Anexo incluído neste passo.</div>
+    <?php endif; ?>
+    <?php if (!empty($_GET['anexo_excluido'])): ?>
+        <div class="sapl-ok roteiro-auto-dismiss" data-auto-dismiss="5000" style="margin-bottom:12px;">Anexo removido deste passo.</div>
+    <?php endif; ?>
+    <?php if (!empty($_GET['anexo_erro'])): ?>
+        <div class="sapl-error" style="margin-bottom:12px;"><?= e((string) $_GET['anexo_erro']) ?></div>
     <?php endif; ?>
     <?php if (!empty($_GET['salvo'])): ?>
-        <div class="sapl-ok" style="margin-bottom:12px;">Passo salvo.</div>
+        <div class="sapl-ok roteiro-auto-dismiss" data-auto-dismiss="5000" style="margin-bottom:12px;">Passo salvo.</div>
+    <?php endif; ?>
+    <?php if (!empty($_GET['novo'])): ?>
+        <div class="sapl-ok roteiro-auto-dismiss" data-auto-dismiss="5000" style="margin-bottom:12px;">Novo passo adicionado. Preencha o conteúdo e salve.</div>
     <?php endif; ?>
     <?php if ($sessaoBloqueada): ?>
         <div class="sessao-bloqueio-banner" style="margin-bottom:12px;"><?= e(sessao_bloqueio_motivo($sessao)) ?> Somente visualização.</div>
@@ -84,14 +102,24 @@ $sessaoBloqueada = !empty($sessaoBloqueada) || (!empty($sessao) && sessao_esta_b
 
     <?php if ($roteiro === []): ?>
         <article class="panel-card">
-            <p class="panel-meta">Nenhum passo no roteiro. Volte à sessão e clique em <strong>Gerar condução</strong>.</p>
-            <a class="btn btn-primary" href="<?= e(base_url('?r=sessao/form/' . (int) $sessao['id'] . '#roteiro')) ?>" style="margin-top:12px;">Ir para a sessão</a>
+            <p class="panel-meta">Nenhum passo disponível no roteiro.</p>
+            <a class="btn btn-primary" href="<?= e(base_url('?r=sessao/index')) ?>" style="margin-top:12px;">Voltar às sessões</a>
         </article>
     <?php else: ?>
         <div class="roteiro-montar-layout">
             <aside class="roteiro-montar-aside">
                 <div class="panel-label" style="margin-bottom:8px;">Ordem dos passos</div>
                 <p class="panel-meta" style="margin:0 0 10px;font-size:11px;">Segure ⋮⋮ para reordenar. ⊘ = fora da condução. Textos iguais em blocos diferentes = uma cópia por matéria.</p>
+                <?php if (!$sessaoBloqueada): ?>
+                    <form method="post" action="<?= e(base_url('?r=roteiro/salvar/' . (int) $sessao['id'])) ?>" class="roteiro-add-step-form">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="criar_novo" value="1">
+                        <button class="btn btn-primary btn-has-icon" type="submit">
+                            <span class="icon-glyph" aria-hidden="true">+</span>
+                            <span>Novo passo</span>
+                        </button>
+                    </form>
+                <?php endif; ?>
                 <ul class="roteiro-sortable<?= $sessaoBloqueada ? ' is-readonly' : '' ?>" id="roteiro-sortable"<?= $sessaoBloqueada ? '' : ' data-reorder-url="' . e(base_url('?r=roteiro/reordenar/' . (int) $sessao['id'])) . '"' ?>>
                     <?php $grupoAnterior = null; ?>
                     <?php foreach ($roteiro as $i => $passo): ?>
@@ -111,10 +139,11 @@ $sessaoBloqueada = !empty($sessaoBloqueada) || (!empty($sessao) && sessao_esta_b
                             <a class="roteiro-sort-link" href="<?= e(base_url('?r=roteiro/montar/' . (int) $sessao['id'] . '&passo=' . $id)) ?>">
                                 <span class="roteiro-sort-num"><?= $i + 1 ?></span>
                                 <span class="roteiro-sort-body">
-                                    <?php if (!empty($passo['pauta_titulo'])): ?>
-                                        <span class="roteiro-sort-materia"><?= e((string) $passo['pauta_titulo']) ?></span>
-                                    <?php elseif (!empty($passo['titulo'])): ?>
-                                        <span class="roteiro-sort-materia"><?= e((string) $passo['titulo']) ?></span>
+                                    <?php if (!empty($passo['titulo']) || !empty($passo['pauta_titulo'])): ?>
+                                        <span
+                                            class="roteiro-sort-materia"
+                                            <?= $isSelected ? 'id="passo-titulo-lateral" data-titulo-original="' . e((string) ($passo['pauta_titulo'] ?? '')) . '"' : '' ?>
+                                        ><?= e((string) ($passo['titulo'] ?: $passo['pauta_titulo'])) ?></span>
                                     <?php endif; ?>
                                     <span class="roteiro-sort-preview"><?= e(mb_strimwidth($preview, 0, 90, '…')) ?></span>
                                     <span class="roteiro-sort-tags">
@@ -133,16 +162,25 @@ $sessaoBloqueada = !empty($sessaoBloqueada) || (!empty($sessao) && sessao_esta_b
                                 </span>
                             </a>
                             <?php if (!$sessaoBloqueada): ?>
-                            <form class="roteiro-skip-form" method="post" action="<?= e(base_url('?r=roteiro/toggleAtivo/' . (int) $sessao['id'] . '/' . $id)) ?>" title="<?= $incluido ? 'Não usar nesta sessão' : 'Incluir na condução' ?>">
-                                <?= csrf_field() ?>
-                                <?php if ($incluido): ?>
-                                    <input type="hidden" name="ativo" value="0">
-                                    <button class="roteiro-skip-btn" type="submit" aria-label="Não usar">⊘</button>
-                                <?php else: ?>
-                                    <input type="hidden" name="ativo" value="1">
-                                    <button class="roteiro-skip-btn roteiro-skip-btn--on" type="submit" aria-label="Incluir">✓</button>
-                                <?php endif; ?>
-                            </form>
+                            <div class="roteiro-card-actions">
+                                <form class="roteiro-skip-form" method="post" action="<?= e(base_url('?r=roteiro/toggleAtivo/' . (int) $sessao['id'] . '/' . $id)) ?>" title="<?= $incluido ? 'Não usar nesta sessão' : 'Incluir na condução' ?>">
+                                    <?= csrf_field() ?>
+                                    <?php if ($incluido): ?>
+                                        <input type="hidden" name="ativo" value="0">
+                                        <button class="roteiro-skip-btn" type="submit" aria-label="Não usar">⊘</button>
+                                    <?php else: ?>
+                                        <input type="hidden" name="ativo" value="1">
+                                        <button class="roteiro-skip-btn roteiro-skip-btn--on" type="submit" aria-label="Incluir">✓</button>
+                                    <?php endif; ?>
+                                </form>
+                                <form class="roteiro-delete-card-form" method="post" action="<?= e(base_url('?r=roteiro/excluir/' . (int) $sessao['id'] . '/' . $id)) ?>" onsubmit="return confirm('Excluir definitivamente este passo do roteiro?');">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="return_to" value="montar">
+                                    <button class="roteiro-delete-card-btn" type="submit" aria-label="Excluir passo" title="Excluir passo">
+                                        <span aria-hidden="true">&#128465;</span>
+                                    </button>
+                                </form>
+                            </div>
                             <?php endif; ?>
                         </li>
                     <?php endforeach; ?>
@@ -163,7 +201,7 @@ $sessaoBloqueada = !empty($sessaoBloqueada) || (!empty($sessao) && sessao_esta_b
                                 <div class="conducao-materia-ref"><?= e((string) $passoAtual['pauta_titulo']) ?></div>
                             <?php endif; ?>
                             <?php if (trim((string) ($passoAtual['texto_fala'] ?? '')) !== ''): ?>
-                                <p class="conducao-fala"><?= nl2br(e(roteiro_preview_texto($passoAtual))) ?></p>
+                                <div class="conducao-fala"><?= ConducaoRichText::render((string) ($passoAtual['texto_fala'] ?? '')) ?></div>
                             <?php endif; ?>
                             <?php if (trim((string) ($passoAtual['texto_instrucao'] ?? '')) !== ''): ?>
                                 <p class="conducao-instrucao"><?= nl2br(e(\App\Helpers\ConducaoTexto::acentuarTextoPresidente((string) ($passoAtual['texto_instrucao'] ?? '')))) ?></p>
@@ -179,14 +217,14 @@ $sessaoBloqueada = !empty($sessaoBloqueada) || (!empty($sessao) && sessao_esta_b
                         <div class="roteiro-montar-toolbar">
                             <span class="panel-label">Passo <?= (int) $passoNúmero ?> de <?= count($roteiro) ?></span>
                             <label class="roteiro-toggle-preview">
-                                <input type="checkbox" id="toggle-preview" checked> Preview
+                                <input type="checkbox" id="toggle-preview" checked> Pré-visualização
                             </label>
                         </div>
 
                         <div class="roteiro-meta-compact">
                             <div class="roteiro-meta-field roteiro-meta-field--grow">
                                 <label class="panel-label">Título (opcional)</label>
-                                <input class="field field--compact" name="titulo" value="<?= e(\App\Helpers\ConducaoTexto::acentuarTextoPresidente((string) ($passoAtual['titulo'] ?? ''))) ?>" placeholder="Abertura, Ata…">
+                                <input class="field field--compact" name="titulo" id="passo-titulo" value="<?= e(\App\Helpers\ConducaoTexto::acentuarTextoPresidente((string) ($passoAtual['titulo'] ?? ''))) ?>" placeholder="Abertura, Ata…">
                             </div>
                             <div class="roteiro-meta-field">
                                 <label class="panel-label">Tipo</label>
@@ -196,7 +234,7 @@ $sessaoBloqueada = !empty($sessaoBloqueada) || (!empty($sessao) && sessao_esta_b
                                 </select>
                             </div>
                             <label class="roteiro-meta-check panel-label">
-                                <input type="checkbox" name="gera_votacao" value="1" <?= !empty($passoAtual['gera_votacao']) ? 'checked' : '' ?>>
+                                <input type="checkbox" name="gera_votacao" id="gera-votacao" value="1" <?= !empty($passoAtual['gera_votacao']) ? 'checked' : '' ?>>
                                 Votação
                             </label>
                             <?php $passoIncluido = !isset($passoAtual['ativo']) || (int) $passoAtual['ativo'] === 1; ?>
@@ -209,7 +247,29 @@ $sessaoBloqueada = !empty($sessaoBloqueada) || (!empty($sessao) && sessao_esta_b
 
                         <div class="roteiro-doc-block" id="bloco-fala">
                             <label class="panel-label">Texto da fala</label>
-                            <textarea class="field roteiro-doc-editor" name="texto_fala" id="texto_fala" rows="1" data-auto-height placeholder="O que o presidente lê em voz alta…"><?= e(\App\Helpers\ConducaoTexto::acentuarTextoPresidente((string) ($passoAtual['texto_fala'] ?? ''))) ?></textarea>
+                            <div class="roteiro-rich-toolbar" role="toolbar" aria-label="Formatação do texto da fala">
+                                <button type="button" data-rich-command="bold" aria-label="Negrito" title="Negrito"><strong>N</strong></button>
+                                <button type="button" data-rich-command="italic" aria-label="Itálico" title="Itálico"><em>I</em></button>
+                                <button type="button" data-rich-command="underline" aria-label="Sublinhado" title="Sublinhado"><u>S</u></button>
+                                <span class="roteiro-rich-separator" aria-hidden="true"></span>
+                                <button type="button" data-rich-command="insertUnorderedList" aria-label="Lista com marcadores" title="Lista com marcadores">• Lista</button>
+                                <button type="button" data-rich-command="insertOrderedList" aria-label="Lista numerada" title="Lista numerada">1. Lista</button>
+                                <span class="roteiro-rich-separator" aria-hidden="true"></span>
+                                <button type="button" data-rich-command="justifyLeft" aria-label="Alinhar à esquerda" title="Alinhar à esquerda">Esquerda</button>
+                                <button type="button" data-rich-command="justifyCenter" aria-label="Centralizar" title="Centralizar">Centro</button>
+                                <button type="button" data-rich-command="justifyRight" aria-label="Alinhar à direita" title="Alinhar à direita">Direita</button>
+                                <span class="roteiro-rich-separator" aria-hidden="true"></span>
+                                <button type="button" data-rich-command="removeFormat" aria-label="Remover formatação" title="Remover formatação">Limpar formato</button>
+                            </div>
+                            <div
+                                class="field roteiro-doc-editor roteiro-rich-editor"
+                                id="texto_fala_editor"
+                                contenteditable="true"
+                                role="textbox"
+                                aria-multiline="true"
+                                data-placeholder="O que o presidente lê em voz alta…"
+                            ><?= ConducaoRichText::editorHtml((string) ($passoAtual['texto_fala'] ?? '')) ?></div>
+                            <textarea name="texto_fala" id="texto_fala" hidden><?= e((string) ($passoAtual['texto_fala'] ?? '')) ?></textarea>
                         </div>
 
                         <div class="roteiro-doc-block" id="bloco-instrucao">
@@ -218,7 +278,7 @@ $sessaoBloqueada = !empty($sessaoBloqueada) || (!empty($sessao) && sessao_esta_b
                         </div>
 
                         <article class="roteiro-preview-presidente" id="preview-presidente">
-                            <div class="panel-label">Preview — condução</div>
+                            <div class="panel-label">Pré-visualização — condução</div>
                             <?php if (!empty($passoAtual['pauta_titulo'])): ?>
                                 <div class="conducao-materia-ref" id="preview-materia"><?= e((string) $passoAtual['pauta_titulo']) ?></div>
                             <?php endif; ?>
@@ -227,6 +287,50 @@ $sessaoBloqueada = !empty($sessaoBloqueada) || (!empty($sessao) && sessao_esta_b
                         </article>
                     </form>
                     <?php endif; ?>
+
+                    <section class="roteiro-anexos" aria-labelledby="roteiro-anexos-titulo">
+                        <div class="roteiro-anexos-head">
+                            <div>
+                                <h3 id="roteiro-anexos-titulo">Documentos e links do passo</h3>
+                                <p class="panel-meta">O parlamentar verá estes materiais quando este passo estiver ativo.</p>
+                            </div>
+                            <span class="md-badge"><?= count($anexosPasso) ?> anexo(s)</span>
+                        </div>
+                        <?php if ($anexosPasso !== []): ?>
+                            <div class="roteiro-anexos-lista">
+                                <?php foreach ($anexosPasso as $anexo): ?>
+                                    <?php $pub = SessaoRoteiroAnexo::publico($anexo); ?>
+                                    <div class="roteiro-anexo-item">
+                                        <?php if ($pub['imagem']): ?>
+                                            <a href="<?= e($pub['href']) ?>" target="_blank" rel="noopener"><img src="<?= e($pub['href']) ?>" alt="<?= e($pub['titulo'] ?: $pub['nome']) ?>"></a>
+                                        <?php endif; ?>
+                                        <div class="roteiro-anexo-info">
+                                            <strong><?= e($pub['titulo'] ?: ($pub['nome'] ?: 'Link externo')) ?></strong>
+                                            <span><?= e($pub['tipo'] === 'URL' ? 'URL' : ($pub['imagem'] ? 'Imagem' : 'Documento')) ?></span>
+                                        </div>
+                                        <a class="btn btn-soft btn--sm" href="<?= e($pub['href']) ?>" target="_blank" rel="noopener">Abrir</a>
+                                        <?php if (!$sessaoBloqueada): ?>
+                                            <form method="post" action="<?= e(route_url('roteiro/anexoExcluir/' . (int) $sessao['id'] . '/' . $passoId . '/' . (int) $anexo['id'])) ?>" onsubmit="return confirm('Excluir este anexo?');">
+                                                <?= csrf_field() ?>
+                                                <button class="btn btn-danger btn--sm" type="submit">Excluir</button>
+                                            </form>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!$sessaoBloqueada): ?>
+                            <form class="roteiro-anexo-form" method="post" enctype="multipart/form-data" action="<?= e(route_url('roteiro/anexoSalvar/' . (int) $sessao['id'] . '/' . $passoId)) ?>">
+                                <?= csrf_field() ?>
+                                <label><span class="panel-label">Título opcional</span><input class="field" name="titulo_anexo" maxlength="180" placeholder="Ex.: Projeto de Lei completo"></label>
+                                <label><span class="panel-label">URL</span><input class="field" type="url" name="url" placeholder="https://..."></label>
+                                <span class="roteiro-anexo-ou">ou</span>
+                                <label><span class="panel-label">Documento ou imagem</span><input class="field" type="file" name="arquivo" accept=".pdf,.doc,.docx,.txt,.odt,.rtf,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.webp,.gif"></label>
+                                <button class="btn btn-primary" type="submit">Adicionar</button>
+                            </form>
+                            <p class="panel-meta">Até 15 MB. Aceita PDF, Word, planilha, apresentação e imagens.</p>
+                        <?php endif; ?>
+                    </section>
 
                     <?php
                     $idx = 0;
@@ -260,7 +364,7 @@ $sessaoBloqueada = !empty($sessaoBloqueada) || (!empty($sessao) && sessao_esta_b
                             <?php endif; ?>
                         </div>
                         <?php if (!$sessaoBloqueada): ?>
-                        <button class="btn btn-icon btn-primary" type="submit" form="roteiro-edit-form" aria-label="Salvar alterações" title="Salvar alterações deste passo">
+                        <button class="btn btn-icon btn-primary" type="button" id="roteiro-salvar-passo" aria-label="Salvar alterações" title="Salvar alterações deste passo">
                             <span class="icon-glyph" aria-hidden="true">&#10003;</span>
                         </button>
                         <?php endif; ?>
@@ -272,12 +376,24 @@ $sessaoBloqueada = !empty($sessaoBloqueada) || (!empty($sessao) && sessao_esta_b
 </section>
 <script>
 (function () {
+    document.querySelectorAll('.roteiro-auto-dismiss[data-auto-dismiss]').forEach(function (alerta) {
+        var delay = parseInt(alerta.getAttribute('data-auto-dismiss'), 10) || 5000;
+        window.setTimeout(function () {
+            alerta.classList.add('is-hiding');
+            window.setTimeout(function () {
+                alerta.remove();
+            }, 250);
+        }, delay);
+    });
+
     var list = document.getElementById('roteiro-sortable');
     var msg = document.getElementById('roteiro-order-msg');
     var csrfEl = document.getElementById('roteiro-csrf');
     var dragEl = null;
     var aside = document.querySelector('.roteiro-montar-aside');
-    var scrollKey = 'roteiro-montar-aside-scroll:' + window.location.pathname + window.location.search;
+    var routeParams = new URLSearchParams(window.location.search);
+    var roteiroRoute = routeParams.get('r') || window.location.pathname;
+    var scrollKey = 'roteiro-montar-aside-scroll:' + roteiroRoute;
 
     if (aside) {
         var savedScroll = sessionStorage.getItem(scrollKey);
@@ -286,6 +402,11 @@ $sessaoBloqueada = !empty($sessaoBloqueada) || (!empty($sessao) && sessao_esta_b
         }
         aside.addEventListener('scroll', function () {
             sessionStorage.setItem(scrollKey, String(aside.scrollTop));
+        });
+        aside.addEventListener('click', function (event) {
+            if (event.target.closest('.roteiro-sort-link, form')) {
+                sessionStorage.setItem(scrollKey, String(aside.scrollTop));
+            }
         });
     }
 
@@ -349,6 +470,7 @@ $sessaoBloqueada = !empty($sessaoBloqueada) || (!empty($sessao) && sessao_esta_b
 
     var tipo = document.getElementById('tipo_passo');
     var fala = document.getElementById('texto_fala');
+    var falaEditor = document.getElementById('texto_fala_editor');
     var instr = document.getElementById('texto_instrucao');
     var blocoFala = document.getElementById('bloco-fala');
     var blocoInst = document.getElementById('bloco-instrucao');
@@ -356,6 +478,18 @@ $sessaoBloqueada = !empty($sessaoBloqueada) || (!empty($sessao) && sessao_esta_b
     var prevInst = document.getElementById('preview-instrucao');
     var prevBox = document.getElementById('preview-presidente');
     var togglePrev = document.getElementById('toggle-preview');
+    var geraVotacao = document.getElementById('gera-votacao');
+    var montarMain = document.querySelector('.roteiro-montar-main');
+    var passoTitulo = document.getElementById('passo-titulo');
+    var passoTituloLateral = document.getElementById('passo-titulo-lateral');
+
+    if (passoTitulo && passoTituloLateral) {
+        passoTitulo.addEventListener('input', function () {
+            passoTituloLateral.textContent = passoTitulo.value.trim()
+                || passoTituloLateral.getAttribute('data-titulo-original')
+                || 'Passo sem título';
+        });
+    }
 
     function atualizarPreview() {
         if (!prevFala || !prevInst) return;
@@ -365,10 +499,10 @@ $sessaoBloqueada = !empty($sessaoBloqueada) || (!empty($sessao) && sessao_esta_b
         if (modo === 'INSTRUCAO') {
             prevFala.textContent = '';
             prevFala.style.display = 'none';
-            prevInst.textContent = txtInst || txtFala;
+            prevInst.textContent = txtInst || (falaEditor ? falaEditor.innerText.trim() : txtFala);
             prevInst.style.display = txtInst || txtFala ? 'block' : 'none';
         } else {
-            prevFala.textContent = txtFala;
+            prevFala.innerHTML = falaEditor ? falaEditor.innerHTML : '';
             prevFala.style.display = txtFala ? 'block' : 'none';
             prevInst.textContent = txtInst;
             prevInst.style.display = txtInst ? 'block' : 'none';
@@ -386,7 +520,6 @@ $sessaoBloqueada = !empty($sessaoBloqueada) || (!empty($sessao) && sessao_esta_b
     }
 
     function autoResizeAll() {
-        autoResizeTextarea(fala);
         autoResizeTextarea(instr);
     }
 
@@ -404,11 +537,48 @@ $sessaoBloqueada = !empty($sessaoBloqueada) || (!empty($sessao) && sessao_esta_b
         autoResizeAll();
     }
 
+    function atualizarModoVotacao() {
+        var votacao = geraVotacao && geraVotacao.checked;
+        if (montarMain) montarMain.classList.toggle('is-votacao', Boolean(votacao));
+        if (tipo) tipo.disabled = Boolean(votacao);
+        if (!votacao || !tipo) return;
+
+        tipo.value = 'INSTRUCAO';
+        if (togglePrev) togglePrev.checked = false;
+        if (prevBox && togglePrev) prevBox.style.display = togglePrev.checked ? 'block' : 'none';
+        atualizarBlocos();
+    }
+
     if (tipo) tipo.addEventListener('change', atualizarBlocos);
-    if (fala) {
-        fala.addEventListener('input', function () {
-            autoResizeTextarea(fala);
+    if (geraVotacao) {
+        geraVotacao.addEventListener('change', function () {
+            atualizarModoVotacao();
+        });
+    }
+    function sincronizarFala() {
+        if (fala && falaEditor) {
+            fala.value = falaEditor.innerHTML.trim();
+        }
+    }
+
+    if (falaEditor) {
+        falaEditor.addEventListener('input', function () {
+            sincronizarFala();
             atualizarPreview();
+        });
+        falaEditor.addEventListener('paste', function (event) {
+            event.preventDefault();
+            var texto = (event.clipboardData || window.clipboardData).getData('text/plain');
+            document.execCommand('insertText', false, texto);
+        });
+        document.querySelectorAll('[data-rich-command]').forEach(function (button) {
+            button.addEventListener('mousedown', function (event) {
+                event.preventDefault();
+                falaEditor.focus();
+                document.execCommand(button.getAttribute('data-rich-command'), false, null);
+                sincronizarFala();
+                atualizarPreview();
+            });
         });
     }
     if (instr) {
@@ -422,7 +592,22 @@ $sessaoBloqueada = !empty($sessaoBloqueada) || (!empty($sessao) && sessao_esta_b
             prevBox.style.display = togglePrev.checked ? 'block' : 'none';
         });
     }
+    atualizarModoVotacao();
     atualizarBlocos();
+    sincronizarFala();
+    var roteiroForm = document.getElementById('roteiro-edit-form');
+    if (roteiroForm) roteiroForm.addEventListener('submit', sincronizarFala);
+    var salvarPasso = document.getElementById('roteiro-salvar-passo');
+    if (salvarPasso && roteiroForm) {
+        salvarPasso.addEventListener('click', function () {
+            sincronizarFala();
+            if (typeof roteiroForm.requestSubmit === 'function') {
+                roteiroForm.requestSubmit();
+            } else {
+                roteiroForm.submit();
+            }
+        });
+    }
     window.addEventListener('resize', autoResizeAll);
 })();
 </script>

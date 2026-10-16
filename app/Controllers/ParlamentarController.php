@@ -13,6 +13,7 @@ use App\Models\Sessao;
 use App\Models\SessaoCrud;
 use App\Models\SessaoItem;
 use App\Models\SessaoVotacaoRodada;
+use App\Models\RodadaEleitor;
 use App\Models\SessaoVoto;
 use App\Models\User;
 
@@ -235,7 +236,9 @@ final class ParlamentarController
             $rid = (int) $rodadaAberta['id'];
             $itemRodada = !empty($rodadaAberta['item_id']) ? (int) $rodadaAberta['item_id'] : 0;
             $rodadaItemOk = $itemRodada === 0 || $itemRodada === $itemId;
-            $podeVotar = $rodadaItemOk && ($sessao['status'] ?? '') === 'EM_VOTACAO';
+            $podeVotar = $rodadaItemOk
+                && in_array(strtoupper((string) ($sessao['status'] ?? '')), ['ABERTA', 'EM_VOTACAO'], true)
+                && RodadaEleitor::usuarioApto($rid, (int) Auth::user()['id']);
             $meuVoto = SessaoVoto::votoUsuarioRodada($rid, (int) Auth::user()['id']);
         }
 
@@ -279,6 +282,11 @@ final class ParlamentarController
 
         if (!self::usuarioPodeRegistrarVotoParlamentar($userId, (string) (Auth::user()['role'] ?? ''))) {
             self::responderVoto($querJson, false, 'Acesso negado.', null, $sessaoId, 0);
+            return;
+        }
+
+        if (!RodadaEleitor::usuarioApto($rodadaId, $userId)) {
+            self::responderVoto($querJson, false, 'Seu nome não consta na lista de presentes desta votação.', null, $sessaoId, 0);
             return;
         }
 
@@ -381,16 +389,6 @@ final class ParlamentarController
 
     private static function usuarioPodeRegistrarVotoParlamentar(int $userId, string $role): bool
     {
-        if (UserPerfil::ehParlamentar($role)) {
-            return true;
-        }
-
-        foreach (User::parlamentaresParaVotacao() as $u) {
-            if ((int) ($u['id'] ?? 0) === $userId) {
-                return true;
-            }
-        }
-
-        return false;
+        return $userId > 0;
     }
 }

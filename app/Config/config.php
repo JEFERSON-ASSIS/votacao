@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 
 $env = static function (string $key, ?string $default = null): ?string {
     $value = $_ENV[$key] ?? $_SERVER[$key] ?? getenv($key);
@@ -11,17 +10,6 @@ $env = static function (string $key, ?string $default = null): ?string {
 };
 
 $projectRoot = dirname(__DIR__, 2);
-$envFile = $projectRoot . '/.env';
-$hasEnvFile = is_file($envFile);
-
-/** DB: usa .env se existir; senão só os defaults abaixo (evita DB_USER=root do shell da Hostinger). */
-$dbSetting = static function (string $key, string $default) use ($env, $hasEnvFile): string {
-    if (!$hasEnvFile) {
-        return $default;
-    }
-
-    return (string) $env($key, $default);
-};
 
 $httpHost = $_SERVER['HTTP_HOST'] ?? 'localhost';
 $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
@@ -37,11 +25,15 @@ if ($scriptName === '' || $scriptName[0] !== '/') {
 
 $basePath = rtrim(str_replace('/index.php', '', $scriptName), '/');
 if (!str_ends_with(strtolower($basePath), '/public') && is_file($projectRoot . '/public/index.php')) {
-    $basePath = ($basePath !== '' ? $basePath : '') . '/public';
+    $basePath = $basePath . '/public';
     $basePath = rtrim(str_replace('//', '/', $basePath), '/');
 }
 
-$derivedBaseUrl = $scheme . '://' . $httpHost . ($basePath !== '' ? $basePath : '');
+$derivedBaseUrl = $scheme . '://' . $httpHost . $basePath;
+
+// Domínio de produção (ex.: votacao.exemplo.com.br), sem protocolo — vem do .env
+$prodDomain = strtolower(trim((string) $env('APP_PROD_DOMAIN', ''), " /"));
+$prodDomain = (string) preg_replace('#^https?://#', '', $prodDomain);
 
 $appEnv = strtolower((string) $env('APP_ENV', ''));
 if (in_array($appEnv, ['production', 'prod'], true)) {
@@ -55,40 +47,39 @@ if (in_array($appEnv, ['production', 'prod'], true)) {
     if (PHP_SAPI === 'cli') {
         $pathHint = $projectRoot . '|' . (getcwd() ?: '');
         if (str_contains($pathHint, '/home2/')
-            || str_contains($pathHint, 'agendaclique.com.br')
-            || str_contains($pathHint, 'votacao.agendaclique')) {
+            || ($prodDomain !== '' && str_contains($pathHint, $prodDomain))) {
             $isLocalhost = false;
         }
     }
 }
 
-if (!$isLocalhost && $env('APP_BASE_URL') === null) {
-    $derivedBaseUrl = 'https://votacao.agendaclique.com.br/public';
+if (!$isLocalhost && $env('APP_BASE_URL') === null && $prodDomain !== '') {
+    $derivedBaseUrl = 'https://' . $prodDomain . '/public';
 }
 
 if ($isLocalhost) {
     $db = [
-        'host' => $dbSetting('DB_HOST', '127.0.0.1'),
-        'port' => $dbSetting('DB_PORT', '3307'),
-        'name' => $dbSetting('DB_NAME', 'plenario'),
-        'user' => $dbSetting('DB_USER', 'root'),
-        'pass' => $dbSetting('DB_PASS', ''),
-        'charset' => $dbSetting('DB_CHARSET', 'utf8mb4'),
+        'host' => $env('DB_HOST', '127.0.0.1'),
+        'port' => $env('DB_PORT', '3307'),
+        'name' => $env('DB_NAME', 'plenario'),
+        'user' => $env('DB_USER', 'root'),
+        'pass' => $env('DB_PASS', ''),
+        'charset' => $env('DB_CHARSET', 'utf8mb4'),
     ];
 } else {
     // Produção — credenciais vêm obrigatoriamente do .env (hPanel/Hostinger)
     $onHostinger = str_contains($projectRoot, '/home2/')
-        || str_contains($httpHost, 'agendaclique.com.br');
-    // PHP no mesmo servidor: localhost. IP 162.x = acesso remoto (outro PC).
-    $dbHost = $onHostinger ? 'localhost' : '162.241.63.71';
+        || ($prodDomain !== '' && str_contains(strtolower($httpHost), $prodDomain));
+    // PHP no mesmo servidor: localhost. Fora dele, usa DB_REMOTE_HOST do .env (acesso remoto).
+    $dbHost = $onHostinger ? 'localhost' : (string) $env('DB_REMOTE_HOST', 'localhost');
 
     $db = [
-        'host' => $dbSetting('DB_HOST', $dbHost),
-        'port' => $dbSetting('DB_PORT', '3306'),
-        'name' => $dbSetting('DB_NAME', ''),
-        'user' => $dbSetting('DB_USER', ''),
-        'pass' => $dbSetting('DB_PASS', ''),
-        'charset' => $dbSetting('DB_CHARSET', 'utf8mb4'),
+        'host' => $env('DB_HOST', $dbHost),
+        'port' => $env('DB_PORT', '3306'),
+        'name' => $env('DB_NAME', ''),
+        'user' => $env('DB_USER', ''),
+        'pass' => $env('DB_PASS', ''),
+        'charset' => $env('DB_CHARSET', 'utf8mb4'),
     ];
 }
 

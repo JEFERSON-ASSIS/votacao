@@ -73,49 +73,83 @@ final class PautaController
                     $error = 'Informe o titulo do item.';
                     app_log('[PautaController::form] validation failed: empty title');
                 } else {
-                    $savedId = SessaoItem::upsert($data, $id);
-                    Auditoria::log($id ? 'editar' : 'criar', 'pauta_item', $savedId, $data['titulo']);
-                    SessaoEvento::registrar(
-                        $sessaoId,
-                        'pauta',
-                        ($id ? 'Matéria atualizada: ' : 'Matéria incluída na pauta: ') . $data['titulo'],
-                        $savedId
-                    );
-                    app_log('[PautaController::form] saved item id=' . $savedId . ' sessaoId=' . $sessaoId);
-                    $pdo = DB::conn();
-                    $syncRows = function (string $table, array $rows, array $fields) use ($pdo, $savedId): void {
-                        $pdo->prepare("DELETE FROM {$table} WHERE item_id = :id")->execute(['id' => $savedId]);
-                        $order = 1;
-                        foreach ($rows as $row) {
-                            if (!is_array($row) || !$this->rowHasContent($row, $fields)) {
-                                continue;
-                            }
-                            $values = ['item_id' => $savedId, 'ordem' => $order++];
-                            foreach ($fields as $field) {
-                                $value = trim((string) ($row[$field] ?? ''));
-                                $values[$field] = $this->normalizePautaValue($field, $value);
-                            }
-                            $cols = array_merge(['item_id', 'ordem'], $fields);
-                            $placeholders = array_map(fn($field) => ':' . $field, $cols);
-                            $sql = 'INSERT INTO ' . $table . ' (' . implode(', ', $cols) . ') VALUES (' . implode(', ', $placeholders) . ')';
-                            $stmt = $pdo->prepare($sql);
-                            $stmt->execute($values);
-                            app_log('[PautaController::form] inserted row table=' . $table . ' item_id=' . $savedId . ' ordem=' . $values['ordem']);
-                        }
-                    };
-                    $hasSections = !empty($_POST['pauta_sections']);
-                    if ($hasSections) {
-                        $numeracoes = $_POST['numeracoes'] ?? [];
-                        if (!is_array($numeracoes) || $numeracoes === []) {
-                            $numeracoes = $this->numeracoesFromPost($_POST, $data);
-                        }
-                        $syncRows('pauta_despachos', $_POST['despachos'] ?? [], ['comissao', 'situacao', 'observacao', 'arquivo']);
-                        $syncRows('pauta_documentos', $_POST['documentos'] ?? [], ['nome', 'tipo', 'data_doc', 'autor', 'arquivo']);
-                        $syncRows('pauta_legislacoes', $_POST['legislacoes'] ?? [], ['norma', 'disposicao', 'observacao', 'arquivo']);
-                        $syncRows('pauta_numeracoes', $numeracoes, ['tipo_materia', 'numero', 'ano', 'data_doc']);
-                        $syncRows('pauta_tramitacoes', $_POST['tramitacoes'] ?? [], ['data_tramitacao', 'unidade_local', 'unidade_destino', 'status', 'arquivo']);
-                        $syncRows('pauta_relatorias', $_POST['relatorias'] ?? [], ['relator', 'data_relatoria', 'observacao', 'arquivo']);
+                    $dataFimPrazo = $data['data_fim_prazo'] ?? null;
+                    $dataApresentacao = $data['data_apresentacao'] ?? null;
+                    if ($dataFimPrazo !== null && $dataApresentacao !== null && $dataFimPrazo < $dataApresentacao) {
+                        $error = 'A data de fim de prazo não pode ser anterior à data de apresentação.';
+                        app_log('[PautaController::form] validation failed: data_fim_prazo < data_apresentacao');
                     }
+                }
+                if ($error === null) {
+                    $pdo = DB::conn();
+                    $pdo->beginTransaction();
+                    try {
+                        $savedId = SessaoItem::upsert($data, $id);
+                        Auditoria::log($id ? 'editar' : 'criar', 'pauta_item', $savedId, $data['titulo']);
+                        SessaoEvento::registrar(
+                            $sessaoId,
+                            'pauta',
+                            ($id ? 'Matéria atualizada: ' : 'Matéria incluída na pauta: ') . $data['titulo'],
+                            $savedId
+                        );
+                        app_log('[PautaController::form] saved item id=' . $savedId . ' sessaoId=' . $sessaoId);
+                        $syncRows = function (string $table, array $rows, array $fields) use ($pdo, $savedId): void {
+                            $pdo->prepare("DELETE FROM {$table} WHERE item_id = :id")->execute(['id' => $savedId]);
+                            $order = 1;
+                            foreach ($rows as $row) {
+                                if (!is_array($row) || !$this->rowHasContent($row, $fields)) {
+                                    continue;
+                                }
+                                $values = ['item_id' => $savedId, 'ordem' => $order++];
+                                foreach ($fields as $field) {
+                                    $value = trim((string) ($row[$field] ?? ''));
+                                    $values[$field] = $this->normalizePautaValue($field, $value);
+                                }
+                                $cols = array_merge(['item_id', 'ordem'], $fields);
+                                $placeholders = array_map(fn($field) => ':' . $field, $cols);
+                                $sql = 'INSERT INTO ' . $table . ' (' . implode(', ', $cols) . ') VALUES (' . implode(', ', $placeholders) . ')';
+                                $stmt = $pdo->prepare($sql);
+                                $stmt->execute($values);
+                                app_log('[PautaController::form] inserted row table=' . $table . ' item_id=' . $savedId . ' ordem=' . $values['ordem']);
+                            }
+                        };
+                        $hasSections = !empty($_POST['pauta_sections']);
+                        if ($hasSections) {
+                            $numeracoes = $_POST['numeracoes'] ?? [];
+                            if (!is_array($numeracoes) || $numeracoes === []) {
+                                $numeracoes = $this->numeracoesFromPost($_POST, $data);
+                            }
+                            $syncRows('pauta_despachos', $_POST['despachos'] ?? [], ['comissao', 'situacao', 'observacao', 'arquivo']);
+                            $syncRows('pauta_documentos', $_POST['documentos'] ?? [], ['nome', 'tipo', 'data_doc', 'autor', 'arquivo']);
+                            $syncRows('pauta_legislacoes', $_POST['legislacoes'] ?? [], ['norma', 'disposicao', 'observacao', 'arquivo']);
+                            $syncRows('pauta_numeracoes', $numeracoes, ['tipo_materia', 'numero', 'ano', 'data_doc']);
+                            $syncRows('pauta_tramitacoes', $_POST['tramitacoes'] ?? [], ['data_tramitacao', 'unidade_local', 'unidade_destino', 'status', 'arquivo']);
+                            $syncRows('pauta_relatorias', $_POST['relatorias'] ?? [], ['relator', 'data_relatoria', 'observacao', 'arquivo']);
+                        }
+                        $pdo->commit();
+                    } catch (\Throwable $e) {
+                        $pdo->rollBack();
+                        app_log('[PautaController::form] transaction rolled back: ' . $e->getMessage());
+                        throw $e;
+                    }
+                    if ($this->isAjaxRequest()) {
+                        $saved = SessaoItem::find($savedId);
+                        header('Content-Type: application/json; charset=utf-8');
+                        echo json_encode([
+                            'ok' => true,
+                            'item' => [
+                                'id' => $savedId,
+                                'ordem' => (int) ($saved['ordem'] ?? 1),
+                                'tipo_materia' => (string) ($saved['tipo_materia'] ?? ''),
+                                'titulo' => (string) ($saved['titulo'] ?? ''),
+                                'ementa' => (string) ($saved['ementa'] ?? ''),
+                                'edit_url' => base_url('?r=sessao/form/' . $sessaoId . '&edit_id=' . $savedId),
+                                'delete_url' => base_url('?r=pauta/delete/' . $sessaoId . '/' . $savedId),
+                            ],
+                        ], JSON_UNESCAPED_UNICODE);
+                        exit;
+                    }
+
                     $activeTab = trim((string) ($_POST['active_tab'] ?? ''));
                     $redirect = '?r=sessao/form/' . $sessaoId . '&edit_id=' . $savedId;
                     if ($activeTab !== '') {
@@ -127,7 +161,19 @@ final class PautaController
             }
         }
 
+        if ($this->isAjaxRequest() && $error !== null) {
+            header('Content-Type: application/json; charset=utf-8');
+            http_response_code(422);
+            echo json_encode(['ok' => false, 'error' => $error], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
         View::render('pauta/form', compact('sessao', 'item', 'error', 'sectionRows'));
+    }
+
+    private function isAjaxRequest(): bool
+    {
+        return !empty($_POST['ajax']) || ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest';
     }
 
     /** @param callable(string): string $storeUpload */

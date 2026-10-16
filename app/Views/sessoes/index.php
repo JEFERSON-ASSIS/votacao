@@ -4,6 +4,7 @@
 $sessoes = $sessoes ?? [];
 $podeCriarEditar = user_can('sessao.form');
 $podeExcluir = user_can('sessao.delete');
+$podeResetar = user_can('sessao.resetar');
 $podeConduzir = user_can('presidencia.conduzir');
 ?>
 <section class="panel-grid">
@@ -12,11 +13,36 @@ $podeConduzir = user_can('presidencia.conduzir');
             <div class="panel-meta">Sessão encerrada. A condução ficou disponível apenas para consulta administrativa.</div>
         </article>
     <?php endif; ?>
+    <?php if (($_GET['sessao_ok'] ?? '') === 'excluida'): ?>
+        <article class="panel-card" style="grid-column:1/-1;">
+            <div class="sapl-ok">Sessão excluída com sucesso.</div>
+        </article>
+    <?php endif; ?>
+    <?php if (($_GET['sessao_erro'] ?? '') === 'excluir'): ?>
+        <article class="panel-card" style="grid-column:1/-1;">
+            <div class="auth-error">Não foi possível excluir a sessão (há vínculos no banco). Veja o log se o problema continuar.</div>
+        </article>
+    <?php endif; ?>
+    <?php if (($_GET['sessao_ok'] ?? '') === 'resetada'): ?>
+        <article class="panel-card" style="grid-column:1/-1;">
+            <div class="sapl-ok">Sessão resetada: voltou para "Criado", sem presenças, votos ou andamento. Pauta e roteiro foram mantidos.</div>
+        </article>
+    <?php endif; ?>
+    <?php if (($_GET['sessao_erro'] ?? '') === 'resetar'): ?>
+        <article class="panel-card" style="grid-column:1/-1;">
+            <div class="auth-error">Não foi possível resetar a sessão. Nada foi alterado; veja o log.</div>
+        </article>
+    <?php endif; ?>
+    <?php if (($_GET['sessao_erro'] ?? '') === 'nao_encontrada'): ?>
+        <article class="panel-card" style="grid-column:1/-1;">
+            <div class="auth-error">Sessão não encontrada.</div>
+        </article>
+    <?php endif; ?>
 
     <article class="panel-card accent" style="grid-column:1/-1;">
         <div class="action-row" style="justify-content:space-between;align-items:center;">
             <div>
-                <div class="panel-label">SESSÕES</div>
+                <div class="panel-label">Sessões</div>
                 <div class="panel-value"><?= $podeCriarEditar ? 'Cadastro e controle' : 'Sessões para condução' ?></div>
                 <div class="panel-meta"><?= $podeCriarEditar ? 'Clique em nova sessão para abrir a página completa de montagem.' : 'Acompanhe as sessões preparadas e acesse a condução quando houver roteiro disponível.' ?></div>
             </div>
@@ -39,20 +65,39 @@ $podeConduzir = user_can('presidencia.conduzir');
                 </thead>
                 <tbody>
                     <?php foreach ($sessoes as $s): ?>
-                        <?php $sessaoPodeConduzir = $podeConduzir && strtoupper((string) ($s['status'] ?? '')) !== 'ENCERRADA'; ?>
+                        <?php
+                        $statusLinha = strtoupper((string) ($s['status'] ?? ''));
+                        $sessaoPodeConduzir = $podeConduzir && $statusLinha !== 'ENCERRADA';
+                        $sessaoPodeIniciar = $podeConduzir && user_can('presidencia.iniciar') && $statusLinha === 'CRIADO';
+                        ?>
                         <tr>
                             <td><strong><?= e($s['titulo']) ?></strong></td>
                             <td>#<?= e($s['numero']) ?>/<?= e($s['ano']) ?></td>
                             <td><span class="status-chip <?= e(sessao_status_chip_class((string) $s['status'])) ?>"><?= e(sessao_status_label((string) $s['status'])) ?></span></td>
                             <td>
                                 <div class="action-row">
-                                    <?php if ($sessaoPodeConduzir): ?>
+                                    <?php if ($sessaoPodeIniciar): ?>
+                                        <form method="post" action="<?= e(base_url('?r=presidencia/iniciar/' . (int) $s['id'])) ?>" style="display:inline-flex;">
+                                            <?= csrf_field() ?>
+                                            <button class="btn btn-primary btn--sm" type="submit">Iniciar sessão</button>
+                                        </form>
+                                    <?php elseif ($sessaoPodeConduzir && in_array($statusLinha, ['ABERTA', 'EM_VOTACAO'], true)): ?>
                                         <a class="btn btn-soft btn--sm" href="<?= e(base_url('?r=presidencia/conduzir/' . (int) $s['id'])) ?>">Conduzir</a>
+                                    <?php elseif ($sessaoPodeConduzir): ?>
+                                        <a class="btn btn-soft btn--sm" href="<?= e(base_url('?r=presidencia/conduzir/' . (int) $s['id'])) ?>">Ver condução</a>
                                     <?php endif; ?>
                                     <?php if ($podeCriarEditar): ?>
-                                        <a class="btn btn-icon btn-soft" href="<?= e(base_url('?r=sessao/form/' . $s['id'])) ?>" aria-label="Abrir sessão" title="Abrir sessão">
+                                        <a class="btn btn-icon btn-soft" href="<?= e(base_url('?r=roteiro/montar/' . $s['id'])) ?>" aria-label="Abrir sessão" title="Abrir sessão">
                                             <span class="icon-glyph" aria-hidden="true">&#8599;</span>
                                         </a>
+                                    <?php endif; ?>
+                                    <?php if ($podeResetar && in_array($statusLinha, ['ABERTA', 'EM_VOTACAO', 'ENCERRADA'], true)): ?>
+                                        <form method="post" action="<?= e(base_url('?r=sessao/resetar/' . (int) $s['id'])) ?>" style="display:inline-flex;" onsubmit="return confirm(<?= e(json_encode("Resetar a sessão “{$s['titulo']}”?\n\nApaga presenças, votações, votos e o andamento, e volta para Criado. Pauta e roteiro são mantidos.\n\nUse apenas para testes.", JSON_UNESCAPED_UNICODE)) ?>);">
+                                            <?= csrf_field() ?>
+                                            <button class="btn btn-icon btn-soft" type="submit" aria-label="Resetar sessão (testes)" title="Resetar sessão (testes)">
+                                                <span class="icon-glyph" aria-hidden="true">&#8634;</span>
+                                            </button>
+                                        </form>
                                     <?php endif; ?>
                                     <?php if ($podeExcluir): ?>
                                         <form method="post" action="<?= e(base_url('?r=sessao/delete/' . $s['id'])) ?>" class="js-delete-session" data-session-title="<?= e($s['titulo']) ?>" style="display:inline-flex;">
@@ -112,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function () {
             event.preventDefault();
             activeForm = form;
             const sessionTitle = form.getAttribute('data-session-title') || 'esta sessão';
-            copy.textContent = 'Você vai excluir "' + sessionTitle + '" e toda a pauta vinculada. Esta ação não pode ser desfeita.';
+            copy.textContent = 'Você vai excluir "' + sessionTitle + '" e toda a pauta, roteiro e votações vinculadas. Esta ação não pode ser desfeita.';
             modal.classList.remove('is-hidden');
             modal.setAttribute('aria-hidden', 'false');
         });

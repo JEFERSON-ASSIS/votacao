@@ -73,69 +73,67 @@ final class SessaoVoto
         $pdo = DB::conn();
         $votoNorm = self::normalizarVoto($voto);
         $itemIdVal = $itemId > 0 ? $itemId : null;
-
-        $stmt = $pdo->prepare(
-            'SELECT id FROM sessao_votos WHERE rodada_id = :rodada_id AND user_id = :user_id LIMIT 1'
-        );
-        $stmt->execute(['rodada_id' => $rodadaId, 'user_id' => $userId]);
-        $existenteId = $stmt->fetchColumn();
-
-        if ($existenteId === false) {
-            if ($itemIdVal !== null) {
-                $stmt = $pdo->prepare(
-                    'SELECT id FROM sessao_votos
-                     WHERE item_id = :item_id AND user_id = :user_id
-                     LIMIT 1'
-                );
-                $stmt->execute([
-                    'item_id' => $itemIdVal,
-                    'user_id' => $userId,
-                ]);
-            } else {
-                $stmt = $pdo->prepare(
-                    'SELECT id FROM sessao_votos
-                     WHERE sessao_id = :sessao_id AND user_id = :user_id AND item_id IS NULL
-                     LIMIT 1'
-                );
-                $stmt->execute([
-                    'sessao_id' => $sessaoId,
-                    'user_id' => $userId,
-                ]);
-            }
-            $existenteId = $stmt->fetchColumn();
+        $ownTransaction = !$pdo->inTransaction();
+        if ($ownTransaction) {
+            $pdo->beginTransaction();
         }
 
-        if ($existenteId !== false) {
-            $upd = $pdo->prepare(
+        try {
+            $lockSql = 'SELECT status FROM sessao_votacao_rodadas WHERE id = :id';
+            if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql') {
+                $lockSql .= ' FOR UPDATE';
+            }
+            $lock = $pdo->prepare($lockSql);
+            $lock->execute(['id' => $rodadaId]);
+            if ((string) $lock->fetchColumn() !== 'ABERTA') {
+                throw new \RuntimeException('A votação já foi encerrada.');
+            }
+
+            $stmt = $pdo->prepare(
+            'SELECT id FROM sessao_votos WHERE rodada_id = :rodada_id AND user_id = :user_id LIMIT 1'
+            );
+            $stmt->execute(['rodada_id' => $rodadaId, 'user_id' => $userId]);
+            $existenteId = $stmt->fetchColumn();
+
+            if ($existenteId !== false) {
+                $upd = $pdo->prepare(
                 'UPDATE sessao_votos
                  SET sessao_id = :sessao_id, rodada_id = :rodada_id, item_id = :item_id,
                      voto = :voto, observacao = :observacao
                  WHERE id = :id'
-            );
-            $upd->execute([
-                'sessao_id' => $sessaoId,
-                'rodada_id' => $rodadaId,
-                'item_id' => $itemIdVal,
-                'voto' => $votoNorm,
-                'observacao' => $observacao,
-                'id' => (int) $existenteId,
-            ]);
+                );
+                $upd->execute([
+                    'sessao_id' => $sessaoId,
+                    'rodada_id' => $rodadaId,
+                    'item_id' => $itemIdVal,
+                    'voto' => $votoNorm,
+                    'observacao' => $observacao,
+                    'id' => (int) $existenteId,
+                ]);
+            } else {
+                $ins = $pdo->prepare(
+                    'INSERT INTO sessao_votos (sessao_id, rodada_id, item_id, user_id, voto, observacao)
+                     VALUES (:sessao_id, :rodada_id, :item_id, :user_id, :voto, :observacao)'
+                );
+                $ins->execute([
+                    'sessao_id' => $sessaoId,
+                    'rodada_id' => $rodadaId,
+                    'item_id' => $itemIdVal,
+                    'user_id' => $userId,
+                    'voto' => $votoNorm,
+                    'observacao' => $observacao,
+                ]);
+            }
 
-            return;
+            if ($ownTransaction) {
+                $pdo->commit();
+            }
+        } catch (\Throwable $e) {
+            if ($ownTransaction && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
         }
-
-        $ins = $pdo->prepare(
-            'INSERT INTO sessao_votos (sessao_id, rodada_id, item_id, user_id, voto, observacao)
-             VALUES (:sessao_id, :rodada_id, :item_id, :user_id, :voto, :observacao)'
-        );
-        $ins->execute([
-            'sessao_id' => $sessaoId,
-            'rodada_id' => $rodadaId,
-            'item_id' => $itemIdVal,
-            'user_id' => $userId,
-            'voto' => $votoNorm,
-            'observacao' => $observacao,
-        ]);
     }
 
     public static function resumoPorItem(int $itemId): array
@@ -166,8 +164,12 @@ final class SessaoVoto
     public static function resumoParlamentaresPorRodada(int $rodadaId): array
     {
         $contagem = [];
+        $eleitores = array_fill_keys(array_map(
+            static fn (array $u): int => (int) $u['id'],
+            RodadaEleitor::eleitores($rodadaId)
+        ), true);
         foreach (self::allByRodada($rodadaId) as $v) {
-            if (!UserPerfil::ehParlamentar((string) ($v['role'] ?? ''))) {
+            if ($eleitores !== [] && !isset($eleitores[(int) ($v['user_id'] ?? 0)])) {
                 continue;
             }
             $tipo = self::normalizarVoto((string) ($v['voto'] ?? ''));

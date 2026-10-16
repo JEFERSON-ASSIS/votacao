@@ -38,7 +38,7 @@ $salvo = (bool) ($salvo ?? false);
 
     <?php if ($salvo && $usuario): ?>
         <article class="panel-card" style="grid-column:1/-1;">
-            <div class="panel-meta" style="color:var(--accent-2);">Permissões salvas para <?= e($usuario['nome']) ?>.</div>
+            <div class="sapl-ok">Permissões salvas para <?= e($usuario['nome']) ?>.</div>
         </article>
     <?php endif; ?>
 

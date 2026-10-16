@@ -28,22 +28,6 @@ function pauta_extra_value_form(?array $item, string $key, string $default = '')
     return (string) ($extras[$key] ?? $default);
 }
 
-function pauta_tipo_options_form(): array
-{
-    return [
-        'Projeto de Lei Ordinaria',
-        'Projeto de Lei Complementar',
-        'Projeto de Decreto Legislativo',
-        'Projeto de Resolucao',
-        'Requerimento',
-        'Indicacao',
-        'Mocao',
-        'Mocao de Aplauso',
-        'Mocao de Apoio',
-        'Emenda',
-    ];
-}
-
 function pauta_rows(array $rows, array $defaults = []): array
 {
     return !empty($rows) ? $rows : [$defaults];
@@ -60,7 +44,9 @@ function pauta_rows(array $rows, array $defaults = []): array
             <?php if ($item): ?>
                 <form method="post" action="<?= e(base_url('?r=pauta/delete/' . (int) $item['sessao_id'] . '/' . (int) $item['id'])) ?>" onsubmit="return confirm('Excluir esta matéria?');">
                     <?= csrf_field() ?>
-                    <button class="btn btn-danger" type="submit" title="Excluir matéria">🗑 Excluir</button>
+                    <button class="btn btn-danger" type="submit" title="Excluir matéria" aria-label="Excluir matéria">
+                        <span class="icon-glyph" aria-hidden="true">&#128465;</span> Excluir
+                    </button>
                 </form>
             <?php endif; ?>
         </div>
@@ -78,8 +64,8 @@ function pauta_rows(array $rows, array $defaults = []): array
             ?>
 
             <div class="wide-3" style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px;">
-                <button class="btn btn-soft" type="button" data-reset-form>🗑 Limpar</button>
-                <a class="btn btn-soft" href="<?= e(base_url('?r=sessao/pauta/' . $sessao['id'])) ?>">Voltar</a>
+                <button class="btn btn-soft" type="button" data-reset-form>Limpar campos</button>
+                <a class="btn btn-soft" href="<?= e(base_url('?r=sessao/form/' . $sessao['id'])) ?>">Voltar</a>
                 <button class="btn btn-primary" type="submit">Salvar matéria</button>
             </div>
         </form>

@@ -18,7 +18,31 @@ final class PublicoController
         View::render('publico/sessao', [
             'sessao' => $sessao,
             'estadoInicial' => $estado,
+            'aguardandoUrl' => route_url('publico/atual'),
         ]);
+    }
+
+    /** JSON: sessão em andamento (para o telão aguardando atualizar sozinho). */
+    public function atual(): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        $sessao = Sessao::atual();
+        if (!$sessao) {
+            echo json_encode(['ok' => false, 'sessao_id' => 0], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        $status = strtoupper((string) ($sessao['status'] ?? ''));
+        echo json_encode([
+            'ok' => true,
+            'sessao_id' => (int) $sessao['id'],
+            'titulo' => (string) ($sessao['titulo'] ?? ''),
+            'numero' => (int) ($sessao['numero'] ?? 0),
+            'ano' => (int) ($sessao['ano'] ?? 0),
+            'status' => $status,
+            'status_label' => sessao_status_label($status),
+            'url' => route_url('publico/sessao/' . (int) $sessao['id']),
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     public function sessao(int $sessaoId): void
@@ -34,6 +58,7 @@ final class PublicoController
         View::render('publico/sessao', [
             'sessao' => $sessao,
             'estadoInicial' => $estado,
+            'aguardandoUrl' => route_url('publico/atual'),
         ]);
     }
 
@@ -117,7 +142,8 @@ final class PublicoController
             return null;
         }
 
-        if (strtoupper((string) ($sessao['status'] ?? '')) === 'RASCUNHO') {
+        $status = strtoupper((string) ($sessao['status'] ?? ''));
+        if (in_array($status, ['RASCUNHO', 'CRIADO'], true)) {
             return null;
         }
 

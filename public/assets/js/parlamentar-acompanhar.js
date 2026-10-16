@@ -257,6 +257,39 @@
         if (corpo) corpo.innerHTML = nl2brEscaped(texto);
     }
 
+    function setAnexos(d) {
+        var panel = document.getElementById('parl-anexos-panel');
+        var grid = document.getElementById('parl-anexos-grid');
+        var anexos = Array.isArray(d.anexos) ? d.anexos : [];
+        if (!panel || !grid) return;
+        grid.replaceChildren();
+        anexos.forEach(function (anexo) {
+            var link = document.createElement('a');
+            link.className = 'parl-anexo';
+            link.href = String(anexo.href || '#');
+            link.target = '_blank';
+            link.rel = 'noopener';
+            if (anexo.imagem) {
+                var img = document.createElement('img');
+                img.src = link.href;
+                img.alt = '';
+                link.appendChild(img);
+            }
+            var texto = document.createElement('span');
+            texto.className = 'parl-anexo-texto';
+            var titulo = document.createElement('strong');
+            titulo.textContent = anexo.titulo || anexo.nome || 'Link externo';
+            var tipo = document.createElement('span');
+            tipo.className = 'parl-anexo-tipo';
+            tipo.textContent = anexo.tipo === 'URL' ? 'URL externa' : (anexo.imagem ? 'Imagem' : 'Documento');
+            texto.appendChild(titulo);
+            texto.appendChild(tipo);
+            link.appendChild(texto);
+            grid.appendChild(link);
+        });
+        panel.style.display = anexos.length ? '' : 'none';
+    }
+
     function setChipVotoRegistrado(jaVotou) {
         var chip = document.getElementById('parl-voto-registrado-chip');
         var badges = document.querySelector('.parl-materia-hero-badges');
@@ -335,6 +368,7 @@
         setChipRodada(d.rodada_id || 0);
         setProgresso(d);
         setLeitura(d);
+        setAnexos(d);
         setVotoSlot(d);
 
         var ata = document.getElementById('parl-ata-panel');

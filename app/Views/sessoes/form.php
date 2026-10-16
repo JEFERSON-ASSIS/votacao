@@ -7,28 +7,16 @@ $itemsSectionRows = $itemsSectionRows ?? [];
 $activeTab = $activeTab ?? '';
 $sessaoBloqueada = !empty($sessao) && sessao_esta_bloqueada($sessao);
 $pautaEnabled = !empty($sessao['id']) && !$sessaoBloqueada;
-
-function pauta_tipo_options_sessao(): array
-{
-    return [
-        'Projeto de Lei Ordinaria',
-        'Projeto de Lei Complementar',
-        'Projeto de Decreto Legislativo',
-        'Projeto de Resolucao',
-        'Requerimento',
-        'Indicacao',
-        'Mocao',
-        'Mocao de Aplauso',
-        'Mocao de Apoio',
-        'Emenda',
-    ];
-}
+$anoSugerido = (int) ($anoSugerido ?? date('Y'));
+$numeroSugerido = (int) ($numeroSugerido ?? 1);
+$tituloSugerido = $numeroSugerido . 'ª SESSÃO ORDINÁRIA';
 
 function sessao_status_options(): array
 {
     return [
         'RASCUNHO' => 'Rascunho',
-        'ABERTA' => 'Aberta',
+        'CRIADO' => 'Criada (pronta para o presidente iniciar)',
+        'ABERTA' => 'Em andamento',
         'EM_VOTACAO' => 'Em Votação',
         'ENCERRADA' => 'Encerrada',
     ];
@@ -49,15 +37,15 @@ function pauta_extra_value_sessao(?array $item, string $key, string $default = '
 <?php ob_start(); ?>
 <section class="panel-grid">
     <article class="panel-card accent" style="grid-column:1/-1;">
-        <div class="panel-label"><?= $sessao ? 'SESSÃO' : 'NOVA SESSÃO' ?></div>
-        <div class="panel-value"><?= $sessao ? 'Editar sessão' : 'Criar nova sessão' ?></div>
+                <div class="panel-label"><?= $sessao ? 'Sessão' : 'Nova sessão' ?></div>
+        <div class="panel-value"><?= $sessao ? 'Editar sessão' : 'Criar sessão rapidamente' ?></div>
         <div class="panel-meta">
             <?php if ($sessaoBloqueada): ?>
                 <?= e(sessao_bloqueio_motivo($sessao)) ?>
             <?php elseif ($sessao): ?>
                 Edite a sessão e monte a pauta completa nesta mesma página.
             <?php else: ?>
-                Depois de salvar, você continua aqui montando toda a sessão e as matérias.
+                Informe os dados básicos. O roteiro inicial será gerado e você seguirá diretamente para a condução.
             <?php endif; ?>
         </div>
     </article>
@@ -71,20 +59,20 @@ function pauta_extra_value_sessao(?array $item, string $key, string $default = '
         <?php if (!$sessaoBloqueada): ?>
         <form method="post" class="panel-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));">
             <?= csrf_field() ?>
-            <div><label class="panel-label">Título</label><input class="field" name="titulo" value="<?= e($sessao['titulo'] ?? '') ?>" required></div>
-            <div><label class="panel-label">Número</label><input class="field" name="numero" type="number" value="<?= e($sessao['numero'] ?? 1) ?>"></div>
-            <div><label class="panel-label">Ano</label><input class="field" name="ano" type="number" value="<?= e($sessao['ano'] ?? date('Y')) ?>"></div>
-            <div style="grid-column:1/-1;">
+            <div><label class="panel-label">Título</label><input class="field" name="titulo" value="<?= e($sessao['titulo'] ?? $tituloSugerido) ?>" required></div>
+            <div><label class="panel-label">Número</label><input class="field" name="numero" type="number" min="1" value="<?= e($sessao['numero'] ?? $numeroSugerido) ?>"></div>
+            <div><label class="panel-label">Ano</label><input class="field" name="ano" type="number" min="2000" value="<?= e($sessao['ano'] ?? $anoSugerido) ?>"></div>
+            <div style="grid-column:1/-1;"<?= !$sessao ? ' hidden' : '' ?>>
                 <label class="panel-label">Status</label>
                 <select class="field" name="status">
-                    <?php $sessaoStatus = (string) ($sessao['status'] ?? 'RASCUNHO'); ?>
+                    <?php $sessaoStatus = (string) ($sessao['status'] ?? 'CRIADO'); ?>
                     <?php foreach (sessao_status_options() as $value => $label): ?>
                         <option value="<?= e($value) ?>" <?= $sessaoStatus === $value ? 'selected' : '' ?>><?= e($label) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
             <div style="grid-column:1/-1;" class="action-row">
-                <button class="btn btn-primary" type="submit">Salvar sessão</button>
+                <button class="btn btn-primary" type="submit"><?= $sessao ? 'Salvar sessão' : 'Criar e abrir condução' ?></button>
                 <a class="btn btn-soft" href="<?= e(base_url('?r=sessao/index')) ?>">Voltar</a>
             </div>
         </form>
@@ -108,6 +96,7 @@ function pauta_extra_value_sessao(?array $item, string $key, string $default = '
         <?php require __DIR__ . '/_cerimonial.php'; ?>
     <?php endif; ?>
 
+    <?php if ($sessao): ?>
     <article class="panel-card" style="grid-column:1/-1;">
         <div class="panel-label">Montagem da pauta</div>
         <div class="panel-meta">
@@ -123,17 +112,29 @@ function pauta_extra_value_sessao(?array $item, string $key, string $default = '
             <?php endif; ?>
             <details class="pauta-item-card" id="nova-materia"<?= $pautaEnabled ? '' : ' style="opacity:.75"' ?>>
                 <summary class="pauta-item-head">
-                    <div>
-                        <div class="panel-label">Nova matéria</div>
-                        <div class="panel-value" style="font-size:1rem;margin-top:4px;">Adicionar nova linha na pauta</div>
-                        <div class="panel-meta">Abra, preencha e siga para a próxima — ou importe JSON do SAPL.</div>
+                    <div class="nova-materia-head">
+                        <span class="nova-materia-plus" aria-hidden="true">+</span>
+                        <div>
+                            <div class="panel-label">Nova matéria<?= $pautaEnabled ? '' : ' — somente leitura' ?></div>
+                            <div class="panel-value" style="font-size:1rem;margin-top:4px;">Adicionar nova linha na pauta</div>
+                            <div class="panel-meta"><?= $pautaEnabled
+                                ? 'Abra, preencha os campos e salve. Se preferir, use a importação do SAPL.'
+                                : 'A pauta está bloqueada. Não é possível incluir novas matérias.' ?></div>
+                        </div>
                     </div>
                 </summary>
                 <div style="margin-top:18px;">
                     <?php if (!empty($_GET['sapl_error'])): ?>
                         <div class="auth-error" style="margin-bottom:12px;"><?= e((string) $_GET['sapl_error']) ?></div>
                     <?php endif; ?>
-                    <div class="sapl-import-box">
+
+                    <div class="action-row" style="margin-bottom:12px;">
+                        <button class="btn btn-soft" type="button" id="sapl-import-toggle" aria-expanded="<?= !empty($_GET['sapl_error']) ? 'true' : 'false' ?>" aria-controls="sapl-import-panel">
+                            Importar do SAPL
+                        </button>
+                    </div>
+
+                    <div class="sapl-import-box" id="sapl-import-panel"<?= empty($_GET['sapl_error']) ? ' hidden' : '' ?>>
                         <div class="panel-label">Importar do SAPL</div>
                         <div class="panel-meta">Cole o JSON da matéria (copiado da API ou do sistema SAPL).</div>
                         <textarea class="field" id="sapl-json-import" rows="8" placeholder='{"id": 465, "__str__": "Projeto de Resolucao nº 1/2026", ...}' style="margin-top:8px;font-family:Consolas,monospace;font-size:11px;"></textarea>
@@ -142,6 +143,7 @@ function pauta_extra_value_sessao(?array $item, string $key, string $default = '
                             <?php if ($pautaEnabled): ?>
                                 <button class="btn btn-primary" type="button" id="sapl-salvar-direto">Importar e salvar</button>
                             <?php endif; ?>
+                            <button class="btn btn-soft" type="button" id="sapl-import-hide">Ocultar</button>
                         </div>
                         <div id="sapl-import-msg" class="panel-meta" style="margin-top:8px;"></div>
                     </div>
@@ -185,7 +187,9 @@ function pauta_extra_value_sessao(?array $item, string $key, string $default = '
                         <div class="action-row">
                             <form method="post" action="<?= e(base_url('?r=pauta/delete/' . ($sessao['id'] ?? 0) . '/' . (int) $item['id'])) ?>" onsubmit="return confirm('Excluir esta matéria?');">
                                 <?= csrf_field() ?>
-                                <button class="btn btn-danger" type="submit" title="Excluir matéria">🗑</button>
+                                <button class="btn btn-icon btn-danger" type="submit" title="Excluir matéria" aria-label="Excluir matéria">
+                                    <span class="icon-glyph" aria-hidden="true">&#128465;</span>
+                                </button>
                             </form>
                         </div>
                         <?php endif; ?>
@@ -217,6 +221,7 @@ function pauta_extra_value_sessao(?array $item, string $key, string $default = '
     </article>
 
     <?php require __DIR__ . '/_roteiro.php'; ?>
+    <?php endif; ?>
 </section>
 <script>
 (function () {
@@ -309,7 +314,36 @@ function pauta_extra_value_sessao(?array $item, string $key, string $default = '
     var novaMateriaForm = document.getElementById('matter-form-nova');
     var saplTextarea = document.getElementById('sapl-json-import');
     var saplMsg = document.getElementById('sapl-import-msg');
+    var saplImportPanel = document.getElementById('sapl-import-panel');
+    var saplImportToggle = document.getElementById('sapl-import-toggle');
+    var saplImportHide = document.getElementById('sapl-import-hide');
     var parseUrl = <?= json_encode(base_url('?r=pauta/parseSapl'), JSON_UNESCAPED_UNICODE) ?>;
+
+    function setSaplImportVisible(show) {
+        if (!saplImportPanel) return;
+        saplImportPanel.hidden = !show;
+        if (saplImportToggle) {
+            saplImportToggle.setAttribute('aria-expanded', show ? 'true' : 'false');
+            saplImportToggle.textContent = show ? 'Ocultar importação SAPL' : 'Importar do SAPL';
+        }
+        if (show && saplTextarea) {
+            saplTextarea.focus();
+        }
+    }
+
+    if (saplImportToggle) {
+        saplImportToggle.addEventListener('click', function () {
+            setSaplImportVisible(saplImportPanel ? saplImportPanel.hidden : true);
+        });
+    }
+    if (saplImportHide) {
+        saplImportHide.addEventListener('click', function () {
+            setSaplImportVisible(false);
+        });
+    }
+    if (saplImportPanel && !saplImportPanel.hidden) {
+        setSaplImportVisible(true);
+    }
 
     function setSaplMsg(text, isError) {
         if (!saplMsg) return;
@@ -346,10 +380,23 @@ function pauta_extra_value_sessao(?array $item, string $key, string $default = '
         if (el && el.type === 'checkbox') el.checked = !!on;
     }
 
+    function openModoAvancado(form) {
+        if (!form) return;
+        var advanced = form.querySelector('.pauta-advanced-toggle');
+        if (advanced) advanced.open = true;
+    }
+
     function preencherFormularioSapl(data) {
         if (!novaMateriaForm || !data.item) return;
         var post = data.post || {};
         var item = data.item;
+        var advancedFields = [
+            'tipo_sapl', 'sapl_id', 'numero_protocolo', 'data_apresentacao', 'tipo_apresentacao',
+            'regime_tramitacao_id', 'data_publicacao', 'apelido', 'indexacao', 'observacao',
+            'objeto', 'resultado', 'texto_original', 'link_detail_backend', 'dias_prazo',
+            'data_fim_prazo', 'tipo_origem_externa', 'numero_origem_externa', 'ano_origem_externa',
+            'data_origem_externa', 'local_origem_externa', 'autores_ids', 'autoria'
+        ];
         var saplFields = [
             'tipo_sapl', 'tipo_materia', 'numero', 'ano', 'sapl_id', 'titulo', 'ementa',
             'numero_protocolo', 'data_apresentacao', 'tipo_apresentacao', 'regime_tramitacao_id',
@@ -358,6 +405,7 @@ function pauta_extra_value_sessao(?array $item, string $key, string $default = '
             'tipo_origem_externa', 'numero_origem_externa', 'ano_origem_externa',
             'data_origem_externa', 'local_origem_externa', 'autor', 'autores_ids', 'autoria'
         ];
+        var filledAdvanced = false;
         saplFields.forEach(function (name) {
             var val = post[name];
             if (val === undefined || val === null) {
@@ -365,20 +413,26 @@ function pauta_extra_value_sessao(?array $item, string $key, string $default = '
             }
             if (val !== undefined && val !== null && val !== '') {
                 setField(novaMateriaForm, name, String(val));
+                if (advancedFields.indexOf(name) !== -1) filledAdvanced = true;
             }
         });
         setCheckbox(novaMateriaForm, 'em_tramitacao', post.em_tramitacao === '1' || item.em_tramitacao === 'Sim');
         setCheckbox(novaMateriaForm, 'polemica', post.polemica === '1' || item.materia_polemica === 'Sim');
         setCheckbox(novaMateriaForm, 'complementar', post.complementar === '1' || item.eh_complementar === 'Sim');
+        if (post.em_tramitacao === '1' || item.em_tramitacao === 'Sim' || post.polemica === '1' || item.materia_polemica === 'Sim' || post.complementar === '1' || item.eh_complementar === 'Sim') {
+            filledAdvanced = true;
+        }
         if (data.numeracoes && data.numeracoes[0]) {
             var n = data.numeracoes[0];
             setField(novaMateriaForm, 'numeracoes[0][tipo_materia]', n.tipo_materia);
             setField(novaMateriaForm, 'numeracoes[0][numero]', n.numero);
             setField(novaMateriaForm, 'numeracoes[0][ano]', n.ano);
             setField(novaMateriaForm, 'numeracoes[0][data_doc]', n.data_doc || '');
+            filledAdvanced = true;
         }
         var details = document.getElementById('nova-materia');
         if (details) details.open = true;
+        if (filledAdvanced) openModoAvancado(novaMateriaForm);
     }
 
     function parseSaplJson(callback) {
@@ -430,14 +484,104 @@ function pauta_extra_value_sessao(?array $item, string $key, string $default = '
         });
     }
 
+    var pautaList = document.querySelector('.pauta-list');
+
+    function escapeHtml(text) {
+        var div = document.createElement('div');
+        div.textContent = text || '';
+        return div.innerHTML;
+    }
+
+    function csrfTokenValue() {
+        var tokenInput = novaMateriaForm ? novaMateriaForm.querySelector('input[name="csrf_token"]') : null;
+        return tokenInput ? tokenInput.value : '';
+    }
+
+    function appendMateriaCard(itemData) {
+        if (!pautaList) return;
+        var linha = pautaList.querySelectorAll('.pauta-item-card:not(#nova-materia)').length + 1;
+        var details = document.createElement('details');
+        details.className = 'pauta-item-card';
+        details.open = true;
+        details.innerHTML =
+            '<summary class="pauta-item-head">' +
+                '<div>' +
+                    '<div class="panel-label">Linha ' + linha + '</div>' +
+                    '<div class="panel-value" style="font-size:1rem;margin-top:4px;">' + escapeHtml(itemData.tipo_materia) + ' - ' + escapeHtml(itemData.titulo) + '</div>' +
+                    '<div class="panel-meta">' + escapeHtml(itemData.ementa) + '</div>' +
+                '</div>' +
+                '<div class="action-row">' +
+                    '<form method="post" action="' + escapeHtml(itemData.delete_url) + '" onsubmit="return confirm(\'Excluir esta matéria?\');">' +
+                        '<input type="hidden" name="csrf_token" value="' + escapeHtml(csrfTokenValue()) + '">' +
+                        '<button class="btn btn-icon btn-danger" type="submit" title="Excluir matéria" aria-label="Excluir matéria">' +
+                            '<span class="icon-glyph" aria-hidden="true">&#128465;</span>' +
+                        '</button>' +
+                    '</form>' +
+                '</div>' +
+            '</summary>' +
+            '<div style="margin-top:18px;">' +
+                '<div class="panel-meta" style="margin-bottom:10px;">Matéria salva. Abra a edição completa para ajustar todos os campos.</div>' +
+                '<a class="btn btn-primary" href="' + escapeHtml(itemData.edit_url) + '">Abrir edição</a>' +
+            '</div>';
+        pautaList.appendChild(details);
+    }
+
+    var novaMateriaSubmitBtn = novaMateriaForm ? novaMateriaForm.querySelector('button[type="submit"]') : null;
+    if (novaMateriaForm) {
+        novaMateriaForm.addEventListener('submit', function (ev) {
+            ev.preventDefault();
+            if (novaMateriaSubmitBtn) novaMateriaSubmitBtn.disabled = true;
+            setSaplMsg('', false);
+            var body = new FormData(novaMateriaForm);
+            body.append('ajax', '1');
+            fetch(novaMateriaForm.action, {
+                method: 'POST',
+                body: body,
+                credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            })
+                .then(function (r) { return r.json().then(function (data) { return { status: r.status, data: data }; }); })
+                .then(function (res) {
+                    if (novaMateriaSubmitBtn) novaMateriaSubmitBtn.disabled = false;
+                    if (!res.data.ok) {
+                        setSaplMsg(res.data.error || 'Erro ao salvar matéria.', true);
+                        setSaplImportVisible(true);
+                        return;
+                    }
+                    // Recarrega na edição completa para ficar igual aos demais cards.
+                    if (res.data.item && res.data.item.edit_url) {
+                        window.location.href = res.data.item.edit_url;
+                        return;
+                    }
+                    appendMateriaCard(res.data.item);
+                    novaMateriaForm.reset();
+                    setSaplMsg('Matéria salva.', false);
+                })
+                .catch(function () {
+                    if (novaMateriaSubmitBtn) novaMateriaSubmitBtn.disabled = false;
+                    setSaplMsg('Falha na comunicação com o servidor.', true);
+                    setSaplImportVisible(true);
+                });
+        });
+    }
+
     if (window.location.hash === '#nova-materia') {
         var d = document.getElementById('nova-materia');
         if (d) d.open = true;
+    }
+    if (window.location.hash === '#ata') {
+        var ataPanel = document.getElementById('ata-panel');
+        if (ataPanel) ataPanel.open = true;
+    }
+    if (window.location.hash === '#cerimonial') {
+        var cerPanel = document.getElementById('cerimonial-panel');
+        if (cerPanel) cerPanel.open = true;
     }
     <?php if (!empty($_GET['sapl_error'])): ?>
     (function () {
         var d = document.getElementById('nova-materia');
         if (d) d.open = true;
+        setSaplImportVisible(true);
     })();
     <?php endif; ?>
 })();

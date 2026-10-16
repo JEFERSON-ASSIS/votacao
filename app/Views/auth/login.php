@@ -18,6 +18,8 @@
                 Acompanhe sessões, pautas, presença, votação e apuração em um painel pensado para operação institucional.
             </p>
 
+            <img class="auth-brasao" src="<?= e(asset_url('assets/img/brasao-vera-mt.png')) ?>" alt="Brasão do Município de Vera - MT">
+
             <!-- <div class="auth-notes">
                 <div class="auth-note">Fluxo de presidência com visão centralizada da sessão.</div>
                 <div class="auth-note">Acesso administrativo organizado por perfis e responsabilidades.</div>
@@ -50,6 +52,10 @@
                     <button class="btn btn-primary" type="submit">Entrar</button>
                 </div>
             </form>
+
+            <div class="auth-publico">
+                <a class="btn btn-soft" href="<?= e(route_url('publico/index')) ?>">Visão pública (ao vivo)</a>
+            </div>
         </div>
     </section>
 </main>
