@@ -6043,3 +6043,143 @@ body.public-page--telao .public-footer {
 :fullscreen .public-fullscreen-btn {
     display: none;
 }
+
+/* =====================================================================
+   Fase 1 de padronização visual (só CSS).
+   Cores do voto únicas em todas as telas claras, contraste WCAG AA,
+   foco visível e alvos de toque. O telão (tema escuro) não é afetado.
+   ===================================================================== */
+:root {
+    --line: var(--border);
+    --primary: var(--accent);
+    --voto-sim: #12703f;
+    --voto-sim-hover: #0e5a32;
+    --voto-sim-soft: #e7f3ec;
+    --voto-nao: #a4262c;
+    --voto-nao-hover: #861f24;
+    --voto-nao-soft: #fbeaea;
+    --voto-abst: #8a5a00;
+    --voto-abst-soft: #fff4d6;
+    --voto-abst-borda: #c98a12;
+    --foco: #004a7c;
+}
+
+/* Etiquetas e placar do voto */
+body:not(.public-page--telao) .voto-chip.voto-sim { background: var(--voto-sim-soft); color: var(--voto-sim); }
+body:not(.public-page--telao) .voto-chip.voto-nao { background: var(--voto-nao-soft); color: var(--voto-nao); }
+body:not(.public-page--telao) .voto-chip.voto-abst { background: var(--voto-abst-soft); color: var(--voto-abst); }
+body:not(.public-page--telao) .voto-sim-text { color: var(--voto-sim); }
+body:not(.public-page--telao) .voto-nao-text { color: var(--voto-nao); }
+
+/* Botões de voto do parlamentar: sólidos, fáceis de distinguir */
+body:not(.public-page--telao) .parl-voto-btn--sim {
+    background: var(--voto-sim);
+    border-color: var(--voto-sim);
+    color: #fff;
+}
+body:not(.public-page--telao) .parl-voto-btn--sim:hover:not(:disabled) { background: var(--voto-sim-hover); }
+body:not(.public-page--telao) .parl-voto-btn--nao {
+    background: var(--voto-nao);
+    border-color: var(--voto-nao);
+    color: #fff;
+}
+body:not(.public-page--telao) .parl-voto-btn--nao:hover:not(:disabled) { background: var(--voto-nao-hover); }
+body:not(.public-page--telao) .parl-voto-btn--abst {
+    background: var(--voto-abst-soft);
+    border-color: var(--voto-abst-borda);
+    color: var(--voto-abst);
+}
+body:not(.public-page--telao) .parl-voto-btn:disabled { opacity: .55; cursor: wait; }
+
+/* Selo "Ao vivo" / "Reconectando" */
+body:not(.public-page--telao) .parl-live-badge {
+    background: var(--voto-sim-soft);
+    border-color: var(--voto-sim);
+    color: var(--voto-sim-hover);
+}
+body:not(.public-page--telao) .parl-live-badge.is-offline {
+    background: #f1f3f5;
+    border-color: #6c757d;
+    color: #495057;
+}
+
+/* Matéria em votação na pauta do parlamentar */
+body:not(.public-page--telao) .parl-pauta-item--vote {
+    border-color: var(--voto-sim);
+    box-shadow: inset 4px 0 0 var(--voto-sim);
+}
+
+/* Status e botão de perigo com contraste suficiente */
+body:not(.public-page--telao) .status-chip.vote { color: var(--voto-sim); }
+body:not(.public-page--telao) .status-chip.closed { color: var(--voto-nao); }
+body:not(.public-page--telao) .status-chip.warn { color: #92400e; }
+.btn-danger { color: var(--voto-nao); }
+
+/* Foco visível para quem navega pelo teclado */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 3px solid var(--foco);
+    outline-offset: 2px;
+}
+.field:focus-visible {
+    outline: 2px solid var(--foco);
+    outline-offset: 1px;
+}
+body.public-page--telao :where(a, button):focus-visible { outline-color: #fff; }
+
+/* Alvos de toque de pelo menos 44px em tablets e celulares */
+@media (pointer: coarse) {
+    .btn { min-height: 44px; }
+    .btn-icon { width: 44px; height: 44px; min-width: 44px; }
+}
+
+/* Título do telão maior em TVs */
+@media (min-width: 1600px) {
+    .public-telao-title { font-size: clamp(1.25rem, 1.5vw, 2rem); }
+    .public-carrossel-slide--momento .public-carrossel-titulo { font-size: clamp(2.4rem, 3.2vw, 3.4rem); }
+}
+
+/* Menos animação para quem pede isso no sistema operacional */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* Vereador impedido ou ausente na votação */
+.voto-chip.voto-situacao {
+    background: #eef0f3;
+    color: #495057;
+    border: 1px dashed #868e96;
+}
+body.public-page--telao .voto-chip.voto-situacao {
+    background: rgba(255, 255, 255, 0.1);
+    color: #e9ecef;
+    border-color: rgba(255, 255, 255, 0.35);
+}
+.votacao-situacao-acoes {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.votacao-situacao-form { display: inline-flex; margin: 0; }
+
+/* Confirmação do voto do parlamentar */
+.parl-voto-confirmacao {
+    margin-top: 16px;
+    padding: 16px;
+    border: 2px solid var(--accent);
+    border-radius: 10px;
+    background: var(--accent-soft);
+}
+.parl-voto-confirmacao-texto {
+    margin: 0 0 4px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--heading);
+}
+.parl-voto-confirmacao-texto .voto-chip { font-size: 1.05rem; padding: 4px 12px; margin-left: 6px; }
+.parl-voto-confirmacao .parl-voto-botoes { margin-top: 12px; }

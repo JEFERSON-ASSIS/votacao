@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Teste de contraste do app.css</title>
+<!--
+  Teste visual do CSS: abre o app.css real e mede o contraste (WCAG AA)
+  dos elementos que aparecem nas telas. Abra este arquivo no navegador
+  com o Apache ligado, servindo esta pasta assim:
+    C:/xampp/php/php.exe -S 127.0.0.1:8099 -t tests/visual
+  e acesse http://127.0.0.1:8099/contraste.html. O resultado aparece no topo.
+  Para outro endereço, use ?css=https://seu-dominio/public/assets/css/app.css
+-->
+<script>
+  var cssUrl = new URLSearchParams(location.search).get('css')
+    || 'http://localhost/producao/antigos/votacao/public/assets/css/app.css';
+  document.write('<link rel="stylesheet" href="' + cssUrl + '?t=' + Date.now() + '">');
+</script>
+<style>#resultado{white-space:pre-wrap;font:13px/1.5 Consolas,monospace;padding:12px;background:#fff;color:#000;border:2px solid #000;margin:12px}</style>
+</head>
+<body class="admin-layout">
+<pre id="resultado">rodando...</pre>
+
+<div style="padding:12px">
+  <div class="panel-meta" id="meta-sobre-fundo">Texto secundário direto sobre o fundo da página</div>
+  <article class="panel-card" style="margin-top:12px">
+    <div class="votacao-painel">
+      Seu voto:
+      <span class="voto-chip voto-sim" data-teste="chip Sim">Sim</span>
+      <span class="voto-chip voto-nao" data-teste="chip Não">Não</span>
+      <span class="voto-chip voto-abst" data-teste="chip Abstenção">Abstenção</span>
+    </div>
+    <div class="panel-value voto-sim-text" data-teste="placar Sim">5</div>
+    <div class="panel-value voto-nao-text" data-teste="placar Não">3</div>
+    <span class="parl-live-badge" data-teste="selo Ao vivo" data-borda="1">Ao vivo</span>
+    <span class="parl-live-badge is-offline" data-teste="selo Reconectando" data-borda="1">Reconectando…</span>
+    <div class="parl-voto-botoes">
+      <button class="btn parl-voto-btn parl-voto-btn--sim" data-teste="botão SIM">SIM</button>
+      <button class="btn parl-voto-btn parl-voto-btn--nao" data-teste="botão NÃO">NÃO</button>
+      <button class="btn parl-voto-btn parl-voto-btn--abst" data-teste="botão ABSTENÇÃO">ABSTENÇÃO</button>
+    </div>
+    <button class="btn btn-danger" data-teste="botão Excluir">Excluir</button>
+    <span class="status-chip open" data-teste="status Aberta">Aberta</span>
+    <span class="status-chip created" data-teste="status Criado">Criado</span>
+    <span class="status-chip draft" data-teste="status Rascunho">Rascunho</span>
+    <span class="status-chip vote" data-teste="status Em votação">Em votação</span>
+    <span class="status-chip closed" data-teste="status Encerrada">Encerrada</span>
+    <span class="status-chip warn" data-teste="status Aviso">Aviso</span>
+    <div class="parl-pauta-item parl-pauta-item--vote" data-teste="destaque Em votação" data-so-borda="1">Matéria em votação</div>
+    <button class="btn btn-soft" id="botao-foco">Botão para foco</button>
+  </article>
+</div>
+
+<div style="padding:12px" id="telao-area">
+  <div class="public-vereador-card--telao">
+    <span class="voto-chip voto-nao" id="telao-chip-nao">Não</span>
+    <span class="voto-chip voto-abst" id="telao-chip-abst">Abst</span>
+  </div>
+</div>
+
+<script>
+function rgba(str) {
+  var m = str.match(/rgba?\(([^)]+)\)/);
+  if (!m) return [0, 0, 0, 0];
+  var p = m[1].split(/[ ,\/]+/).filter(Boolean).map(Number);
+  return [p[0], p[1], p[2], p.length > 3 ? p[3] : 1];
+}
+function sobre(cima, baixo) {
+  var a = cima[3];
+  return [0, 1, 2].map(function (i) { return cima[i] * a + baixo[i] * (1 - a); }).concat(1);
+}
+function fundo(el) {
+  var camadas = [];
+  for (var n = el; n && n.nodeType === 1; n = n.parentElement) {
+    camadas.push(rgba(getComputedStyle(n).backgroundColor));
+  }
+  var cor = [255, 255, 255, 1];
+  for (var i = camadas.length - 1; i >= 0; i--) cor = sobre(camadas[i], cor);
+  return cor;
+}
+function lum(c) {
+  var v = c.slice(0, 3).map(function (x) {
+    x /= 255;
+    return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2];
+}
+function contraste(a, b) {
+  var la = lum(a), lb = lum(b);
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+
+function rodar() {
+  var linhas = [], falhas = 0;
+  function confere(ok, txt) { linhas.push((ok ? '[OK]    ' : '[FALHA] ') + txt); if (!ok) falhas++; }
+
+  var telao = document.getElementById('telao-area');
+  telao.style.display = 'none';
+
+  // 1) Texto legível (mínimo 4,5:1)
+  var meta = document.getElementById('meta-sobre-fundo');
+  var r = contraste(sobre(rgba(getComputedStyle(meta).color), fundo(meta)), fundo(meta));
+  confere(r >= 4.5, 'texto secundário sobre o fundo: ' + r.toFixed(2));
+
+  document.querySelectorAll('[data-teste]').forEach(function (el) {
+    var bg = fundo(el);
+    if (!el.dataset.soBorda) {
+      var fg = sobre(rgba(getComputedStyle(el).color), bg);
+      var c = contraste(fg, bg);
+      confere(c >= 4.5, el.dataset.teste + ' (texto): ' + c.toFixed(2));
+    }
+    if (el.dataset.borda || el.dataset.soBorda) {
+      var pai = fundo(el.parentElement);
+      var borda = sobre(rgba(getComputedStyle(el).borderTopColor), pai);
+      var cb = Math.max(contraste(borda, pai), contraste(bg, pai));
+      confere(cb >= 3, el.dataset.teste + ' (contorno visível): ' + cb.toFixed(2));
+    }
+  });
+
+  // 2) Variáveis usadas no CSS precisam existir
+  ['--line', '--primary'].forEach(function (v) {
+    var val = getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+    confere(val !== '', 'variável ' + v + ' definida (' + (val || 'vazia') + ')');
+  });
+
+  // 3) Foco visível pelo teclado
+  var b = document.getElementById('botao-foco');
+  b.focus({ focusVisible: true });
+  var cs = getComputedStyle(b);
+  confere(cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) >= 2, 'foco visível no botão (' + cs.outlineStyle + ' ' + cs.outlineWidth + ')');
+  b.blur();
+
+  // 4) Telão continua igual (tema escuro)
+  telao.style.display = '';
+  document.body.className = 'public-page public-page--telao';
+  var esperado = { 'telao-chip-nao': 'rgb(255, 179, 179)', 'telao-chip-abst': 'rgb(255, 214, 102)' };
+  Object.keys(esperado).forEach(function (id) {
+    var cor = getComputedStyle(document.getElementById(id)).color;
+    confere(cor === esperado[id], 'telão mantém a cor de ' + id + ' (' + cor + ')');
+  });
+  document.body.className = 'admin-layout';
+
+  linhas.push('', falhas === 0 ? 'Tudo certo.' : falhas + ' falha(s).');
+  document.getElementById('resultado').textContent = linhas.join('\n');
+  window.__resultado = { falhas: falhas, linhas: linhas };
+}
+window.addEventListener('load', rodar);
+</script>
+</body>
+</html>
