@@ -466,6 +466,12 @@ $parlamentaresTransferencia = array_values(array_filter(
                                         <strong class="sessao-timer-valor" data-sessao-timer-valor><?= e(sessao_tempo_formatar((int) $tempoRodada['restante_seg'])) ?></strong>
                                     </div>
                                 <?php endif; ?>
+                                <?php
+                                $estadoVotacao = \App\Helpers\VotacaoPainelEstado::jsonRodada((int) $rodada['id']);
+                                $listaVotos = $estadoVotacao['parlamentares'] ?? [];
+                                $placarVotos = $estadoVotacao['resumo'] ?? [];
+                                require __DIR__ . '/../partials/_conducao_votos_lista.php';
+                                ?>
                                 <div
                                     class="conducao-votacao-actions"
                                     id="conducao-votacao-live"
@@ -483,12 +489,7 @@ $parlamentaresTransferencia = array_values(array_filter(
                                         <?= $podeEncerrarRodada ? 'hidden' : '' ?>
                                     >
                                         <?php if ($votosPendentes !== []): ?>
-                                                <strong>Aguardando <?= count($votosPendentes) ?> <?= count($votosPendentes) === 1 ? 'voto' : 'votos' ?>:</strong>
-                                                <ul>
-                                                    <?php foreach ($votosPendentes as $votoPendente): ?>
-                                                        <li><?= e((string) ($votoPendente['nome'] ?? 'Parlamentar')) ?></li>
-                                                    <?php endforeach; ?>
-                                                </ul>
+                                                <strong>Aguardando <?= count($votosPendentes) ?> <?= count($votosPendentes) === 1 ? 'voto' : 'votos' ?></strong>
                                         <?php else: ?>
                                             <?= e($msgEncerrarRodada) ?>
                                         <?php endif; ?>

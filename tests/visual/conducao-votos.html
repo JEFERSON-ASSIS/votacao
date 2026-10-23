@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Teste da lista de votos na condução</title>
+<!--
+  Confere que a caixa da votação na condução atualiza placar e lista de votos
+  com o estado vindo do servidor (simulado por estado-rodada.php).
+  Sirva: C:/xampp/php/php.exe -S 127.0.0.1:8099 -t tests/visual
+  e acesse http://127.0.0.1:8099/conducao-votos.html
+-->
+<script>
+  var base = new URLSearchParams(location.search).get('base')
+    || 'http://localhost/producao/antigos/votacao/public';
+  document.write('<link rel="stylesheet" href="' + base + '/assets/css/app.css?t=' + Date.now() + '">');
+  document.write('<script src="' + base + '/assets/js/conducao-votacao.js?t=' + Date.now() + '" defer><\/script>');
+</script>
+<style>#resultado{white-space:pre-wrap;font:13px/1.5 Consolas,monospace;padding:12px;background:#fff;color:#000;border:2px solid #000;margin:12px}</style>
+</head>
+<body class="admin-layout admin-layout--conducao">
+<pre id="resultado">rodando...</pre>
+<div style="padding:12px;max-width:760px">
+  <article class="conducao-stage" style="padding:12px">
+    <div class="conducao-votacao-box conducao-votacao-box--stage">
+      <div class="conducao-votos-resumo" id="conducao-votos-resumo">
+        <ul class="conducao-votos-lista" id="conducao-votos-lista"></ul>
+      </div>
+      <div class="conducao-votacao-actions" id="conducao-votacao-live" data-estado-url="estado-rodada.php" data-stream-url="">
+        <div class="conducao-presidente-alert conducao-presidente-alert--inline conducao-votos-pendentes" id="conducao-votos-pendentes" hidden></div>
+        <button class="btn btn-danger" id="conducao-concluir-votacao" type="button">Concluir votação</button>
+      </div>
+    </div>
+  </article>
+</div>
+<script>
+async function rodar() {
+  var linhas = [], falhas = 0;
+  function confere(ok, txt) { linhas.push((ok ? '[OK]    ' : '[FALHA] ') + txt); if (!ok) falhas++; }
+  try {
+    await new Promise(function (r) { setTimeout(r, 1500); });
+    var lista = document.getElementById('conducao-votos-lista');
+    var itens = lista.querySelectorAll('li');
+    confere(itens.length === 4, 'lista mostra os 4 vereadores (obtido ' + itens.length + ')');
+    confere(/Ana Lima/.test(lista.textContent) && !!lista.querySelector('.voto-chip.voto-sim'), 'voto Sim aparece com a cor do voto');
+    confere(!!lista.querySelector('.voto-chip.voto-nao'), 'voto Nao aparece com a cor do voto');
+    confere(/Aguardando/.test(lista.textContent), 'quem falta aparece como Aguardando');
+    confere(/Davi <i>Souza<\/i>/.test(lista.textContent) && !lista.querySelector('i'), 'nomes sao escapados');
+    var placar = document.querySelector('[data-placar="SIM"]');
+    confere(!!placar && placar.textContent.trim() === '2', 'placar ao vivo: Sim = 2');
+    var nao = document.querySelector('[data-placar="NAO"]');
+    confere(!!nao && nao.textContent.trim() === '1', 'placar ao vivo: Nao = 1');
+    var pend = document.getElementById('conducao-votos-pendentes');
+    confere(!pend.hidden && /Aguardando 1 voto/.test(pend.textContent), 'caixa de pendentes mostra a quantidade');
+    confere(!/Davi/.test(pend.textContent), 'caixa de pendentes nao repete os nomes da lista');
+    confere(document.getElementById('conducao-concluir-votacao').disabled, 'Concluir votacao fica desabilitado enquanto falta voto');
+  } catch (e) {
+    confere(false, 'erro: ' + e.message);
+  }
+  linhas.push('', falhas === 0 ? 'Tudo certo.' : falhas + ' falha(s).');
+  document.getElementById('resultado').textContent = linhas.join('\n');
+  window.__resultado = { falhas: falhas, linhas: linhas };
+}
+window.addEventListener('load', rodar);
+</script>
+</body>
+</html>

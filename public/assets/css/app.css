@@ -6315,3 +6315,55 @@ body.public-page--telao .public-hero-mark--brasao { background: #fff; }
 .conducao-stage .conducao-stage-materia,
 .conducao-stage .conducao-fala--muted,
 .conducao-stage .conducao-instrucao--stage { color: #b8c4d6; }
+
+/* Placar e voto de cada vereador na caixa da votação (condução) */
+.conducao-votos-resumo { margin: 12px 0 4px; }
+.conducao-placar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.conducao-placar-item {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.conducao-placar-item strong { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.conducao-placar-item--sim strong { color: #86efac; }
+.conducao-placar-item--nao strong { color: #fca5a5; }
+.conducao-placar-item--abst strong { color: #fcd34d; }
+.conducao-votos-lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 6px;
+    max-height: 260px;
+    overflow-y: auto;
+}
+.conducao-voto-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+}
+.conducao-voto-item--aguardando { border-style: dashed; }
+.conducao-voto-nome { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conducao-voto-aguardando { flex-shrink: 0; font-size: 12px; font-style: italic; color: rgba(255, 255, 255, 0.72); }
+.conducao-voto-item .voto-chip {
+    flex-shrink: 0;
+    padding: 2px 9px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+}
