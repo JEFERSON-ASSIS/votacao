@@ -80,6 +80,19 @@ final class SessaoConducao
         self::alterar($sessaoId, (int) $estado['titular_user_id'], $autorId, 'DEVOLUCAO');
     }
 
+    /** Presidente titular reassume a condução quando volta ao plenário. */
+    public static function retomar(int $sessaoId, int $autorId): void
+    {
+        if (SessaoVotacaoRodada::findAberta($sessaoId)) {
+            throw new \RuntimeException('Aguarde o encerramento da votação aberta para retomar a presidência.');
+        }
+        $estado = self::estado($sessaoId);
+        if (!$estado || (int) $estado['titular_user_id'] !== $autorId) {
+            throw new \RuntimeException('Somente o presidente titular pode retomar a presidência.');
+        }
+        self::alterar($sessaoId, $autorId, $autorId, 'RETOMADA');
+    }
+
     private static function alterar(int $sessaoId, int $novoCondutorId, int $autorId, string $tipo): void
     {
         $pdo = DB::conn();
@@ -183,6 +196,11 @@ final class SessaoConducao
     public static function condutorId(int $sessaoId): int
     {
         return (int) (self::estado($sessaoId)['condutor_user_id'] ?? 0);
+    }
+
+    public static function titularId(int $sessaoId): int
+    {
+        return (int) (self::estado($sessaoId)['titular_user_id'] ?? 0);
     }
 
     public static function usuarioPodeAcompanharComoParlamentar(int $sessaoId, int $userId): bool

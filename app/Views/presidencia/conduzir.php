@@ -108,16 +108,28 @@ $parlamentaresTransferencia = array_values(array_filter(
                 <span class="icon-glyph" aria-hidden="true">&#9776;</span>
                 <span>Dados e pauta</span>
             </a>
-            <?php if ($sessaoIniciada && !$rodadaAberta): ?>
+            <?php endif; ?>
+            <?php if ($sessaoIniciada && $conducaoEstado): ?>
                 <?php if ($condutorTemporario): ?>
-                    <form method="post" action="<?= e(base_url('?r=presidencia/devolverConducao/' . (int) $sessao['id'])) ?>" onsubmit="return confirm('Devolver a condução ao presidente titular?');">
+                    <form
+                        method="post"
+                        action="<?= e(base_url('?r=presidencia/devolverConducao/' . (int) $sessao['id'])) ?>"
+                        data-confirm-title="Devolver presidência"
+                        data-confirm="Devolver a presidência a <?= e((string) ($conducaoEstado['titular_nome'] ?? 'presidente titular')) ?>? Você voltará à visão de parlamentar."
+                        data-confirm-ok="Devolver presidência"
+                    >
                         <?= csrf_field() ?>
-                        <button class="btn btn-soft" type="submit">Devolver condução</button>
+                        <button class="btn btn-soft btn-has-icon" type="submit" title="<?= $rodadaAberta ? 'Encerre a votação aberta antes de devolver' : 'Devolver a presidência ao titular' ?>"<?= $rodadaAberta ? ' disabled' : '' ?>>
+                            <span class="icon-glyph" aria-hidden="true">&#8617;</span>
+                            <span>Devolver presidência</span>
+                        </button>
                     </form>
                 <?php elseif ($parlamentaresTransferencia !== []): ?>
-                    <button class="btn btn-soft" type="button" id="abrir-transferencia-conducao">Passar condução</button>
+                    <button class="btn btn-soft btn-has-icon" type="button" id="abrir-transferencia-conducao" title="<?= $rodadaAberta ? 'Encerre a votação aberta antes de transferir' : 'Passar a presidência a um parlamentar presente' ?>"<?= $rodadaAberta ? ' disabled' : '' ?>>
+                        <span class="icon-glyph" aria-hidden="true">&#8644;</span>
+                        <span>Passar presidência</span>
+                    </button>
                 <?php endif; ?>
-            <?php endif; ?>
             <?php endif; ?>
             <?php if (!$sessaoBloqueada && $podeResetarRoteiro): ?>
             <form method="post" action="<?= e(base_url('?r=roteiro/resetarExecucao/' . (int) $sessao['id'])) ?>" onsubmit="return confirm('Reiniciar a condução do início?');">
@@ -160,13 +172,16 @@ $parlamentaresTransferencia = array_values(array_filter(
     <?php if (!empty($_GET['conducao_erro'])): ?>
         <div class="conducao-presidente-alert" role="alert"><?= e((string) $_GET['conducao_erro']) ?></div>
     <?php endif; ?>
+    <?php if (in_array($_GET['conducao_ok'] ?? '', ['retomada', 'assumida'], true) && !$condutorTemporario): ?>
+        <div class="conducao-presidente-alert conducao-presidente-alert--ok" role="status">Você está novamente na presidência desta sessão.</div>
+    <?php endif; ?>
 
     <?php if (!$condutorTemporario && $parlamentaresTransferencia !== []): ?>
         <div class="modal-overlay is-hidden" id="transferencia-conducao-modal" aria-hidden="true">
             <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="transferencia-conducao-titulo">
                 <div class="panel-label">Presidência temporária</div>
-                <div class="panel-value" id="transferencia-conducao-titulo">Passar condução</div>
-                <div class="panel-meta" style="margin-bottom:16px;">O parlamentar escolhido assumirá a condução desta sessão. Você passará para a visão parlamentar até a condução ser devolvida.</div>
+                <div class="panel-value" id="transferencia-conducao-titulo">Passar presidência</div>
+                <div class="panel-meta" style="margin-bottom:16px;">O parlamentar escolhido assumirá a condução desta sessão. Você passará para a visão parlamentar e poderá retomar a presidência quando voltar.</div>
                 <form method="post" action="<?= e(base_url('?r=presidencia/transferirConducao/' . (int) $sessao['id'])) ?>">
                     <?= csrf_field() ?>
                     <label class="panel-label" for="parlamentar-condutor">Parlamentar presente</label>
@@ -756,6 +771,25 @@ $parlamentaresTransferencia = array_values(array_filter(
         });
     })();
     </script>
+    <?php if ($sessaoIniciada && $conducaoEstado): ?>
+    <script>
+    (function () {
+        // Se a presidência sair deste usuário (ex.: titular retomou), volta para a visão parlamentar.
+        var url = <?= json_encode(base_url('?r=presidencia/estadoConducao/' . (int) $sessao['id'])) ?>;
+        function verificar() {
+            fetch(url + '&_=' + Date.now(), { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (d) {
+                    if (d && d.ok && !d.sou_condutor && d.url_parlamentar) {
+                        window.location.href = d.url_parlamentar;
+                    }
+                })
+                .catch(function () {});
+        }
+        setInterval(verificar, 3000);
+    })();
+    </script>
+    <?php endif; ?>
     <script src="<?= e(asset_url('assets/js/sessao-timer.js')) ?>" defer></script>
     <script src="<?= e(asset_url('assets/js/conducao-votacao.js')) ?>" defer></script>
 </section>

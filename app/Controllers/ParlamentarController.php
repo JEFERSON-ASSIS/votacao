@@ -10,6 +10,7 @@ use App\Helpers\Permissao;
 use App\Helpers\UserFotoUpload;
 use App\Helpers\UserPerfil;
 use App\Models\Sessao;
+use App\Models\SessaoConducao;
 use App\Models\SessaoCrud;
 use App\Models\SessaoItem;
 use App\Models\SessaoVotacaoRodada;
@@ -120,13 +121,25 @@ final class ParlamentarController
     public function sessao(int $sessaoId): void
     {
         Permissao::exigir('parlamentar.sessao');
-        $ctx = ParlamentarAcompanhar::contexto($sessaoId, (int) Auth::user()['id']);
+        $authId = (int) Auth::user()['id'];
+        $ctx = ParlamentarAcompanhar::contexto($sessaoId, $authId);
         if (!$ctx) {
             http_response_code(404);
             echo 'Sessão não disponível.';
             return;
         }
 
+        $sessaoEmAndamento = in_array($ctx['statusRaw'], ['ABERTA', 'EM_VOTACAO'], true);
+        if ($sessaoEmAndamento && SessaoConducao::usuarioPodeConduzir($sessaoId, $authId)) {
+            redirect_route('presidencia/conduzir/' . $sessaoId);
+        }
+
+        $conducaoEstado = SessaoConducao::estado($sessaoId);
+        $ctx['conducaoEstado'] = $conducaoEstado;
+        $ctx['souTitularForaDaConducao'] = $sessaoEmAndamento
+            && $conducaoEstado !== null
+            && (int) $conducaoEstado['titular_user_id'] === $authId
+            && (int) $conducaoEstado['condutor_user_id'] !== $authId;
         $ctx['votoOk'] = ($_GET['voto'] ?? '') === '1';
         View::render('parlamentar/sessao', $ctx);
     }

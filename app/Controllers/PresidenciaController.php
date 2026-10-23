@@ -123,6 +123,15 @@ final class PresidenciaController
             SessaoConducao::iniciar($sessaoId, $titularId);
         }
 
+        // Presidência em exercício com outro parlamentar: titular acompanha pela visão parlamentar.
+        $authIdConducao = (int) (Auth::user()['id'] ?? 0);
+        if (in_array($statusAtual, ['ABERTA', 'EM_VOTACAO'], true)
+            && SessaoConducao::estado($sessaoId) !== null
+            && !SessaoConducao::usuarioPodeConduzir($sessaoId, $authIdConducao)) {
+            header('Location: ' . base_url('?r=parlamentar/sessao/' . $sessaoId));
+            exit;
+        }
+
         if (strtoupper((string) ($sessao['status'] ?? '')) === 'ENCERRADA') {
             if (Permissao::usuarioAtualPode('sessao.form')) {
                 header('Location: ' . base_url('?r=sessao/ata/' . $sessaoId . '&conducao_encerrada=1'));
@@ -286,6 +295,41 @@ final class PresidenciaController
             header('Location: ' . base_url('?r=presidencia/conduzir/' . $sessaoId . '&conducao_erro=' . rawurlencode($e->getMessage())));
         }
         exit;
+    }
+
+    public function retomarConducao(int $sessaoId): void
+    {
+        Permissao::exigir('presidencia.retomarConducao');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !csrf_check($_POST['csrf_token'] ?? null)) {
+            http_response_code(400);
+            echo 'Requisição inválida.';
+            return;
+        }
+        $autorId = (int) (Auth::user()['id'] ?? 0);
+        try {
+            $estado = SessaoConducao::estado($sessaoId);
+            SessaoConducao::retomar($sessaoId, $autorId);
+            $nome = (string) ($estado['titular_nome'] ?? 'Presidente titular');
+            Auditoria::log('retomar', 'sessao_conducao', $sessaoId, 'Presidência retomada por ' . $nome);
+            SessaoEvento::registrar($sessaoId, 'conducao', 'Presidência retomada pelo titular ' . $nome);
+            header('Location: ' . base_url('?r=presidencia/conduzir/' . $sessaoId . '&conducao_ok=retomada'));
+        } catch (\RuntimeException $e) {
+            header('Location: ' . base_url('?r=parlamentar/sessao/' . $sessaoId . '&conducao_erro=' . rawurlencode($e->getMessage())));
+        }
+        exit;
+    }
+
+    /** JSON: quem conduz agora (a tela de condução troca sozinha quando perde a presidência). */
+    public function estadoConducao(int $sessaoId): void
+    {
+        Permissao::exigir('presidencia.estadoConducao');
+        header('Content-Type: application/json; charset=utf-8');
+        $authId = (int) (Auth::user()['id'] ?? 0);
+        echo json_encode([
+            'ok' => true,
+            'sou_condutor' => SessaoConducao::usuarioPodeConduzir($sessaoId, $authId),
+            'url_parlamentar' => base_url('?r=parlamentar/sessao/' . $sessaoId . '&conducao_ok=retomada_titular'),
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     public function avancar(int $sessaoId): void

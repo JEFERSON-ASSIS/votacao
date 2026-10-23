@@ -40,6 +40,40 @@ $percentual = $totalPassos > 0 ? (int) round(($concluidos / $totalPassos) * 100)
     data-ja-votou-inicial="<?= $jaVotou ? '1' : '0' ?>"
     data-materia-base="<?= e(route_url('parlamentar/materia/' . $sessaoId . '/')) ?>"
 >
+    <?php
+    $conducaoOk = (string) ($_GET['conducao_ok'] ?? '');
+    $conducaoMsgs = [
+        'transferida' => 'Presidência transferida. Você está acompanhando a sessão como parlamentar.',
+        'devolvida' => 'Presidência devolvida ao presidente titular. Você voltou à visão de parlamentar.',
+        'retomada_titular' => 'O presidente titular retomou a presidência. Você voltou à visão de parlamentar.',
+    ];
+    ?>
+    <?php if (isset($conducaoMsgs[$conducaoOk])): ?>
+        <div class="conducao-presidente-alert conducao-presidente-alert--ok" role="status" style="grid-column:1/-1;">
+            <?= e($conducaoMsgs[$conducaoOk]) ?>
+        </div>
+    <?php endif; ?>
+    <?php if (!empty($_GET['conducao_erro'])): ?>
+        <div class="conducao-presidente-alert" role="alert" style="grid-column:1/-1;"><?= e((string) $_GET['conducao_erro']) ?></div>
+    <?php endif; ?>
+    <?php if (!empty($souTitularForaDaConducao)): ?>
+        <div class="conducao-presidente-alert conducao-presidente-alert--warn" role="status" style="grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between;">
+            <span>
+                Presidência em exercício com <strong><?= e((string) ($conducaoEstado['condutor_nome'] ?? '')) ?></strong>.
+                Você é o presidente titular.
+            </span>
+            <form
+                method="post"
+                action="<?= e(route_url('presidencia/retomarConducao/' . $sessaoId)) ?>"
+                data-confirm-title="Retomar presidência"
+                data-confirm="Reassumir a condução desta sessão agora?"
+                data-confirm-ok="Retomar presidência"
+            >
+                <?= csrf_field() ?>
+                <button class="btn btn-primary btn--sm" type="submit">Retomar presidência</button>
+            </form>
+        </div>
+    <?php endif; ?>
     <?php if ($podeRegistrarVoto && $rodadaAberta): ?>
     <div
         class="parl-alerta-votacao is-visible"

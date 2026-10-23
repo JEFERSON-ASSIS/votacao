@@ -38,8 +38,25 @@ final class Permissao
         if (in_array($chave, $chavesCondutor, true)) {
             $sessaoId = SessaoConducao::sessaoIdDaRota($chave);
             if ($sessaoId > 0 && SessaoConducao::estado($sessaoId) !== null) {
+                // Titular fora da condução entra em "conduzir" e é redirecionado para a visão parlamentar.
+                if ($chave === 'presidencia.conduzir' && SessaoConducao::titularId($sessaoId) === $userId) {
+                    return true;
+                }
                 return SessaoConducao::usuarioPodeConduzir($sessaoId, $userId);
             }
+        }
+
+        // Retomar presidência: só o titular. Consultar "sou condutor?": qualquer usuário logado
+        // (o ex-condutor precisa da resposta para voltar à visão parlamentar).
+        if (in_array($chave, ['presidencia.retomarConducao', 'presidencia.estadoConducao'], true)) {
+            $sessaoId = SessaoConducao::sessaoIdDaRota($chave);
+            if ($sessaoId <= 0 || SessaoConducao::estado($sessaoId) === null) {
+                return false;
+            }
+            if ($chave === 'presidencia.retomarConducao') {
+                return SessaoConducao::titularId($sessaoId) === $userId;
+            }
+            return $userId > 0;
         }
 
         $chavesParlamentarSessao = [
@@ -52,6 +69,12 @@ final class Permissao
                 : SessaoConducao::sessaoIdDaRota($chave);
             if ($sessaoId > 0 && SessaoConducao::estado($sessaoId) !== null
                 && SessaoConducao::usuarioPodeAcompanharComoParlamentar($sessaoId, $userId)) {
+                return true;
+            }
+            // Condutor/titular precisam do estado ao vivo para trocar de tela quando a presidência muda.
+            if ($sessaoId > 0 && in_array($chave, ['parlamentar.sessao', 'parlamentar.estado', 'parlamentar.stream'], true)
+                && SessaoConducao::estado($sessaoId) !== null
+                && (SessaoConducao::condutorId($sessaoId) === $userId || SessaoConducao::titularId($sessaoId) === $userId)) {
                 return true;
             }
         }

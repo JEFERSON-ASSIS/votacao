@@ -360,6 +360,12 @@
     function aplicarEstado(d) {
         if (!d || !d.ok) return;
 
+        // Presidência passou para este usuário: vai direto para a tela de condução.
+        if (d.sou_condutor && d.url_conduzir) {
+            window.location.href = d.url_conduzir;
+            return;
+        }
+
         var rodadaAntes = ultimoRodadaId;
         var podeAntes = ultimaPodeVotar;
 

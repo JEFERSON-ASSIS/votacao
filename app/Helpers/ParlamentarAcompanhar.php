@@ -5,6 +5,7 @@ namespace App\Helpers;
 
 use App\Helpers\SessaoAtaUpload;
 use App\Models\RodadaEleitor;
+use App\Models\SessaoConducao;
 use App\Models\SessaoCrud;
 use App\Models\SessaoItem;
 use App\Models\SessaoRoteiro;
@@ -127,6 +128,9 @@ final class ParlamentarAcompanhar
             'exibir_ata' => $ctx['exibirAta'],
             'progresso_pct' => $total > 0 ? (int) round(($concluidos / $total) * 100) : 0,
             'progresso_label' => $concluidos . '/' . $total,
+            'sou_condutor' => in_array($ctx['statusRaw'], ['ABERTA', 'EM_VOTACAO'], true)
+                && SessaoConducao::usuarioPodeConduzir($sessaoId, $userId),
+            'url_conduzir' => route_url('presidencia/conduzir/' . $sessaoId, ['conducao_ok' => 'assumida']),
         ];
 
         if ($comHtmlVoto && $rodada) {

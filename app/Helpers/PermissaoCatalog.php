@@ -134,6 +134,8 @@ final class PermissaoCatalog
                     'presidencia.transferirConducao' => 'Passar condução',
                     'presidencia.devolverConducao' => 'Devolver condução',
                 ],
+                    'presidencia.retomarConducao' => 'Retomar presidência (titular)',
+                    'presidencia.estadoConducao' => 'Condução - JSON de quem preside',
             ],
             'usuario' => [
                 'label' => 'Usuários',
@@ -210,6 +212,8 @@ final class PermissaoCatalog
             'presidencia.transferirConducao',
             'presidencia.devolverConducao',
             'roteiro.resetarExecucao',
+            'presidencia.retomarConducao',
+            'presidencia.estadoConducao',
             'votacao.index',
             'votacao.painel',
             'votacao.estadoRodada',
