@@ -477,7 +477,14 @@
 
     var ultimoBotaoVoto = null;
 
+    function travarBotoesVoto(form, travar) {
+        form.querySelectorAll('button[name="voto"]').forEach(function (b) {
+            b.disabled = travar;
+        });
+    }
+
     function enviarVoto(form, submitter) {
+        if (form.dataset.enviando === '1') return;
         var fd = new FormData(form);
         fd.append('ajax', '1');
         var btn =
@@ -488,7 +495,12 @@
         if (btn && btn.name === 'voto' && btn.value) {
             fd.set('voto', btn.value);
         }
-        if (btn) btn.disabled = true;
+        form.dataset.enviando = '1';
+        travarBotoesVoto(form, true);
+        var liberar = function () {
+            form.dataset.enviando = '';
+            travarBotoesVoto(form, false);
+        };
 
         fetch(votoUrl, {
             method: 'POST',
@@ -514,7 +526,7 @@
             })
             .then(function (res) {
                 if (!res.httpOk || !res.body || typeof res.body.ok === 'undefined') {
-                    if (btn) btn.disabled = false;
+                    liberar();
                     toast(
                         (res.body && res.body.mensagem) || 'Resposta inválida do servidor.',
                         false
@@ -522,7 +534,7 @@
                     return;
                 }
                 if (!res.body.ok) {
-                    if (btn) btn.disabled = false;
+                    liberar();
                     toast(res.body.mensagem || 'Não foi possível registrar o voto.', false);
                     return;
                 }
@@ -538,7 +550,7 @@
                 }
             })
             .catch(function (err) {
-                if (btn) btn.disabled = false;
+                liberar();
                 toast(
                     'Falha ao enviar voto. Verifique a rede ou recarregue a página (F5).',
                     false

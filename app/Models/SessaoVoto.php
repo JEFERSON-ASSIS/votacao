@@ -68,7 +68,8 @@ final class SessaoVoto
         ?int $itemId,
         int $userId,
         string $voto,
-        ?string $observacao = null
+        ?string $observacao = null,
+        bool $somenteSeNovo = false
     ): void {
         $pdo = DB::conn();
         $votoNorm = self::normalizarVoto($voto);
@@ -94,6 +95,10 @@ final class SessaoVoto
             );
             $stmt->execute(['rodada_id' => $rodadaId, 'user_id' => $userId]);
             $existenteId = $stmt->fetchColumn();
+
+            if ($existenteId !== false && $somenteSeNovo) {
+                throw new \DomainException('Você já registrou seu voto nesta votação.');
+            }
 
             if ($existenteId !== false) {
                 $upd = $pdo->prepare(

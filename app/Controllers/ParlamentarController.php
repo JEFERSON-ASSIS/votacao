@@ -328,8 +328,13 @@ final class ParlamentarController
                 $rodadaId,
                 $itemRodada > 0 ? $itemRodada : null,
                 $userId,
-                $voto
+                $voto,
+                null,
+                true
             );
+        } catch (\DomainException $e) {
+            self::responderVoto($querJson, false, $e->getMessage(), null, $sessaoId, $itemRodada);
+            return;
         } catch (\Throwable $e) {
             self::responderVoto(
                 $querJson,
