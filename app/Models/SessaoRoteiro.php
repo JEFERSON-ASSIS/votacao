@@ -107,7 +107,7 @@ final class SessaoRoteiro
                 tipo_passo = :tipo_passo,
                 gera_votacao = :gera_votacao,
                 ativo = :ativo,
-                status_execucao = :status_execucao
+                status_execucao = COALESCE(:status_execucao, status_execucao)
              WHERE id = :id'
         );
         $stmt->execute([
@@ -119,7 +119,8 @@ final class SessaoRoteiro
             'tipo_passo' => $data['tipo_passo'] ?? 'FALA',
             'gera_votacao' => !empty($data['gera_votacao']) ? 1 : 0,
             'ativo' => !empty($data['ativo']) ? 1 : 0,
-            'status_execucao' => $data['status_execucao'] ?? 'PENDENTE',
+            // Sem status informado, mantém o atual (editar o texto não desfaz a execução).
+            'status_execucao' => $data['status_execucao'] ?? null,
         ]);
     }
 

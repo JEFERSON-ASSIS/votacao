@@ -80,6 +80,17 @@ try {
     $ligado = $pdo->query('SELECT pauta_item_id FROM sessao_roteiro WHERE id = ' . $antes['id'])->fetchColumn();
     confere((int) $ligado === $indicacao, 'recusa ligar a materia de outra sessao');
 
+    // Editar um passo já executado não pode voltá-lo para pendente
+    $pdo->exec("UPDATE sessao_roteiro SET status_execucao = 'CONCLUIDO' WHERE id = " . $leitura['id']);
+    rodar_cenario([
+        'user' => $userAdmin,
+        'metodo' => 'POST',
+        'get_r' => "roteiro/salvar/$sessaoId/" . $leitura['id'],
+        'post' => ['titulo' => 'Leitura', 'texto_fala' => 'Peço a leitura (texto corrigido).', 'tipo_passo' => 'FALA'],
+    ]);
+    $status = $pdo->query('SELECT status_execucao FROM sessao_roteiro WHERE id = ' . $leitura['id'])->fetchColumn();
+    confere($status === 'CONCLUIDO', 'editar passo concluido mantem o status (obtido ' . $status . ')');
+
     $res = rodar_cenario(['user' => $userAdmin, 'metodo' => 'GET', 'get_r' => "roteiro/montar/$sessaoId", 'post' => []]);
     confere(str_contains($res['saida'], 'name="pauta_item_id"'), 'tela de montar tem o campo Materia da pauta');
     confere(str_contains($res['saida'], 'Indicação nº 009/2026') && str_contains($res['saida'], 'João da Silva'), 'campo lista as materias com o autor');
