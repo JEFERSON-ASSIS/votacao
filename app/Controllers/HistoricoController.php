@@ -28,9 +28,27 @@ final class HistoricoController
             return;
         }
 
+        // Tudo o que ocorreu: presença e cada votação com resultado, placar e votos.
+        $presentes = array_values(array_filter(
+            \App\Models\SessaoPresenca::allBySessao($sessaoId),
+            static fn (array $p): bool => (int) ($p['presente'] ?? 1) === 1
+        ));
+        $votacoes = [];
+        foreach (array_reverse(\App\Models\SessaoVotacaoRodada::historico($sessaoId, 50)) as $rodada) {
+            $estado = \App\Helpers\VotacaoPainelEstado::jsonRodada((int) $rodada['id']);
+            $votacoes[] = [
+                'rodada' => $rodada,
+                'descricao' => \App\Services\ResultadoRoteiro::descricao((int) $rodada['id']),
+                'parlamentares' => $estado['parlamentares'] ?? [],
+                'resumo' => $estado['resumo'] ?? [],
+            ];
+        }
+
         View::render('historico/sessao', [
             'sessao' => $sessao,
             'timeline' => HistoricoSessao::timeline($sessaoId),
+            'presentes' => $presentes,
+            'votacoes' => $votacoes,
         ]);
     }
 }

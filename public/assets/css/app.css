@@ -6541,3 +6541,24 @@ body.public-page--telao .public-hero-mark--brasao { background: #fff; }
 .sapl-acao p { margin: 4px 0 0; }
 .sapl-retiradas { margin: 8px 0 0; color: #92400e; }
 .sapl-ok--topo { margin: 0 0 12px; }
+
+/* Relatório da sessão (Histórico): presença e votações em fundo claro */
+.relatorio-titulo { margin: 0 0 12px; font-size: 1.05rem; color: var(--heading); }
+.relatorio-origem { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.relatorio-presentes { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+.relatorio-presentes li { padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--panel-2); font-size: 13px; }
+.relatorio-votacao { padding: 14px 0; border-top: 1px solid var(--border); }
+.relatorio-votacao:first-of-type { border-top: 0; padding-top: 0; }
+.relatorio-votacao-topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+.relatorio-frase { margin: 0 0 2px; font-weight: 700; }
+.relatorio-explicacao { margin: 0 0 10px; color: var(--muted-2); font-size: 13px; }
+.relatorio-votacao .conducao-resultado { display: inline-block; padding: 3px 12px; border-radius: 999px; font-weight: 700; font-size: 13px; border: 1px solid var(--border); }
+.relatorio-votacao .conducao-resultado--aprovado { background: var(--voto-sim-soft); color: var(--voto-sim); border-color: var(--voto-sim); }
+.relatorio-votacao .conducao-resultado--rejeitado { background: var(--voto-nao-soft); color: var(--voto-nao); border-color: var(--voto-nao); }
+.relatorio-votacao .conducao-placar-item { color: var(--text); background: var(--panel-2); border-color: var(--border); }
+.relatorio-votacao .conducao-placar-item--sim strong { color: var(--voto-sim); }
+.relatorio-votacao .conducao-placar-item--nao strong { color: var(--voto-nao); }
+.relatorio-votacao .conducao-placar-item--abst strong { color: var(--voto-abst); }
+.relatorio-votacao .conducao-votos-lista { max-height: none; margin-bottom: 10px; }
+.relatorio-votacao .conducao-voto-item { color: var(--text); background: var(--panel); border-color: var(--border); }
+.relatorio-votacao .conducao-voto-aguardando { color: var(--muted-2); }
