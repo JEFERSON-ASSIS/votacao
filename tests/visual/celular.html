@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Telas na largura de celular</title>
+<!--
+  Mostra telas reais do sistema com a largura de um celular (390px).
+  Abra por http://localhost:8099/celular.html?url=<endereço> (use "localhost",
+  para o navegador enviar o login do sistema).
+-->
+<style>
+  body { margin: 0; padding: 16px; background: #d9dee5; font: 14px system-ui, sans-serif; }
+  iframe { width: 390px; height: 760px; border: 0; border-radius: 18px; background: #fff; box-shadow: 0 8px 30px rgba(0,0,0,.25); }
+</style>
+</head>
+<body>
+<script>
+  var url = new URLSearchParams(location.search).get('url')
+    || 'http://localhost/producao/antigos/votacao/public/?r=dashboard/index';
+  document.write('<iframe id="tela" src="' + url.replace(/"/g, '&quot;') + '"></iframe>');
+</script>
+</body>
+</html>

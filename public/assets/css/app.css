@@ -6217,3 +6217,56 @@ body.public-page--telao .voto-chip.voto-situacao {
     font-weight: 600;
     color: #495057;
 }
+
+/* Página de erro (Acesso negado / Página não encontrada) */
+body.erro-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 16px;
+    background: var(--bg);
+}
+.erro-card {
+    width: 100%;
+    max-width: 440px;
+    padding: 32px 28px;
+    text-align: center;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-top: 4px solid var(--accent);
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0, 43, 91, 0.08);
+}
+.erro-brasao { display: block; margin: 0 auto 12px; height: 72px; width: auto; }
+.erro-codigo { margin: 0; font-size: 13px; font-weight: 600; color: var(--muted-2); }
+.erro-titulo { margin: 4px 0 8px; font-size: 1.6rem; color: var(--heading); }
+.erro-mensagem { margin: 0 0 22px; font-size: 15px; line-height: 1.5; color: var(--text); }
+.erro-acoes { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+/* Menu lateral recolhível no celular */
+.side-nav-toggle { display: none; }
+@media (max-width: 960px) {
+    .admin-sidebar { padding: 10px 16px; }
+    .admin-sidebar .brand { margin-bottom: 0; padding-bottom: 0; border-bottom: 0; }
+    .side-nav-toggle { display: inline-flex; margin-left: auto; }
+    .admin-sidebar .side-nav { display: none; margin-top: 10px; }
+    .admin-sidebar.is-menu-aberto .side-nav { display: grid; }
+    .side-nav a { padding: 12px 10px; font-size: 14px; }
+}
+
+/* Tipografia institucional: Public Sans (fonte criada para sites de governo),
+   texto base de 14px. Segoe UI / system-ui continuam como reserva. */
+body {
+    font-family: 'Public Sans', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+}
+button, input, select, textarea { font-family: inherit; }
+.side-nav a { font-size: 13px; }
+.btn { font-size: 13px; }
+
+/* Brasão no cabeçalho do telão (antes eram as letras "CM") */
+.public-hero-mark--brasao { background: #fff; padding: 3px; overflow: hidden; }
+body.public-page--telao .public-hero-mark--brasao { background: #fff; }
+.public-hero-mark--brasao img { display: block; width: 100%; height: 100%; object-fit: contain; }

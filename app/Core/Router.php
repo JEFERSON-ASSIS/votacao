@@ -38,15 +38,13 @@ final class Router
 
         $class = 'App\\Controllers\\' . $controller . 'Controller';
         if (!class_exists($class)) {
-            http_response_code(404);
-            echo 'Página não encontrada.';
+            responder_erro(404, 'Página não encontrada', 'O endereço acessado não existe ou foi alterado.');
             return;
         }
 
         $instance = new $class();
         if (!method_exists($instance, $action)) {
-            http_response_code(404);
-            echo 'Página não encontrada.';
+            responder_erro(404, 'Página não encontrada', 'O endereço acessado não existe ou foi alterado.');
             return;
         }
 
@@ -54,8 +52,7 @@ final class Router
         if (!in_array($chaveRota, PermissaoCatalog::rotasPublicas(), true)) {
             Auth::requireLogin();
             if (!Permissao::rotaPermitida($chaveRota)) {
-                http_response_code(403);
-                echo 'Acesso negado.';
+                responder_erro(403, 'Acesso negado', 'Seu usuário não tem permissão para abrir esta página.');
                 return;
             }
         }

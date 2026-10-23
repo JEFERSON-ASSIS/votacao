@@ -23,7 +23,7 @@ $progressoLabel = (string) ($estadoInicial['progresso_label'] ?? '');
 >
     <header class="public-telao-header public-hero">
         <div class="public-telao-header-left">
-            <span class="public-hero-mark">CM</span>
+            <span class="public-hero-mark public-hero-mark--brasao"><img src="<?= e(asset_url('assets/img/brasao-vera-mt.png')) ?>" alt="Brasão da Câmara Municipal" width="36" height="36"></span>
             <div class="public-telao-header-titles">
                 <span class="public-hero-kicker">Câmara Municipal</span>
                 <?php if ($sessao): ?>

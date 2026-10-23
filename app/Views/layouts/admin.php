@@ -4,6 +4,16 @@ use App\Core\Auth;
 use App\Helpers\UserPerfil;
 
 $authUser = Auth::user();
+// Item do menu correspondente à tela atual (aria-current="page").
+[$navCtl, $navAcao] = array_pad(explode('/', trim((string) ($_GET['r'] ?? ''), '/')), 2, '');
+$navAtivo = static function (string $rota) use ($navCtl, $navAcao): string {
+    [$ctl, $acao] = array_pad(explode('/', $rota), 2, '');
+    $ativo = $ctl === 'parlamentar'
+        ? ($navCtl === 'parlamentar' && (($acao === 'meuPerfil') === ($navAcao === 'meuPerfil')))
+        : $ctl === strtolower($navCtl);
+
+    return $ativo ? ' aria-current="page"' : '';
+};
 $mostrarAlertaParlGlobal = user_can('menu.sessoes_parlamentar')
     && UserPerfil::ehParlamentar($authUser['role'] ?? '')
     && empty($parlAlertaGlobalDesligado);
@@ -15,6 +25,9 @@ $mostrarAlertaParlGlobal = user_can('menu.sessoes_parlamentar')
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e($title ?? config('app_name', 'Plenario')) ?></title>
     <link rel="icon" href="<?= e(favicon_url()) ?>" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&display=swap">
     <link rel="stylesheet" href="<?= e(asset_url('assets/css/app.css')) ?>">
     <script src="<?= e(asset_url('assets/js/sessao-expirada.js')) ?>" data-login-url="<?= e(route_url('auth/login')) ?>"></script>
 </head>
@@ -29,39 +42,40 @@ $mostrarAlertaParlGlobal = user_can('menu.sessoes_parlamentar')
                     <div class="brand-title"><?= e(config('app_name', 'Plenario')) ?></div>
                     <div class="brand-subtitle">Painel administrativo</div>
                 </div>
+                <button class="btn btn-soft side-nav-toggle" type="button" aria-controls="side-nav" aria-expanded="false">Menu</button>
             </div>
-            <nav class="side-nav">
+            <nav class="side-nav" id="side-nav">
                 <?php if (user_can('menu.dashboard')): ?>
-                    <a href="<?= e(route_url('dashboard/index')) ?>">Dashboard</a>
+                    <a href="<?= e(route_url('dashboard/index')) ?>"<?= $navAtivo('dashboard/index') ?>>Dashboard</a>
                 <?php endif; ?>
                 <?php if (user_can('menu.meu_perfil')): ?>
-                    <a href="<?= e(route_url('parlamentar/meuPerfil')) ?>">Meu perfil</a>
+                    <a href="<?= e(route_url('parlamentar/meuPerfil')) ?>"<?= $navAtivo('parlamentar/meuPerfil') ?>>Meu perfil</a>
                 <?php endif; ?>
                 <?php if (user_can('menu.sessoes')): ?>
-                    <a href="<?= e(route_url('sessao/index')) ?>">Sessões</a>
+                    <a href="<?= e(route_url('sessao/index')) ?>"<?= $navAtivo('sessao/index') ?>>Sessões</a>
                 <?php elseif (user_can('menu.sessoes_parlamentar')): ?>
-                    <a href="<?= e(route_url('parlamentar/sessoes')) ?>">Sessões</a>
+                    <a href="<?= e(route_url('parlamentar/sessoes')) ?>"<?= $navAtivo('parlamentar/sessoes') ?>>Sessões</a>
                 <?php endif; ?>
                 <?php if (user_can('menu.votacao')): ?>
-                    <a href="<?= e(route_url('votacao/index')) ?>">Votação</a>
+                    <a href="<?= e(route_url('votacao/index')) ?>"<?= $navAtivo('votacao/index') ?>>Votação</a>
                 <?php endif; ?>
                 <?php if (user_can('menu.presidencia') && !UserPerfil::matches($authUser['role'] ?? '', UserPerfil::PRESIDENTE)): ?>
-                    <a href="<?= e(route_url('presidencia/index')) ?>">Presidência</a>
+                    <a href="<?= e(route_url('presidencia/index')) ?>"<?= $navAtivo('presidencia/index') ?>>Presidência</a>
                 <?php endif; ?>
                 <?php if (user_can('menu.usuarios')): ?>
-                    <a href="<?= e(base_url('?r=usuario/index')) ?>">Usuários</a>
+                    <a href="<?= e(base_url('?r=usuario/index')) ?>"<?= $navAtivo('usuario/index') ?>>Usuários</a>
                 <?php endif; ?>
                 <?php if (user_can('menu.permissoes')): ?>
-                    <a href="<?= e(route_url('permissoes/index')) ?>">Permissões</a>
+                    <a href="<?= e(route_url('permissoes/index')) ?>"<?= $navAtivo('permissoes/index') ?>>Permissões</a>
                 <?php endif; ?>
                 <?php if (user_can('menu.historico')): ?>
-                    <a href="<?= e(route_url('historico/index')) ?>">Histórico</a>
+                    <a href="<?= e(route_url('historico/index')) ?>"<?= $navAtivo('historico/index') ?>>Histórico</a>
                 <?php endif; ?>
                 <?php if (user_can('menu.publico')): ?>
-                    <a href="<?= e(route_url('publico/index')) ?>">Visão pública</a>
+                    <a href="<?= e(route_url('publico/index')) ?>"<?= $navAtivo('publico/index') ?>>Visão pública</a>
                 <?php endif; ?>
                 <?php if (user_can('menu.auditoria')): ?>
-                    <a href="<?= e(route_url('auditoria/index')) ?>">Auditoria</a>
+                    <a href="<?= e(route_url('auditoria/index')) ?>"<?= $navAtivo('auditoria/index') ?>>Auditoria</a>
                 <?php endif; ?>
                 <a href="<?= e(base_url('?r=auth/logout')) ?>">Sair</a>
             </nav>
@@ -123,6 +137,17 @@ $mostrarAlertaParlGlobal = user_can('menu.sessoes_parlamentar')
     </div>
 
     <script src="<?= e(asset_url('assets/js/app-confirm.js')) ?>" defer></script>
+    <script>
+    (function () {
+        var botao = document.querySelector('.side-nav-toggle');
+        var barra = document.querySelector('.admin-sidebar');
+        if (!botao || !barra) return;
+        botao.addEventListener('click', function () {
+            var aberto = barra.classList.toggle('is-menu-aberto');
+            botao.setAttribute('aria-expanded', aberto ? 'true' : 'false');
+        });
+    })();
+    </script>
     <?php if ($mostrarAlertaParlGlobal): ?>
         <script>
             window.PARL_GLOBAL_VOTO = {

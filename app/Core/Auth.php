@@ -21,11 +21,7 @@ final class Auth
     /** Requisição feita em segundo plano pelo JavaScript (fetch JSON ou canal ao vivo). */
     private static function requisicaoAoVivo(): bool
     {
-        $accept = strtolower((string) ($_SERVER['HTTP_ACCEPT'] ?? ''));
-
-        return str_contains($accept, 'application/json')
-            || str_contains($accept, 'text/event-stream')
-            || strtolower((string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest';
+        return requisicao_ao_vivo();
     }
 
     public static function requireLogin(): void

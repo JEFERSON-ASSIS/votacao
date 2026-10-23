@@ -214,6 +214,28 @@ function estado_hash(array $estado, array $ignorarTopo = []): string
     return md5((string) json_encode($limpar($estado), JSON_UNESCAPED_UNICODE));
 }
 
+/** Requisição feita em segundo plano pelo JavaScript (fetch JSON ou canal ao vivo). */
+function requisicao_ao_vivo(): bool
+{
+    $accept = strtolower((string) ($_SERVER['HTTP_ACCEPT'] ?? ''));
+
+    return str_contains($accept, 'application/json')
+        || str_contains($accept, 'text/event-stream')
+        || strtolower((string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest';
+}
+
+/** Responde um erro: página do sistema para o navegador, JSON para chamadas em segundo plano. */
+function responder_erro(int $codigo, string $titulo, string $mensagem): void
+{
+    http_response_code($codigo);
+    if (requisicao_ao_vivo()) {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['ok' => false, 'erro' => $titulo, 'mensagem' => $mensagem], JSON_UNESCAPED_UNICODE);
+        return;
+    }
+    \App\Core\View::render('erro', ['codigo' => $codigo, 'titulo' => $titulo, 'mensagem' => $mensagem]);
+}
+
 /** Resultado da votação para exibição (REJEITADO → Reprovado). */
 function votacao_rotulo_resultado(?string $resultado): string
 {
