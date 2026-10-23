@@ -236,6 +236,7 @@ $percentual = $totalPassos > 0 ? (int) round(($concluidos / $totalPassos) * 100)
     </article>
     <?php endif; ?>
 </section>
+<script src="<?= e(asset_url('assets/js/parlamentar-voto-confirmar.js')) ?>" defer></script>
 <script src="<?= e(asset_url('assets/js/parlamentar-acompanhar.js')) ?>" defer></script>
 <?php $content = ob_get_clean(); ?>
 <?php

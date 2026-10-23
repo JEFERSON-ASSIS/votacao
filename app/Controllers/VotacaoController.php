@@ -311,6 +311,58 @@ final class VotacaoController
         exit;
     }
 
+    /** Marca um vereador da votação como impedido, ausente ou o devolve à votação. */
+    public function situacaoEleitor(int $sessaoId, int $rodadaId): void
+    {
+        Permissao::exigir('votacao.situacaoEleitor');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !csrf_check($_POST['csrf_token'] ?? null)) {
+            http_response_code(400);
+            echo 'Requisição inválida.';
+            return;
+        }
+
+        $rodada = SessaoVotacaoRodada::find($rodadaId);
+        if (!$rodada || (int) $rodada['sessao_id'] !== $sessaoId) {
+            http_response_code(404);
+            echo 'Rodada não encontrada.';
+            return;
+        }
+
+        $userId = (int) ($_POST['user_id'] ?? 0);
+        $situacao = strtoupper(trim((string) ($_POST['situacao'] ?? '')));
+        $voltar = '?r=votacao/painel/' . $sessaoId . '&rodada=' . $rodadaId;
+
+        try {
+            RodadaEleitor::alterarSituacao(
+                $rodadaId,
+                $userId,
+                $situacao,
+                (int) (Auth::user()['id'] ?? 0),
+                trim((string) ($_POST['justificativa'] ?? '')) ?: null
+            );
+        } catch (\DomainException $e) {
+            header('Location: ' . base_url($voltar . '&situacao_erro=' . rawurlencode($e->getMessage())));
+            exit;
+        }
+
+        $nome = (string) (User::find($userId)['nome'] ?? ('#' . $userId));
+        $descricao = match ($situacao) {
+            'IMPEDIDO' => $nome . ' declarado impedido',
+            'AUSENTE' => $nome . ' ausente na votação',
+            default => $nome . ' devolvido à votação',
+        };
+        Auditoria::log('situacao_eleitor', 'votacao_rodada', $rodadaId, $descricao);
+        SessaoEvento::registrar(
+            $sessaoId,
+            'votacao',
+            $descricao . ' — ' . (string) $rodada['titulo'],
+            !empty($rodada['item_id']) ? (int) $rodada['item_id'] : null
+        );
+
+        header('Location: ' . base_url($voltar));
+        exit;
+    }
+
     public function votarRodada(int $sessaoId, int $rodadaId): void
     {
         Permissao::exigir('votacao.votarRodada');

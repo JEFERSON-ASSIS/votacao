@@ -33,7 +33,7 @@ final class Permissao
             'presidencia.encerrarSessao', 'presidencia.destacarParlamentar', 'presidencia.limparDestaque',
             'presidencia.transferirConducao', 'presidencia.devolverConducao',
             'votacao.painel', 'votacao.abrirRodada', 'votacao.encerrarRodada', 'votacao.votarRodada',
-            'votacao.estadoRodada', 'votacao.streamRodada',
+            'votacao.estadoRodada', 'votacao.streamRodada', 'votacao.situacaoEleitor',
         ];
         if (in_array($chave, $chavesCondutor, true)) {
             $sessaoId = SessaoConducao::sessaoIdDaRota($chave);

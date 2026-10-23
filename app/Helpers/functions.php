@@ -143,6 +143,7 @@ function votacao_rotulo_voto(string $voto): string
         'NAO' => 'Não',
         'ABSTENCAO' => 'Abstenção',
         'AUSENTE' => 'Ausente',
+        'IMPEDIDO' => 'Impedido',
         default => $voto,
     };
 }
@@ -155,6 +156,35 @@ function votacao_classe_voto(string $voto): string
         'ABSTENCAO' => 'voto-abst',
         default => 'voto-outro',
     };
+}
+
+/**
+ * Dados de exibição de um vereador da votação (painel e telão).
+ * Impedido ou ausente aparece com a etiqueta da situação no lugar do voto.
+ *
+ * @param array<string, mixed> $eleitor linha de RodadaEleitor::eleitores (ou usuário)
+ * @return array{voto: ?string, voto_label: string, voto_classe: string, aguardando: bool, situacao: string}
+ */
+function votacao_exibicao_eleitor(array $eleitor, string $voto): array
+{
+    $situacao = strtoupper(trim((string) ($eleitor['situacao'] ?? 'PENDENTE'))) ?: 'PENDENTE';
+    if ($voto === '' && in_array($situacao, ['IMPEDIDO', 'AUSENTE'], true)) {
+        return [
+            'voto' => $situacao,
+            'voto_label' => votacao_rotulo_voto($situacao),
+            'voto_classe' => 'voto-situacao',
+            'aguardando' => false,
+            'situacao' => $situacao,
+        ];
+    }
+
+    return [
+        'voto' => $voto !== '' ? $voto : null,
+        'voto_label' => $voto !== '' ? votacao_rotulo_voto($voto) : '',
+        'voto_classe' => $voto !== '' ? votacao_classe_voto($voto) : '',
+        'aguardando' => $voto === '',
+        'situacao' => $situacao,
+    ];
 }
 
 /** Resultado da votação para exibição (REJEITADO → Reprovado). */

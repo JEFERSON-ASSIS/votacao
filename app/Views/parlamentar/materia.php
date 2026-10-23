@@ -80,6 +80,7 @@ $votoOk = (bool) ($votoOk ?? false);
     });
 })();
 </script>
+<script src="<?= e(asset_url('assets/js/parlamentar-voto-confirmar.js')) ?>" defer></script>
 <?php $content = ob_get_clean(); ?>
 <?php
 $title = (string) $item['titulo'];

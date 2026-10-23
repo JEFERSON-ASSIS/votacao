@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Teste da confirmação do voto</title>
+<!--
+  Simula os toques do vereador no box de voto e confere que o voto só é
+  enviado depois de "Confirmar". Usa o app.css e o JS reais do sistema.
+  Com o Apache ligado, sirva esta pasta:
+    C:/xampp/php/php.exe -S 127.0.0.1:8099 -t tests/visual
+  e acesse http://127.0.0.1:8099/voto-confirmacao.html
+-->
+<script>
+  var base = new URLSearchParams(location.search).get('base')
+    || 'http://localhost/producao/antigos/votacao/public';
+  document.write('<link rel="stylesheet" href="' + base + '/assets/css/app.css?t=' + Date.now() + '">');
+  document.write('<script src="' + base + '/assets/js/parlamentar-voto-confirmar.js?t=' + Date.now() + '"><\/script>');
+</script>
+<style>#resultado{white-space:pre-wrap;font:13px/1.5 Consolas,monospace;padding:12px;background:#fff;color:#000;border:2px solid #000;margin:12px}</style>
+</head>
+<body class="admin-layout admin-layout--parl-acompanhar">
+<pre id="resultado">rodando...</pre>
+
+<div style="padding:12px;max-width:720px">
+<article class="panel-card parl-voto-card parl-voto-card--destaque" id="parl-voto-box">
+    <div class="panel-label">Votação aberta</div>
+    <div class="panel-value">Projeto de Lei 001/2026</div>
+    <p class="panel-meta">O presidente abriu a votação. Registre seu voto abaixo.</p>
+    <form method="post" action="#" class="parl-voto-form" id="parl-voto-form">
+        <div class="parl-voto-botoes">
+            <button type="submit" name="voto" value="SIM" class="btn parl-voto-btn parl-voto-btn--sim">Sim</button>
+            <button type="submit" name="voto" value="NAO" class="btn parl-voto-btn parl-voto-btn--nao">Não</button>
+            <button type="submit" name="voto" value="ABSTENCAO" class="btn parl-voto-btn parl-voto-btn--abst">Abstenção</button>
+        </div>
+    </form>
+</article>
+</div>
+
+<script>
+var enviados = [];
+// Faz o papel do parlamentar-acompanhar.js: registra o envio em vez de navegar.
+document.getElementById('parl-voto-box').addEventListener('submit', function (ev) {
+  ev.preventDefault();
+  enviados.push(ev.submitter ? ev.submitter.value : '(sem botão)');
+});
+
+function rodar() {
+  var linhas = [], falhas = 0;
+  function confere(ok, txt) { linhas.push((ok ? '[OK]    ' : '[FALHA] ') + txt); if (!ok) falhas++; }
+  var form = document.getElementById('parl-voto-form');
+  var botoes = form.querySelector('.parl-voto-botoes');
+  function painel() { return form.querySelector('.parl-voto-confirmacao'); }
+  function visivel(el) { return !!el && getComputedStyle(el).display !== 'none'; }
+
+  try {
+  // 1) Tocar em SIM não envia; mostra a confirmação
+  form.querySelector('[value="SIM"]').click();
+  confere(enviados.length === 0, 'tocar em Sim nao envia o voto direto');
+  confere(visivel(painel()), 'aparece o painel de confirmacao');
+  confere(!!painel() && /Sim/.test(painel().textContent), 'confirmacao mostra o voto escolhido (Sim)');
+  confere(!visivel(botoes), 'botoes originais ficam escondidos durante a confirmacao');
+  confere(!!painel() && document.activeElement === painel().querySelector('[data-acao="confirmar"]'), 'foco vai para o botao Confirmar');
+
+  // 2) Voltar cancela
+  painel().querySelector('[data-acao="voltar"]').click();
+  confere(enviados.length === 0, 'Voltar nao envia o voto');
+  confere(!painel() && visivel(botoes), 'Voltar restaura os botoes');
+
+  // 3) Escolher NÃO e confirmar envia exatamente um voto NÃO
+  form.querySelector('[value="NAO"]').click();
+  confere(!!painel() && /Não/.test(painel().textContent), 'confirmacao mostra Nao');
+  painel().querySelector('[data-acao="confirmar"]').click();
+  confere(enviados.length === 1 && enviados[0] === 'NAO', 'Confirmar envia um voto NAO (enviados: ' + enviados.join(',') + ')');
+  confere(!painel() && visivel(botoes), 'depois de confirmar o painel some');
+
+  // 4) Tecla Esc cancela
+  form.querySelector('[value="ABSTENCAO"]').click();
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+  confere(!painel() && enviados.length === 1, 'Esc cancela a confirmacao');
+  } catch (e) {
+    confere(false, 'erro: ' + e.message);
+  }
+
+  linhas.push('', falhas === 0 ? 'Tudo certo.' : falhas + ' falha(s).');
+  document.getElementById('resultado').textContent = linhas.join('\n');
+  window.__resultado = { falhas: falhas, linhas: linhas };
+}
+window.addEventListener('load', function () { setTimeout(rodar, 100); });
+</script>
+</body>
+</html>

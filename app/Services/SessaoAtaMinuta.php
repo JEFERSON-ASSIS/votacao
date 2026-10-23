@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Helpers\HistoricoSessao;
+use App\Models\RodadaEleitor;
 use App\Models\SessaoCrud;
 use App\Models\SessaoItem;
 use App\Models\SessaoVotacaoRodada;
@@ -58,12 +59,19 @@ final class SessaoAtaMinuta
             $linhas[] = 'Votação nominal: ' . (string) ($rodada['titulo'] ?? '');
             $linhas[] = 'Resultado: ' . votacao_rotulo_resultado((string) ($rodada['resultado'] ?? ''));
             $linhas[] = sprintf(
-                'Placar — Sim: %d | Não: %d | Abstenção: %d | Ausente: %d',
+                'Placar — Sim: %d | Não: %d | Abstenção: %d',
                 (int) ($resumo['SIM'] ?? 0),
                 (int) ($resumo['NAO'] ?? 0),
-                (int) ($resumo['ABSTENCAO'] ?? 0),
-                (int) ($resumo['AUSENTE'] ?? 0)
+                (int) ($resumo['ABSTENCAO'] ?? 0)
             );
+            $impedidos = RodadaEleitor::nomesPorSituacao($rid, 'IMPEDIDO');
+            if ($impedidos !== []) {
+                $linhas[] = 'Impedidos: ' . implode(', ', $impedidos);
+            }
+            $ausentes = RodadaEleitor::nomesPorSituacao($rid, 'AUSENTE');
+            if ($ausentes !== []) {
+                $linhas[] = 'Ausentes na votação: ' . implode(', ', $ausentes);
+            }
         }
 
         $linhas[] = '';

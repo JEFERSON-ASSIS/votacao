@@ -45,11 +45,7 @@ final class VotacaoPainelEstado
                 'partido' => trim((string) ($u['partido'] ?? '')),
                 'foto_url' => user_foto_url($u),
                 'iniciais' => user_iniciais((string) ($u['nome'] ?? '')),
-                'voto' => $voto !== '' ? $voto : null,
-                'voto_label' => $voto !== '' ? votacao_rotulo_voto($voto) : '',
-                'voto_classe' => $voto !== '' ? votacao_classe_voto($voto) : '',
-                'aguardando' => $voto === '',
-            ];
+            ] + votacao_exibicao_eleitor($u, $voto);
         }
 
         $auth = Auth::user();

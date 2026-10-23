@@ -11,6 +11,9 @@
     var streamUrl = root.getAttribute('data-stream-url') || '';
     var rodadaId = parseInt(root.getAttribute('data-rodada-id') || '0', 10);
     var ehPresidente = root.getAttribute('data-eh-presidente') === '1';
+    var situacaoUrl = root.getAttribute('data-situacao-url') || '';
+    var csrfInput = root.querySelector('input[name="csrf_token"]');
+    var votacaoAberta = false;
     if (!estadoUrl || !rodadaId) return;
 
     var grid = document.getElementById('votacao-painel-grid');
@@ -40,6 +43,45 @@
             var el = root.querySelector('[data-resumo="' + k + '"]');
             if (el) el.textContent = String(resumo[k] || 0);
         });
+    }
+
+    function formSituacao(p, situacao, rotulo, titulo, mensagem, variante) {
+        return (
+            '<form method="post" class="votacao-situacao-form" action="' + escapeAttr(situacaoUrl) + '"' +
+            ' data-confirm-title="' + escapeAttr(titulo) + '"' +
+            ' data-confirm="' + escapeAttr(mensagem) + '"' +
+            ' data-confirm-ok="' + escapeAttr(rotulo) + '"' +
+            ' data-confirm-variant="' + variante + '">' +
+            '<input type="hidden" name="csrf_token" value="' + escapeAttr(csrfInput ? csrfInput.value : '') + '">' +
+            '<input type="hidden" name="user_id" value="' + p.id + '">' +
+            '<input type="hidden" name="situacao" value="' + situacao + '">' +
+            '<button type="submit" class="btn btn-soft btn--sm">' + escapeHtml(rotulo) + '</button>' +
+            '</form>'
+        );
+    }
+
+    function acoesSituacaoHtml(p) {
+        if (!ehPresidente || !votacaoAberta || !situacaoUrl || !csrfInput) return '';
+        var nome = p.nome || 'este vereador';
+        if (p.aguardando) {
+            return (
+                '<div class="votacao-situacao-acoes">' +
+                formSituacao(p, 'IMPEDIDO', 'Impedido', 'Declarar impedimento',
+                    nome + ' ficará impedido nesta votação e não poderá votar. O impedimento fica registrado na ata.', 'danger') +
+                formSituacao(p, 'AUSENTE', 'Saiu do plenário', 'Retirar da votação',
+                    nome + ' deixará de ser aguardado nesta votação e constará como ausente na ata.', 'danger') +
+                '</div>'
+            );
+        }
+        if (p.situacao === 'IMPEDIDO' || p.situacao === 'AUSENTE') {
+            return (
+                '<div class="votacao-situacao-acoes">' +
+                formSituacao(p, 'PENDENTE', 'Desfazer', 'Devolver à votação',
+                    nome + ' volta a ser aguardado e poderá votar.', 'primary') +
+                '</div>'
+            );
+        }
+        return '';
     }
 
     function cardHtml(p) {
@@ -79,7 +121,9 @@
             '</div>' +
             '<span class="votacao-vereador-voto-slot">' +
             votoSlot +
-            '</span></li>'
+            '</span>' +
+            acoesSituacaoHtml(p) +
+            '</li>'
         );
     }
 
@@ -95,6 +139,8 @@
 
     function atualizarGrid(parlamentares) {
         if (!grid || !parlamentares) return;
+        // Com a confirmação aberta, redesenhar apagaria o formulário que está sendo confirmado.
+        if (document.body.classList.contains('app-confirm-open')) return;
         var html = '';
         parlamentares.forEach(function (p) {
             html += cardHtml(p);
@@ -137,6 +183,7 @@
     function aplicarEstado(d) {
         if (!d || !d.ok) return;
         setLive(true);
+        votacaoAberta = !!d.aberta;
         atualizarResumo(d.resumo);
         atualizarGrid(d.parlamentares);
         toggleEmpate(d);

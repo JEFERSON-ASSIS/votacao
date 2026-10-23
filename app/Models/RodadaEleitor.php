@@ -33,6 +33,99 @@ final class RodadaEleitor
         return $total;
     }
 
+    /** Situações que o presidente pode definir durante a votação. */
+    public const SITUACOES_ALTERAVEIS = ['PENDENTE', 'IMPEDIDO', 'AUSENTE'];
+
+    /**
+     * Marca um vereador da votação como impedido, ausente (saiu do plenário)
+     * ou o devolve para a votação (PENDENTE). Só vale com a votação aberta
+     * e para quem ainda não votou.
+     *
+     * @throws \DomainException com mensagem pronta para exibir
+     */
+    public static function alterarSituacao(
+        int $rodadaId,
+        int $userId,
+        string $situacao,
+        int $operadorId,
+        ?string $justificativa = null
+    ): void {
+        $situacao = strtoupper(trim($situacao));
+        if (!in_array($situacao, self::SITUACOES_ALTERAVEIS, true)) {
+            throw new \DomainException('Situação inválida.');
+        }
+
+        $pdo = DB::conn();
+        $ownTransaction = !$pdo->inTransaction();
+        if ($ownTransaction) {
+            $pdo->beginTransaction();
+        }
+
+        try {
+            $lockSql = 'SELECT status FROM sessao_votacao_rodadas WHERE id = :id';
+            if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql') {
+                $lockSql .= ' FOR UPDATE';
+            }
+            $lock = $pdo->prepare($lockSql);
+            $lock->execute(['id' => $rodadaId]);
+            if ((string) $lock->fetchColumn() !== 'ABERTA') {
+                throw new \DomainException('A votação já foi encerrada.');
+            }
+
+            $eleitor = $pdo->prepare(
+                'SELECT id FROM sessao_votacao_eleitores WHERE rodada_id = :rodada_id AND user_id = :user_id'
+            );
+            $eleitor->execute(['rodada_id' => $rodadaId, 'user_id' => $userId]);
+            $eleitorId = $eleitor->fetchColumn();
+            if ($eleitorId === false) {
+                throw new \DomainException('Este vereador não está na lista desta votação.');
+            }
+
+            $voto = $pdo->prepare('SELECT 1 FROM sessao_votos WHERE rodada_id = :rodada_id AND user_id = :user_id');
+            $voto->execute(['rodada_id' => $rodadaId, 'user_id' => $userId]);
+            if ($voto->fetchColumn()) {
+                throw new \DomainException('Este vereador já votou; a situação não pode ser alterada.');
+            }
+
+            $justificativa = $justificativa !== null ? trim($justificativa) : null;
+            $pdo->prepare(
+                'UPDATE sessao_votacao_eleitores
+                 SET situacao = :situacao, alterado_em = CURRENT_TIMESTAMP,
+                     alterado_por = :operador, justificativa = :justificativa
+                 WHERE id = :id'
+            )->execute([
+                'situacao' => $situacao,
+                'operador' => $operadorId > 0 ? $operadorId : null,
+                'justificativa' => $justificativa !== '' ? mb_substr((string) $justificativa, 0, 500) : null,
+                'id' => (int) $eleitorId,
+            ]);
+
+            if ($ownTransaction) {
+                $pdo->commit();
+            }
+        } catch (\Throwable $e) {
+            if ($ownTransaction && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
+        }
+    }
+
+    /** @return list<string> nomes dos vereadores com a situação informada */
+    public static function nomesPorSituacao(int $rodadaId, string $situacao): array
+    {
+        $stmt = DB::conn()->prepare(
+            'SELECT u.nome
+             FROM sessao_votacao_eleitores re
+             INNER JOIN users u ON u.id = re.user_id
+             WHERE re.rodada_id = :rodada_id AND re.situacao = :situacao
+             ORDER BY u.nome ASC'
+        );
+        $stmt->execute(['rodada_id' => $rodadaId, 'situacao' => $situacao]);
+
+        return array_map('strval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+    }
+
     public static function total(int $rodadaId): int
     {
         $stmt = DB::conn()->prepare('SELECT COUNT(*) FROM sessao_votacao_eleitores WHERE rodada_id = :rodada_id');

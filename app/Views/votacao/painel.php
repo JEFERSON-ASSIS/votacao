@@ -27,6 +27,7 @@ foreach ($votos ?? [] as $v) {
     data-stream-url="<?= $rodadaId > 0 ? e(route_url('votacao/streamRodada/' . $rodadaId)) : '' ?>"
     data-voto-url="<?= $rodadaId > 0 ? e(base_url('?r=votacao/votarRodada/' . $sessaoId . '/' . $rodadaId)) : '' ?>"
     data-eh-presidente="<?= $ehPresidente ? '1' : '0' ?>"
+    data-situacao-url="<?= $rodadaId > 0 ? e(base_url('?r=votacao/situacaoEleitor/' . $sessaoId . '/' . $rodadaId)) : '' ?>"
 >
     <article class="panel-card accent" style="grid-column:1/-1;">
         <div class="action-row" style="justify-content:space-between;align-items:flex-start;flex-wrap:wrap;">
@@ -57,6 +58,12 @@ foreach ($votos ?? [] as $v) {
             </div>
         </div>
     </article>
+
+    <?php if (!empty($_GET['situacao_erro'])): ?>
+        <article class="panel-card" style="grid-column:1/-1;">
+            <div class="auth-error" role="alert"><?= e(mb_substr((string) $_GET['situacao_erro'], 0, 160)) ?></div>
+        </article>
+    <?php endif; ?>
 
     <?php if (!$rodada): ?>
         <article class="panel-card" style="grid-column:1/-1;">
@@ -191,7 +198,8 @@ foreach ($votos ?? [] as $v) {
                     <?php foreach ($usuarios as $u): ?>
                         <?php
                         $vReg = $votosPorUser[(int) $u['id']] ?? null;
-                        $votoVal = $vReg ? (string) ($vReg['voto'] ?? '') : '';
+                        $exib = votacao_exibicao_eleitor($u, $vReg ? (string) ($vReg['voto'] ?? '') : '');
+                        $votoVal = (string) ($exib['voto'] ?? '');
                         $fotoUrl = user_foto_url($u);
                         ?>
                         <li
@@ -211,8 +219,8 @@ foreach ($votos ?? [] as $v) {
                             </div>
                             <span class="votacao-vereador-voto-slot">
                                 <?php if ($votoVal !== ''): ?>
-                                    <span class="voto-chip votacao-vereador-voto <?= e(votacao_classe_voto($votoVal)) ?>">
-                                        <?= e(votacao_rotulo_voto($votoVal)) ?>
+                                    <span class="voto-chip votacao-vereador-voto <?= e($exib['voto_classe']) ?>">
+                                        <?= e($exib['voto_label']) ?>
                                     </span>
                                 <?php else: ?>
                                     <span class="votacao-vereador-aguardando">Aguardando voto…</span>
