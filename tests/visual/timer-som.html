@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Teste do aviso sonoro do cronômetro</title>
+<!--
+  Confere os avisos sonoros: 1 toque quando falta 1 minuto e 2 toques quando
+  faltam 30 segundos. O relógio do cronômetro é "adiantado" pelo teste e o
+  som é contado por um AudioContext simulado (nada toca de verdade).
+  Sirva: C:/xampp/php/php.exe -S 127.0.0.1:8099 -t tests/visual
+  e acesse http://127.0.0.1:8099/timer-som.html  (?ouvir=1 toca os sons de verdade)
+-->
+<script>
+  var ouvir = new URLSearchParams(location.search).get('ouvir') === '1';
+  window.__tons = [];
+  if (!ouvir) {
+    window.AudioContext = function () {
+      this.state = 'running';
+      // Como no navegador real, o relógio de áudio avança entre um aviso e outro.
+      var relogio = 0;
+      Object.defineProperty(this, 'currentTime', { get: function () { relogio += 10; return relogio; } });
+      this.destination = {};
+      this.resume = function () { return Promise.resolve(); };
+      this.createOscillator = function () {
+        var osc = {
+          type: 'sine',
+          frequency: { value: 0, setValueAtTime: function (v) { osc.frequency.value = v; } },
+          connect: function (n) { return n; },
+          start: function (t) { window.__tons.push({ freq: osc.frequency.value, t: t }); },
+          stop: function () {}
+        };
+        return osc;
+      };
+      this.createGain = function () {
+        return {
+          gain: { value: 1, setValueAtTime: function () {}, linearRampToValueAtTime: function () {}, exponentialRampToValueAtTime: function () {} },
+          connect: function (n) { return n; }
+        };
+      };
+    };
+    window.webkitAudioContext = window.AudioContext;
+  }
+  var base = new URLSearchParams(location.search).get('base')
+    || 'http://localhost/producao/antigos/votacao/public';
+  document.write('<script src="' + base + '/assets/js/sessao-timer.js?t=' + Date.now() + '"><\/script>');
+</script>
+<style>#resultado{white-space:pre-wrap;font:13px/1.5 Consolas,monospace;padding:12px;background:#fff;color:#000;border:2px solid #000;margin:12px}</style>
+</head>
+<body>
+<pre id="resultado">rodando...</pre>
+<p style="margin:12px">Para ouvir de verdade, abra com <code>?ouvir=1</code> e clique:
+  <button type="button" onclick="SessaoTimer.testarAviso(60)">Aviso de 1 minuto</button>
+  <button type="button" onclick="SessaoTimer.testarAviso(30)">Aviso de 30 segundos</button>
+</p>
+<div id="timers"></div>
+<script>
+function avisos() {
+  // Toques = inícios de som separados por mais de 50 ms (um toque pode usar mais de um oscilador).
+  var t = window.__tons.map(function (x) { return x.t; }).sort(function (a, b) { return a - b; });
+  var grupos = 0, ultimo = -1;
+  t.forEach(function (v) { if (ultimo < 0 || v - ultimo > 0.05) grupos++; ultimo = v; });
+  return grupos;
+}
+function rodar() {
+  var linhas = [], falhas = 0;
+  function confere(ok, txt) { linhas.push((ok ? '[OK]    ' : '[FALHA] ') + txt); if (!ok) falhas++; }
+  try {
+    var T = window.SessaoTimer;
+    confere(!!T && typeof T.tick === 'function', 'cronometro carregado');
+    var fim = Math.floor(Date.now() / 1000) + 10000;
+    // Dois elementos com o mesmo fim (o telão repete a tela no carrossel): devem soar uma vez só.
+    document.getElementById('timers').innerHTML =
+      T.html({ fim_ts: fim, restante_seg: 90 }, { label: 'Tempo' }) +
+      T.html({ fim_ts: fim, restante_seg: 90 }, { label: 'Tempo' });
+
+    function em(segundosRestantes) {
+      T.sincronizar(fim - segundosRestantes);
+      T.tick();
+    }
+    window.dispatchEvent(new Event('pointerdown'));
+
+    em(90); em(75);
+    confere(avisos() === 0, 'sem aviso antes de faltar 1 minuto');
+    em(61); em(60);
+    confere(avisos() === 1, 'faltando 1 minuto: 1 toque (obtido ' + avisos() + ')');
+    em(45);
+    confere(avisos() === 1, 'nao repete o aviso de 1 minuto');
+    em(31); em(30);
+    confere(avisos() === 3, 'faltando 30 segundos: mais 2 toques (total ' + avisos() + ')');
+    em(10); em(0);
+    confere(avisos() === 3, 'nao toca mais nada depois (total ' + avisos() + ')');
+
+    // Cronômetro que já começa abaixo de 30 s não dispara aviso atrasado
+    window.__tons = [];
+    var fim2 = fim + 500;
+    document.getElementById('timers').innerHTML = T.html({ fim_ts: fim2, restante_seg: 20 }, {});
+    T.sincronizar(fim2 - 20); T.tick();
+    T.sincronizar(fim2 - 19); T.tick();
+    confere(avisos() === 0, 'cronometro que ja abre com 20 s nao dispara aviso atrasado');
+  } catch (e) {
+    confere(false, 'erro: ' + e.message);
+  }
+  linhas.push('', falhas === 0 ? 'Tudo certo.' : falhas + ' falha(s).');
+  document.getElementById('resultado').textContent = linhas.join('\n');
+  window.__resultado = { falhas: falhas, linhas: linhas };
+}
+window.addEventListener('load', function () { setTimeout(rodar, 200); });
+</script>
+</body>
+</html>
