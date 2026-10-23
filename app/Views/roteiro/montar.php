@@ -226,6 +226,18 @@ $sessaoBloqueada = !empty($sessaoBloqueada) || (!empty($sessao) && sessao_esta_b
                                 <label class="panel-label">Título (opcional)</label>
                                 <input class="field field--compact" name="titulo" id="passo-titulo" value="<?= e(\App\Helpers\ConducaoTexto::acentuarTextoPresidente((string) ($passoAtual['titulo'] ?? ''))) ?>" placeholder="Abertura, Ata…">
                             </div>
+                            <?php $itensPauta = $itensPauta ?? []; ?>
+                            <div class="roteiro-meta-field roteiro-meta-field--grow">
+                                <label class="panel-label" for="passo-pauta-item">Matéria da pauta</label>
+                                <select class="field field--compact" name="pauta_item_id" id="passo-pauta-item">
+                                    <option value="0">— Nenhuma (ou a do passo anterior) —</option>
+                                    <?php foreach ($itensPauta as $itemPauta): ?>
+                                        <option value="<?= (int) $itemPauta['id'] ?>" <?= (int) ($passoAtual['pauta_item_id'] ?? 0) === (int) $itemPauta['id'] ? 'selected' : '' ?>>
+                                            <?= e((string) ($itemPauta['titulo'] ?? 'Matéria')) ?><?= trim((string) ($itemPauta['autor'] ?? '')) !== '' ? ' — autor: ' . e((string) $itemPauta['autor']) : '' ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
                             <div class="roteiro-meta-field">
                                 <label class="panel-label">Tipo</label>
                                 <select class="field field--compact" name="tipo_passo" id="tipo_passo">

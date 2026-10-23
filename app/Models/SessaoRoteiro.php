@@ -89,6 +89,13 @@ final class SessaoRoteiro
         return max(1, (int) $stmt->fetchColumn());
     }
 
+    /** Liga o passo a uma matéria da pauta (ou desliga, com null). */
+    public static function definirPautaItem(int $id, ?int $pautaItemId): void
+    {
+        DB::conn()->prepare('UPDATE sessao_roteiro SET pauta_item_id = :item WHERE id = :id')
+            ->execute(['item' => $pautaItemId, 'id' => $id]);
+    }
+
     public static function update(int $id, array $data): void
     {
         $stmt = DB::conn()->prepare(

@@ -307,11 +307,11 @@ final class ParlamentarAcompanhar
         if (($passo['tipo_passo'] ?? '') === 'INSTRUCAO') {
             $t = trim((string) ($passo['texto_instrucao'] ?? $passo['texto_fala'] ?? ''));
 
-            return ConducaoRichText::plain(\App\Services\ResultadoRoteiro::aplicar($t, $passo));
+            return ConducaoRichText::plain(\App\Services\TextoRoteiro::exibir($t, $passo));
         }
         $principal = trim((string) ($passo['texto_fala'] ?? ''));
 
-        return ConducaoRichText::plain(\App\Services\ResultadoRoteiro::aplicar($principal, $passo));
+        return ConducaoRichText::plain(\App\Services\TextoRoteiro::exibir($principal, $passo));
     }
 
     /** @param array<string, mixed>|null $passo */

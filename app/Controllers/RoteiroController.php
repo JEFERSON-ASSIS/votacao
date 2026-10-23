@@ -12,6 +12,7 @@ use App\Helpers\RoteiroAnexoUpload;
 use App\Helpers\SessaoBloqueio;
 use App\Models\SessaoCrud;
 use App\Models\SessaoEvento;
+use App\Models\SessaoItem;
 use App\Models\SessaoRoteiro;
 use App\Models\SessaoRoteiroAnexo;
 use App\Services\RoteiroGerador;
@@ -138,6 +139,19 @@ final class RoteiroController
             'ativo' => $ativo,
         ]);
 
+        // Matéria da pauta ligada ao passo (o autor dela aparece no roteiro).
+        if (array_key_exists('pauta_item_id', $_POST)) {
+            $itemId = (int) $_POST['pauta_item_id'];
+            if ($itemId <= 0) {
+                SessaoRoteiro::definirPautaItem($id, null);
+            } else {
+                $item = SessaoItem::find($itemId);
+                if ($item && (int) $item['sessao_id'] === $sessaoId) {
+                    SessaoRoteiro::definirPautaItem($id, $itemId);
+                }
+            }
+        }
+
         header('Location: ' . $this->redirectAposSalvar($sessaoId));
         exit;
     }
@@ -169,6 +183,7 @@ final class RoteiroController
 
         View::render('roteiro/montar', [
             'sessao' => $sessao,
+            'itensPauta' => SessaoItem::allBySessao($sessaoId),
             'roteiro' => $roteiro,
             'passoAtual' => $passoAtual,
             'anexosPasso' => $passoAtual ? SessaoRoteiroAnexo::allByPasso((int) $passoAtual['id']) : [],
