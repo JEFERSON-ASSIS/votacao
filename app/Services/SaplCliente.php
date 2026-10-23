@@ -87,7 +87,7 @@ final class SaplCliente
      *
      * @return list<array<string, mixed>>
      */
-    public static function materiasDaSessao(int $sessaoId): array
+    public static function materiasDaSessao(int $sessaoId, string $dataSessao = ''): array
     {
         $tipos = [];
         foreach (self::get('materia/tipomaterialegislativa/', ['page_size' => 100])['results'] ?? [] as $t) {
@@ -118,11 +118,21 @@ final class SaplCliente
                     'tipo_votacao' => (int) ($item['tipo_votacao'] ?? 0),
                     'observacao' => trim((string) ($item['observacao'] ?? '')),
                     'autores' => self::autoresDaMateria($materiaId),
+                    'turno' => self::turnoDaMateria($materiaId, $dataSessao),
                 ];
             }
         }
 
         return $lista;
+    }
+
+    /** Turno da matéria na data da sessão (D, B, C, U…), pela tramitação no SAPL. */
+    public static function turnoDaMateria(int $materiaId, string $dataSessao): string
+    {
+        $tramitacoes = self::get('materia/tramitacao/', ['materia' => $materiaId, 'o' => '-data_tramitacao', 'page_size' => 30])['results'] ?? [];
+        usort($tramitacoes, static fn (array $a, array $b): int => [(string) $b['data_tramitacao'], (int) $b['id']] <=> [(string) $a['data_tramitacao'], (int) $a['id']]);
+
+        return SaplRoteiro::turnoNaData($tramitacoes, $dataSessao);
     }
 
     /** @return list<array{nome: string, cargo: string, primeiro: bool}> */

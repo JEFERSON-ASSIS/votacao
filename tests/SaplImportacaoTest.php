@@ -26,7 +26,8 @@ $sessaoSapl = [
     'hora_inicio' => '09:00',
     'tipo_descricao' => 'Ordinária',
 ];
-$materia = static fn (int $id, string $tipo, int $numero, string $ementa, array $autores, string $parte = 'Ordem do Dia', int $ordem = 1): array => [
+$materia = static fn (int $id, string $tipo, int $numero, string $ementa, array $autores, string $parte = 'Ordem do Dia', int $ordem = 1, string $turno = 'U'): array => [
+    'turno' => $turno,
     'parte' => $parte,
     'numero_ordem' => $ordem,
     'sapl_materia_id' => $id,
@@ -47,6 +48,7 @@ $vereador = [['nome' => 'Juca Moro', 'cargo' => 'Vereador', 'primeiro' => true]]
 $materias = [
     $materia($saplId + 1, 'Projeto de Lei Ordinária', 48, 'Institui o Conselho Municipal de Política Cultural.', $prefeito, 'Ordem do Dia', 1),
     $materia($saplId + 2, 'Indicação', 9, 'Indica a construção de uma praça.', $vereador, 'Ordem do Dia', 2),
+    $materia($saplId + 4, 'Projeto de Lei Ordinária', 54, 'Altera a lei do magistério.', $prefeito, 'Ordem do Dia', 3, 'D'),
 ];
 
 $sessaoId = 0;
@@ -60,7 +62,12 @@ try {
     confere((int) $s['sapl_sessao_id'] === $saplId, 'guarda de qual sessao do SAPL veio');
 
     $itens = $pdo->query("SELECT * FROM pauta_itens WHERE sessao_id = $sessaoId ORDER BY ordem")->fetchAll(PDO::FETCH_ASSOC);
-    confere(count($itens) === 2, 'pauta com as 2 materias');
+    confere(count($itens) === 3, 'pauta com as 3 materias');
+    confere($itens[2]['sapl_turno'] === 'D', 'guarda o turno da materia (Deliberacao)');
+    $passosD = $pdo->query("SELECT texto_fala, gera_votacao FROM sessao_roteiro WHERE pauta_item_id = " . (int) $itens[2]['id'])->fetchAll(PDO::FETCH_ASSOC);
+    confere(count($passosD) === 1 && (int) $passosD[0]['gera_votacao'] === 0 && str_contains($passosD[0]['texto_fala'], 'Comissões Permanentes'), 'materia em deliberacao: so apresenta e encaminha, sem votacao');
+    $votacao48 = (int) $pdo->query("SELECT COUNT(*) FROM sessao_roteiro WHERE gera_votacao = 1 AND pauta_item_id = " . (int) $itens[0]['id'])->fetchColumn();
+    confere($votacao48 === 1, 'materia em turno unico: uma votacao (sem urgencia automatica)');
     confere(
         (int) $itens[0]['numero'] === 48 && $itens[0]['autor'] === 'Yago Pezarico Giacomelli (Prefeito Municipal)' && (int) $itens[0]['sapl_id'] === $saplId + 1,
         'materia com numero, autor (nome e cargo) e id do SAPL'

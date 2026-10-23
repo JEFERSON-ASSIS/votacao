@@ -21,7 +21,9 @@ final class SaplImportacao
     /** Busca no SAPL e importa. @return int id da sessão criada */
     public static function importar(int $saplSessaoId, int $usuarioId): int
     {
-        return self::criarSessao(self::sessaoComTipo($saplSessaoId), SaplCliente::materiasDaSessao($saplSessaoId), $usuarioId);
+        $sessao = self::sessaoComTipo($saplSessaoId);
+
+        return self::criarSessao($sessao, SaplCliente::materiasDaSessao($saplSessaoId, (string) ($sessao['data_inicio'] ?? '')), $usuarioId);
     }
 
     /** Busca no SAPL e atualiza a sessão já importada. @return array{novas: int, atualizadas: int, retiradas: list<string>} */
@@ -32,7 +34,9 @@ final class SaplImportacao
             throw new \DomainException('Esta sessão não foi importada do SAPL.');
         }
 
-        return self::atualizarSessao($sessaoId, self::sessaoComTipo($saplId), SaplCliente::materiasDaSessao($saplId), $usuarioId);
+        $sessao = self::sessaoComTipo($saplId);
+
+        return self::atualizarSessao($sessaoId, $sessao, SaplCliente::materiasDaSessao($saplId, (string) ($sessao['data_inicio'] ?? '')), $usuarioId);
     }
 
     public static function sessaoImportada(int $saplSessaoId): ?int
@@ -136,12 +140,13 @@ final class SaplImportacao
                 $saplMateria = (int) $m['sapl_materia_id'];
                 $vistos[$saplMateria] = true;
                 if (isset($existentes[$saplMateria])) {
-                    $pdo->prepare('UPDATE pauta_itens SET titulo = :titulo, ementa = :ementa, autor = :autor, numero_protocolo = :protocolo WHERE id = :id')
+                    $pdo->prepare('UPDATE pauta_itens SET titulo = :titulo, ementa = :ementa, autor = :autor, numero_protocolo = :protocolo, sapl_turno = :turno WHERE id = :id')
                         ->execute([
                             'titulo' => mb_substr((string) $m['titulo'], 0, 200),
                             'ementa' => (string) $m['ementa'],
                             'autor' => mb_substr(SaplImportacaoPrevia::autorTexto($m['autores']), 0, 180),
                             'protocolo' => (string) $m['protocolo'],
+                            'turno' => mb_substr(strtoupper((string) ($m['turno'] ?? '')), 0, 5),
                             'id' => (int) $existentes[$saplMateria]['id'],
                         ]);
                     // Inclui o link do texto do projeto onde ainda não houver.
@@ -204,8 +209,8 @@ final class SaplImportacao
     {
         $pdo = DB::conn();
         $pdo->prepare(
-            'INSERT INTO pauta_itens (sessao_id, ordem, tipo_materia, titulo, ementa, numero, ano, sapl_id, autor, numero_protocolo, texto_original, observacao)
-             VALUES (:sessao, :ordem, :tipo, :titulo, :ementa, :numero, :ano, :sapl, :autor, :protocolo, :texto, :obs)'
+            'INSERT INTO pauta_itens (sessao_id, ordem, tipo_materia, titulo, ementa, numero, ano, sapl_id, autor, numero_protocolo, texto_original, observacao, sapl_turno)
+             VALUES (:sessao, :ordem, :tipo, :titulo, :ementa, :numero, :ano, :sapl, :autor, :protocolo, :texto, :obs, :turno)'
         )->execute([
             'sessao' => $sessaoId,
             'ordem' => $ordem,
@@ -219,6 +224,7 @@ final class SaplImportacao
             'protocolo' => (string) $m['protocolo'],
             'texto' => mb_substr((string) $m['texto_original'], 0, 255),
             'obs' => trim(((string) ($m['parte'] ?? '')) . (($m['observacao'] ?? '') !== '' ? ' — ' . $m['observacao'] : '')),
+            'turno' => mb_substr(strtoupper((string) ($m['turno'] ?? '')), 0, 5),
         ]);
 
         return (int) $pdo->lastInsertId();

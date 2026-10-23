@@ -17,15 +17,14 @@ final class SaplImportacaoPrevia
     public static function montar(int $saplSessaoId): array
     {
         $sessao = SaplCliente::sessao($saplSessaoId);
-        $materias = SaplCliente::materiasDaSessao($saplSessaoId);
+        $materias = SaplCliente::materiasDaSessao($saplSessaoId, (string) ($sessao['data_inicio'] ?? ''));
         $avisos = [];
 
         foreach ($materias as &$m) {
             $m['autor_texto'] = self::autorTexto($m['autores']);
-            $modelo = ConducaoModelo::findForTipoMateria(self::tipoModelo((string) $m['tipo']));
-            $m['modelo'] = $modelo ? (string) $modelo['nome'] : '';
-            if (!$modelo || ($modelo['slug'] ?? '') === 'materia_generica') {
-                $avisos[] = '"' . $m['tipo'] . '" não tem modelo de roteiro próprio; foi usado o modelo de matéria genérica.';
+            $m['turno_texto'] = self::turnoTexto((string) ($m['turno'] ?? ''));
+            if (($m['turno'] ?? '') === '') {
+                $avisos[] = $m['titulo'] . ': o SAPL não informa o turno; o roteiro traz uma votação simples.';
             }
             if ($m['autores'] === []) {
                 $avisos[] = $m['titulo'] . ' está sem autor no SAPL.';
@@ -63,6 +62,19 @@ final class SaplImportacaoPrevia
         return implode(', ', $partes);
     }
 
+    /** Nome do turno como aparece na pauta do SAPL. */
+    public static function turnoTexto(string $turno): string
+    {
+        return match (strtoupper($turno)) {
+            'D' => 'Deliberação (apresentação e envio às comissões)',
+            'B' => '1ª votação',
+            'C' => '2ª e 3ª votações',
+            'U' => 'Votação única',
+            '' => 'Não informado',
+            default => 'Turno ' . strtoupper($turno),
+        };
+    }
+
     /** Traduz o tipo do SAPL para o tipo usado nos modelos de roteiro. */
     public static function tipoModelo(string $tipoSapl): string
     {
@@ -84,24 +96,23 @@ final class SaplImportacaoPrevia
                 self::adicionar($passos, $modelosSessao[$slug], (string) $modelosSessao[$slug]['nome'], $vazias);
             }
         }
+        // Mesmo roteiro por turno usado na importação (SaplRoteiro).
         foreach ($materias as $m) {
-            $modelo = ConducaoModelo::findForTipoMateria(self::tipoModelo((string) $m['tipo']));
-            if (!$modelo) {
-                continue;
-            }
-            $vars = [
-                'tipo' => (string) $m['tipo'],
+            $item = [
+                'tipo_materia' => (string) $m['tipo'],
                 'numero' => (string) $m['numero'],
                 'ano' => (string) $m['ano'],
-                'autor' => (string) ($m['autor_texto'] ?: '___'),
-                'titulo' => (string) $m['titulo'],
-                'comissoes' => 'Constituição, Justiça e Redação; Orçamento, Finanças e Tributação; Educação, Saúde e Outros Serviços Públicos',
-                'resultado' => 'APROVADO / REPROVADO',
-                'resultado_urgencia' => 'APROVADO / REPROVADO',
-                // Os modelos usam a chave com acento.
-                'resultado_urgência' => 'APROVADO / REPROVADO',
+                'autor' => (string) $m['autor_texto'],
+                'sapl_turno' => (string) ($m['turno'] ?? ''),
             ];
-            self::adicionar($passos, $modelo, (string) $m['titulo'], $vars);
+            foreach (SaplRoteiro::passos($item) as $p) {
+                $passos[] = [
+                    'bloco' => (string) $m['titulo'],
+                    'texto' => $p['texto'],
+                    'tipo_passo' => $p['tipo_passo'],
+                    'votacao' => $p['gera_votacao'],
+                ];
+            }
         }
         foreach (['tribuna', 'encerramento'] as $slug) {
             if (isset($modelosSessao[$slug])) {

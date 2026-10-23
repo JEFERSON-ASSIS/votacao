@@ -82,7 +82,7 @@ $dataFmt = $data !== '' ? date('d/m/Y', strtotime($data) ?: time()) : '—';
                                 <p class="sapl-materia-ementa"><?= e(mb_strimwidth((string) $m['ementa'], 0, 320, '…')) ?></p>
                             <?php endif; ?>
                             <p class="panel-meta">
-                                Roteiro pelo modelo: <?= e((string) ($m['modelo'] !== '' ? $m['modelo'] : '—')) ?>
+                                Nesta sessão: <strong><?= e((string) $m['turno_texto']) ?></strong>
                                 <?php if ($m['protocolo'] !== ''): ?> — protocolo <?= e((string) $m['protocolo']) ?><?php endif; ?>
                             </p>
                         </li>

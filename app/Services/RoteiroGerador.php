@@ -50,6 +50,27 @@ final class RoteiroGerador
     public static function inserirPassosMateria(int $sessaoId, array $item, int &$ordem): int
     {
         $itemId = (int) $item['id'];
+        // Matéria importada do SAPL: roteiro pelo turno em que ela entra na sessão.
+        if ((int) ($item['sapl_id'] ?? 0) > 0) {
+            $inseridos = 0;
+            foreach (SaplRoteiro::passos($item) as $passo) {
+                SessaoRoteiro::insert([
+                    'sessao_id' => $sessaoId,
+                    'ordem' => $ordem++,
+                    'tipo_item' => 'CONDUCAO',
+                    'pauta_item_id' => $itemId,
+                    'modelo_id' => null,
+                    'titulo' => (string) ($item['titulo'] ?? ''),
+                    'texto_fala' => $passo['texto'],
+                    'texto_instrucao' => null,
+                    'tipo_passo' => $passo['tipo_passo'],
+                    'gera_votacao' => $passo['gera_votacao'] ? 1 : 0,
+                ]);
+                $inseridos++;
+            }
+
+            return $inseridos;
+        }
         $vars = self::variaveisMateria($item);
         $modelo = ConducaoModelo::findForTipoMateria((string) ($item['tipo_materia'] ?? ''));
         if (!$modelo) {
