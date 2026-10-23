@@ -7,6 +7,7 @@ use App\Core\DB;
 use App\Helpers\Auditoria;
 use App\Models\SessaoEvento;
 use App\Models\SessaoRoteiro;
+use App\Models\SessaoRoteiroAnexo;
 use PDO;
 
 /**
@@ -74,11 +75,15 @@ final class SaplImportacao
             $sessaoId = (int) $pdo->lastInsertId();
 
             $ordem = 1;
+            $itensCriados = [];
             foreach ($materias as $m) {
-                self::inserirMateria($sessaoId, $m, $ordem++);
+                $itensCriados[self::inserirMateria($sessaoId, $m, $ordem++)] = $m;
             }
 
             RoteiroGerador::gerar($sessaoId, true);
+            foreach ($itensCriados as $itemId => $m) {
+                self::anexarTextoProjeto($sessaoId, $itemId, $m, $usuarioId);
+            }
             $pdo->commit();
         } catch (\Throwable $e) {
             if ($pdo->inTransaction()) {
@@ -139,12 +144,15 @@ final class SaplImportacao
                             'protocolo' => (string) $m['protocolo'],
                             'id' => (int) $existentes[$saplMateria]['id'],
                         ]);
+                    // Inclui o link do texto do projeto onde ainda não houver.
+                    self::anexarTextoProjeto($sessaoId, (int) $existentes[$saplMateria]['id'], $m, $usuarioId);
                     $relatorio['atualizadas']++;
                     continue;
                 }
 
                 $itemId = self::inserirMateria($sessaoId, $m, $ordemPauta++);
                 self::inserirPassosAntesDoFim($sessaoId, $itemId);
+                self::anexarTextoProjeto($sessaoId, $itemId, $m, $usuarioId);
                 $relatorio['novas']++;
             }
 
@@ -214,6 +222,43 @@ final class SaplImportacao
         ]);
 
         return (int) $pdo->lastInsertId();
+    }
+
+    /**
+     * Anexa o link do texto do projeto (PDF no SAPL) a todos os passos da
+     * matéria, para os vereadores abrirem no tablet durante leitura,
+     * discussão e votação.
+     *
+     * @param array<string, mixed> $m
+     */
+    private static function anexarTextoProjeto(int $sessaoId, int $itemId, array $m, int $usuarioId): void
+    {
+        $url = trim((string) ($m['texto_original'] ?? ''));
+        if ($url === '' || !preg_match('#^https?://#i', $url)) {
+            return;
+        }
+        // Só passos da matéria que ainda não têm este link (pode rodar de novo sem duplicar).
+        $passos = DB::conn()->prepare(
+            'SELECT r.id FROM sessao_roteiro r
+             WHERE r.sessao_id = :sessao AND r.pauta_item_id = :item
+               AND NOT EXISTS (SELECT 1 FROM sessao_roteiro_anexos a WHERE a.roteiro_passo_id = r.id AND a.url = :url)'
+        );
+        $passos->execute(['sessao' => $sessaoId, 'item' => $itemId, 'url' => mb_substr($url, 0, 2048)]);
+        $titulo = mb_substr('Texto do ' . (string) ($m['titulo'] ?? 'projeto') . ' (SAPL)', 0, 180);
+        foreach ($passos->fetchAll(PDO::FETCH_COLUMN) as $passoId) {
+            SessaoRoteiroAnexo::insert([
+                'sessao_id' => $sessaoId,
+                'roteiro_passo_id' => (int) $passoId,
+                'tipo' => 'URL',
+                'titulo' => $titulo,
+                'url' => mb_substr($url, 0, 2048),
+                'arquivo' => null,
+                'nome_original' => null,
+                'mime_type' => null,
+                'tamanho_bytes' => null,
+                'criado_por' => $usuarioId > 0 ? $usuarioId : null,
+            ]);
+        }
     }
 
     /** Coloca os passos de uma matéria nova antes da tribuna e do encerramento. */

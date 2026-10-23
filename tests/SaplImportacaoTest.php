@@ -36,7 +36,7 @@ $materia = static fn (int $id, string $tipo, int $numero, string $ementa, array 
     'titulo' => $tipo . ' nº ' . $numero . ' de 2026',
     'ementa' => $ementa,
     'protocolo' => (string) (100 + $numero),
-    'texto_original' => '',
+    'texto_original' => $numero === 48 ? 'https://sapl.exemplo/media/pl_48.pdf' : '',
     'tipo_votacao' => 1,
     'observacao' => '',
     'autores' => $autores,
@@ -75,6 +75,13 @@ try {
     $ligados = array_filter($roteiro, static fn (array $p): bool => (int) $p['pauta_item_id'] === (int) $itens[0]['id']);
     confere($ligados !== [], 'passos da materia ficam ligados a ela (autor e resultado no roteiro)');
 
+    // PDF do projeto anexado aos passos da matéria (vereador abre no tablet)
+    $semAnexo = (int) $pdo->query("SELECT COUNT(*) FROM sessao_roteiro r LEFT JOIN sessao_roteiro_anexos a ON a.roteiro_passo_id = r.id WHERE r.pauta_item_id = " . (int) $itens[0]['id'] . " AND a.id IS NULL")->fetchColumn();
+    $anexoUrl = $pdo->query("SELECT a.url FROM sessao_roteiro_anexos a INNER JOIN sessao_roteiro r ON r.id = a.roteiro_passo_id WHERE r.pauta_item_id = " . (int) $itens[0]['id'] . " LIMIT 1")->fetchColumn();
+    confere($semAnexo === 0 && $anexoUrl === 'https://sapl.exemplo/media/pl_48.pdf', 'todos os passos da materia recebem o link do texto do projeto');
+    $anexosIndicacao = (int) $pdo->query("SELECT COUNT(*) FROM sessao_roteiro_anexos a INNER JOIN sessao_roteiro r ON r.id = a.roteiro_passo_id WHERE r.pauta_item_id = " . (int) $itens[1]['id'])->fetchColumn();
+    confere($anexosIndicacao === 0, 'materia sem texto no SAPL nao recebe anexo');
+
     // Não importa duas vezes
     $recusou = false;
     try {
@@ -93,6 +100,9 @@ try {
         $materia($saplId + 3, 'Requerimento', 14, 'Requer informações sobre a obra da MT-438.', $vereador, 'Ordem do Dia', 2),
     ];
     $relatorio = SaplImportacao::atualizarSessao($sessaoId, $sessaoSapl, $materiasNovas, $admin);
+    $passos48 = (int) $pdo->query("SELECT COUNT(*) FROM sessao_roteiro WHERE pauta_item_id = " . (int) $itens[0]['id'])->fetchColumn();
+    $anexos48 = (int) $pdo->query("SELECT COUNT(*) FROM sessao_roteiro_anexos a INNER JOIN sessao_roteiro r ON r.id = a.roteiro_passo_id WHERE r.pauta_item_id = " . (int) $itens[0]['id'])->fetchColumn();
+    confere($anexos48 === $passos48, 'atualizar nao duplica o anexo do texto do projeto');
     $ementa = $pdo->query("SELECT ementa FROM pauta_itens WHERE sessao_id = $sessaoId AND sapl_id = " . ($saplId + 1))->fetchColumn();
     confere(str_contains((string) $ementa, 'ementa corrigida'), 'atualizar traz a ementa corrigida');
     confere((int) $relatorio['novas'] === 1, 'atualizar inclui a materia nova');
