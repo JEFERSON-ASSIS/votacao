@@ -31,12 +31,15 @@ if ($passo) {
         $textoPrincipal = ConducaoTexto::acentuarTextoPresidente((string) ($passo['texto_fala'] ?? ''));
         $textoInstrucao = ConducaoTexto::acentuarTextoPresidente((string) ($passo['texto_instrucao'] ?? ''));
     }
+    // "APROVADA / REPROVADA" vira o resultado real da votação, quando já encerrada.
+    $textoPrincipal = \App\Services\ResultadoRoteiro::aplicar($textoPrincipal, $passo);
+    $textoInstrucao = \App\Services\ResultadoRoteiro::aplicar($textoInstrucao, $passo);
 }
 
 function conducao_resumo_passo(array $p): string
 {
     $raw = trim((string) ($p['texto_fala'] ?: $p['texto_instrucao'] ?? ''));
-    return ConducaoRichText::plain($raw);
+    return ConducaoRichText::plain(\App\Services\ResultadoRoteiro::aplicar($raw, $p));
 }
 
 $statusSessao = strtoupper((string) ($sessao['status'] ?? ''));
