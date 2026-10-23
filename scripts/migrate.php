@@ -8,6 +8,11 @@ declare(strict_types=1);
  * Uso: php scripts/migrate.php
  */
 
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit('Este script roda apenas pela linha de comando.');
+}
+
 require_once __DIR__ . '/../app/bootstrap.php';
 
 use App\Core\DB;

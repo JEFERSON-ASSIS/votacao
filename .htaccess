@@ -6,6 +6,11 @@
 
     # Hostinger / subdomínio na raiz: não use RewriteBase ou use RewriteBase /
 
+    # Bloqueia arquivos e pastas internas (.env, .git, código, logs, banco, scripts)
+    RewriteRule (^|/)\.(?!well-known/) - [F,L]
+    RewriteRule ^(app|logs|database|scripts|tests|vendor)(/|$) - [F,L]
+    RewriteRule \.(md|sql|log|env|example|ini|lock)$ - [F,L,NC]
+
     RewriteRule ^assets/(.*)$ public/assets/$1 [L]
 
     RewriteCond %{REQUEST_FILENAME} -f [OR]
@@ -16,3 +21,8 @@
     RewriteRule ^public/(.*)$ public/$1 [L,QSA]
     RewriteRule ^(.*)$ public/index.php?r=$1 [L,QSA]
 </IfModule>
+
+# Segunda trava (funciona mesmo sem mod_rewrite)
+<FilesMatch "(^\.|\.(md|sql|log|env|example|ini|lock)$)">
+    Require all denied
+</FilesMatch>
