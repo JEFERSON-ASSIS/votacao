@@ -24,7 +24,10 @@
         return m + ':' + (s < 10 ? '0' : '') + s;
     }
 
-    // Avisos sonoros: 1 toque quando falta 1 minuto e 2 toques quando faltam 30 s.
+    // Avisos sonoros no padrão de plenário (gongo de dois tons):
+    //   falta 1 minuto  -> um "ding-dong" suave
+    //   faltam 30 s     -> dois "ding-dong"
+    //   tempo esgotado  -> três toques graves
     // O som é gerado pelo navegador (sem arquivo). Só toca na passagem pelo marco
     // e uma vez por cronômetro, mesmo que ele apareça repetido na tela.
     var audio = null;
@@ -50,32 +53,46 @@
         window.addEventListener(evento, contextoAudio, { passive: true });
     });
 
-    function tom(ctx, inicio, frequencia, duracao, volume) {
-        var oscilador = ctx.createOscillator();
-        var ganho = ctx.createGain();
-        oscilador.type = 'sine';
-        oscilador.frequency.setValueAtTime(frequencia, inicio);
-        ganho.gain.setValueAtTime(0.0001, inicio);
-        ganho.gain.linearRampToValueAtTime(volume, inicio + 0.015);
-        ganho.gain.exponentialRampToValueAtTime(0.0001, inicio + duracao);
-        oscilador.connect(ganho);
-        ganho.connect(ctx.destination);
-        oscilador.start(inicio);
-        oscilador.stop(inicio + duracao + 0.05);
+    // Harmônicos de um sino de carrilhão: [proporção da frequência, intensidade].
+    var HARMONICOS_SINO = [[1, 1], [2, 0.42], [2.76, 0.3], [5.4, 0.12], [8.93, 0.05]];
+
+    function sino(ctx, inicio, frequencia, volume, duracao) {
+        HARMONICOS_SINO.forEach(function (h) {
+            var oscilador = ctx.createOscillator();
+            var ganho = ctx.createGain();
+            // Harmônicos altos somem antes, como num sino de verdade.
+            var fimHarmonico = inicio + duracao / Math.sqrt(h[0]);
+            oscilador.type = 'sine';
+            oscilador.frequency.setValueAtTime(frequencia * h[0], inicio);
+            ganho.gain.setValueAtTime(0.0001, inicio);
+            ganho.gain.linearRampToValueAtTime(volume * h[1], inicio + 0.006);
+            ganho.gain.exponentialRampToValueAtTime(0.0001, fimHarmonico);
+            oscilador.connect(ganho);
+            ganho.connect(ctx.destination);
+            oscilador.start(inicio);
+            oscilador.stop(fimHarmonico + 0.05);
+        });
+    }
+
+    function dingDong(ctx, inicio) {
+        sino(ctx, inicio, 659.25, 0.16, 1.6);        // Mi
+        sino(ctx, inicio + 0.6, 523.25, 0.16, 2.0);  // Dó
     }
 
     function tocarAviso(tipo) {
         var ctx = contextoAudio();
         if (!ctx) return;
-        var t = ctx.currentTime + 0.02;
+        var t = ctx.currentTime + 0.03;
         if (tipo === 60) {
-            // Sino suave: fundamental + harmônico, decaimento longo.
-            tom(ctx, t, 880, 1.2, 0.22);
-            tom(ctx, t, 1320, 0.9, 0.07);
+            dingDong(ctx, t);
+        } else if (tipo === 30) {
+            dingDong(ctx, t);
+            dingDong(ctx, t + 1.5);
         } else {
-            // Dois toques curtos.
-            tom(ctx, t, 988, 0.32, 0.22);
-            tom(ctx, t + 0.45, 988, 0.32, 0.22);
+            // Tempo esgotado: três toques graves e firmes (Dó grave).
+            sino(ctx, t, 261.63, 0.22, 1.2);
+            sino(ctx, t + 0.42, 261.63, 0.22, 1.2);
+            sino(ctx, t + 0.84, 261.63, 0.24, 2.2);
         }
     }
 
@@ -90,6 +107,10 @@
         if (anterior > 30 && restante <= 30 && restante > 0 && !avisosTocados[fim + ':30']) {
             avisosTocados[fim + ':30'] = true;
             tocarAviso(30);
+        }
+        if (anterior > 0 && restante <= 0 && !avisosTocados[fim + ':0']) {
+            avisosTocados[fim + ':0'] = true;
+            tocarAviso(0);
         }
     }
 
@@ -116,9 +137,9 @@
         formatar: formatar,
         tick: tickTodos,
         sincronizar: sincronizar,
-        // Toca um aviso na hora (60 = falta 1 minuto, 30 = faltam 30 s). Útil para testar o som.
+        // Toca um aviso na hora (60 = falta 1 minuto, 30 = faltam 30 s, 0 = esgotado). Para testar o som.
         testarAviso: function (tipo) {
-            tocarAviso(tipo === 30 ? 30 : 60);
+            tocarAviso(tipo === 30 || tipo === 0 ? tipo : 60);
         },
         html: function (tempo, opts) {
             opts = opts || {};

@@ -4,8 +4,9 @@
 <meta charset="utf-8">
 <title>Teste do aviso sonoro do cronômetro</title>
 <!--
-  Confere os avisos sonoros: 1 toque quando falta 1 minuto e 2 toques quando
-  faltam 30 segundos. O relógio do cronômetro é "adiantado" pelo teste e o
+  Confere os avisos sonoros (gongo de plenário): um "ding-dong" quando falta
+  1 minuto, dois "ding-dong" quando faltam 30 segundos e três toques graves
+  quando o tempo esgota. O relógio do cronômetro é "adiantado" pelo teste e o
   som é contado por um AudioContext simulado (nada toca de verdade).
   Sirva: C:/xampp/php/php.exe -S 127.0.0.1:8099 -t tests/visual
   e acesse http://127.0.0.1:8099/timer-som.html  (?ouvir=1 toca os sons de verdade)
@@ -51,16 +52,21 @@
 <p style="margin:12px">Para ouvir de verdade, abra com <code>?ouvir=1</code> e clique:
   <button type="button" onclick="SessaoTimer.testarAviso(60)">Aviso de 1 minuto</button>
   <button type="button" onclick="SessaoTimer.testarAviso(30)">Aviso de 30 segundos</button>
+  <button type="button" onclick="SessaoTimer.testarAviso(0)">Tempo esgotado</button>
 </p>
 <div id="timers"></div>
 <script>
-function avisos() {
-  // Toques = inícios de som separados por mais de 50 ms (um toque pode usar mais de um oscilador).
-  var t = window.__tons.map(function (x) { return x.t; }).sort(function (a, b) { return a - b; });
-  var grupos = 0, ultimo = -1;
-  t.forEach(function (v) { if (ultimo < 0 || v - ultimo > 0.05) grupos++; ultimo = v; });
-  return grupos;
+function grupos() {
+  // Um toque = sons que começam juntos (o sino usa vários harmônicos ao mesmo tempo).
+  var tons = window.__tons.slice().sort(function (a, b) { return a.t - b.t; });
+  var lista = [], atual = null;
+  tons.forEach(function (x) {
+    if (!atual || x.t - atual.t > 0.05) { atual = { t: x.t, freqs: [] }; lista.push(atual); }
+    atual.freqs.push(x.freq);
+  });
+  return lista;
 }
+function avisos() { return grupos().length; }
 function rodar() {
   var linhas = [], falhas = 0;
   function confere(ok, txt) { linhas.push((ok ? '[OK]    ' : '[FALHA] ') + txt); if (!ok) falhas++; }
@@ -82,13 +88,19 @@ function rodar() {
     em(90); em(75);
     confere(avisos() === 0, 'sem aviso antes de faltar 1 minuto');
     em(61); em(60);
-    confere(avisos() === 1, 'faltando 1 minuto: 1 toque (obtido ' + avisos() + ')');
+    confere(avisos() === 2, 'faltando 1 minuto: um ding-dong = 2 toques (obtido ' + avisos() + ')');
     em(45);
-    confere(avisos() === 1, 'nao repete o aviso de 1 minuto');
+    confere(avisos() === 2, 'nao repete o aviso de 1 minuto');
     em(31); em(30);
-    confere(avisos() === 3, 'faltando 30 segundos: mais 2 toques (total ' + avisos() + ')');
-    em(10); em(0);
-    confere(avisos() === 3, 'nao toca mais nada depois (total ' + avisos() + ')');
+    confere(avisos() === 6, 'faltando 30 segundos: dois ding-dong = mais 4 toques (total ' + avisos() + ')');
+    em(10);
+    confere(avisos() === 6, 'nada entre 30 s e o fim (total ' + avisos() + ')');
+    em(1); em(0);
+    confere(avisos() === 9, 'tempo esgotado: mais 3 toques graves (total ' + avisos() + ')');
+    var graves = grupos().slice(-3).every(function (g) { return Math.min.apply(null, g.freqs) < 500; });
+    confere(graves, 'toques do tempo esgotado sao graves');
+    em(0);
+    confere(avisos() === 9, 'nao repete o aviso de tempo esgotado');
 
     // Cronômetro que já começa abaixo de 30 s não dispara aviso atrasado
     window.__tons = [];
