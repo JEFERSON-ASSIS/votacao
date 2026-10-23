@@ -143,13 +143,13 @@ final class SessaoConducao
         if ($estado === null) {
             throw new \RuntimeException('A presidência desta sessão ainda não foi definida.');
         }
-        if (!in_array($userId, SessaoPresenca::idsPresentes($sessaoId), true)) {
-            // Marca presença automaticamente ao destacar (ex.: só o presidente estava na lista).
-            SessaoPresenca::set($sessaoId, $userId, true);
-        }
         $alvo = User::find($userId);
         if (!$alvo || !UserPerfil::ehParlamentar((string) ($alvo['role'] ?? ''))) {
             throw new \RuntimeException('Escolha um parlamentar válido.');
+        }
+        if (!in_array($userId, SessaoPresenca::idsPresentes($sessaoId), true)) {
+            // Marca presença automaticamente ao destacar (ex.: só o presidente estava na lista).
+            SessaoPresenca::set($sessaoId, $userId, true);
         }
 
         $tempoSeg = function_exists('sessao_tempo_normalizar') ? sessao_tempo_normalizar($tempoSeg) : 0;

@@ -20,6 +20,9 @@ final class Router
         if ($route === '') {
             $route = trim((string) ($_SERVER['REDIRECT_URL'] ?? ''), '/');
         }
+        // As checagens de permissão por sessão leem a rota de $_GET['r']:
+        // a rota vinda de PATH_INFO/REDIRECT_URL precisa estar lá também.
+        $_GET['r'] = $route;
         if ($route === '') {
             $parts = Auth::check() ? ['dashboard', 'index'] : ['auth', 'login'];
         } else {

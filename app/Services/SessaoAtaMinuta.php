@@ -54,7 +54,7 @@ final class SessaoAtaMinuta
                 continue;
             }
             $rid = (int) ($rodada['id'] ?? 0);
-            $resumo = SessaoVoto::resumoPorRodada($rid);
+            $resumo = SessaoVoto::resumoParlamentaresPorRodada($rid);
             $linhas[] = '';
             $linhas[] = 'Votação nominal: ' . (string) ($rodada['titulo'] ?? '');
             $linhas[] = 'Resultado: ' . votacao_rotulo_resultado((string) ($rodada['resultado'] ?? ''));

@@ -130,7 +130,8 @@ final class SessaoVotacaoRodada
             return ['resultado' => 'EMPATADO', 'resumo' => ['SIM' => 0, 'NAO' => 0, 'ABSTENCAO' => 0, 'AUSENTE' => 0]];
         }
 
-        $resumo = SessaoVoto::resumoPorRodada($rodadaId);
+        // Só conta quem está na lista da votação (fotografia dos presentes).
+        $resumo = SessaoVoto::resumoParlamentaresPorRodada($rodadaId);
         $resultado = SessaoVoto::resultadoFromResumo($resumo);
         if ($resultado === 'EMPATADO') {
             $desempate = SessaoVotoDesempate::voto($rodadaId);

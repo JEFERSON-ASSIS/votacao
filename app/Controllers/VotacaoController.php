@@ -90,7 +90,7 @@ final class VotacaoController
             'rodada' => $rodada,
             'usuarios' => User::parlamentaresParaVotacao(),
             'votos' => SessaoVoto::allByRodada($rid),
-            'resumo' => SessaoVoto::resumoPorRodada($rid),
+            'resumo' => SessaoVoto::resumoParlamentaresPorRodada($rid),
             'resumoParlamentares' => $resumoParl,
             'empate' => VotacaoPainelEstado::empateParlamentares($resumoParl),
             'podeEncerrar' => $encerramento['permitido'],
@@ -436,6 +436,12 @@ final class VotacaoController
             return;
         }
 
+        if ($userId > 0 && RodadaEleitor::total($rodadaId) > 0 && !RodadaEleitor::usuarioApto($rodadaId, $userId)) {
+            http_response_code(403);
+            echo 'Este usuário não está na lista de votantes desta votação.';
+            return;
+        }
+
         if ($userId > 0) {
             SessaoVoto::voteRodada(
                 $sessaoId,
@@ -465,8 +471,8 @@ final class VotacaoController
         View::render('votacao/apuracao_rodada', [
             'sessao' => $sessao,
             'rodada' => $rodada,
-            'resumo' => SessaoVoto::resumoPorRodada($rodadaId),
-            'resultado' => (string) ($rodada['resultado'] ?? SessaoVoto::resultadoFromResumo(SessaoVoto::resumoPorRodada($rodadaId))),
+            'resumo' => SessaoVoto::resumoParlamentaresPorRodada($rodadaId),
+            'resultado' => (string) ($rodada['resultado'] ?? SessaoVoto::resultadoFromResumo(SessaoVoto::resumoParlamentaresPorRodada($rodadaId))),
             'total' => SessaoVoto::totalPorRodada($rodadaId),
             'votos' => SessaoVoto::allByRodada($rodadaId),
         ]);
@@ -483,6 +489,11 @@ final class VotacaoController
 
         $userId = (int) ($_POST['user_id'] ?? 0);
         $presente = (string) ($_POST['presente'] ?? '1') === '1';
+        $alvo = $userId > 0 ? User::find($userId) : null;
+        if (!$alvo || !UserPerfil::ehParlamentar((string) ($alvo['role'] ?? ''))) {
+            header('Location: ' . base_url('?r=votacao/index&presenca_erro=nao_parlamentar'));
+            exit;
+        }
         if ($userId > 0) {
             SessaoPresenca::set($sessaoId, $userId, $presente);
             SessaoEvento::registrar($sessaoId, 'presenca', $presente ? 'Presença registrada' : 'Presença removida');
@@ -494,6 +505,11 @@ final class VotacaoController
     public function votar(int $sessaoId, int $itemId): void
     {
         Permissao::exigir('votacao.votar');
+        // Fluxo antigo (votação por matéria registrada pelo operador) desativado:
+        // a votação é feita pelo aparelho de cada vereador, em Conduzir sessão.
+        http_response_code(410);
+        echo 'A votação por matéria (fluxo antigo) foi desativada. Use Conduzir sessão.';
+        return;
         if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !csrf_check($_POST['csrf_token'] ?? null)) {
             http_response_code(400);
             echo 'Requisição inválida.';
@@ -533,6 +549,11 @@ final class VotacaoController
     public function abrir(int $sessaoId): void
     {
         Permissao::exigir('votacao.abrir');
+        // Fluxo antigo (votação por matéria registrada pelo operador) desativado:
+        // a votação é feita pelo aparelho de cada vereador, em Conduzir sessão.
+        http_response_code(410);
+        echo 'A votação por matéria (fluxo antigo) foi desativada. Use Conduzir sessão.';
+        return;
         if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !csrf_check($_POST['csrf_token'] ?? null)) {
             http_response_code(400);
             echo 'Requisição inválida.';

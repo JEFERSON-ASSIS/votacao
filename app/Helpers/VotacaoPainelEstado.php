@@ -22,8 +22,8 @@ final class VotacaoPainelEstado
         }
 
         $aberta = ($rodada['status'] ?? '') === 'ABERTA';
-        $resumoTotal = SessaoVoto::resumoPorRodada($rodadaId);
         $resumoParl = SessaoVoto::resumoParlamentaresPorRodada($rodadaId);
+        $resumoTotal = $resumoParl;
         $empate = self::empateParlamentares($resumoParl);
 
         $votosPorUser = [];

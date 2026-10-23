@@ -29,11 +29,6 @@ $podeConduzir = !empty($sessao) && sessao_pode_conduzir($sessao);
                     <a class="btn btn-primary" href="<?= e(base_url('?r=presidencia/conduzir/' . $sessaoId)) ?>">Conduzir sessão (votações)</a>
                 <?php elseif ($sessao && $usaRoteiro && $sessaoBloqueada): ?>
                     <span class="status-chip closed">Sessão concluída</span>
-                <?php elseif ($sessao && $status !== 'EM_VOTACAO' && !$sessaoBloqueada): ?>
-                    <form method="post" action="<?= e(base_url('?r=votacao/abrir/' . $sessaoId)) ?>">
-                        <?= csrf_field() ?>
-                        <button class="btn btn-soft" type="submit">Abrir votação por matéria (fluxo antigo)</button>
-                    </form>
                 <?php endif; ?>
                 <?php if ($sessao && $status === 'EM_VOTACAO' && !$usaRoteiro): ?>
                     <form method="post" action="<?= e(base_url('?r=votacao/encerrar/' . $sessaoId)) ?>">
@@ -145,41 +140,6 @@ $podeConduzir = !empty($sessao) && sessao_pode_conduzir($sessao);
                 <div class="panel-card" style="padding:18px;"><div class="panel-label">Total</div><div class="panel-value"><?= e(\App\Models\SessaoVoto::totalPorItem((int) $item['id'])) ?></div></div>
             </div>
 
-            <?php if ($status === 'EM_VOTACAO'): ?>
-                <div class="table-wrap" style="margin-top:18px;">
-                    <table class="leg-table">
-                        <thead>
-                            <tr>
-                                <th>Vereador</th>
-                                <th>Voto</th>
-                                <th>Observação</th>
-                                <th>Ação</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($usuarios as $u): ?>
-                                <tr>
-                                    <td><?= e($u['nome']) ?></td>
-                                    <td colspan="3">
-                                        <form method="post" action="<?= e(base_url('?r=votacao/votar/' . $sessaoId . '/' . (int) $item['id'])) ?>" class="action-row">
-                                            <?= csrf_field() ?>
-                                            <input type="hidden" name="user_id" value="<?= e($u['id']) ?>">
-                                            <select name="voto" class="field" style="max-width:180px;">
-                                                <option value="SIM">Sim</option>
-                                                <option value="NAO">Não</option>
-                                                <option value="ABSTENCAO">Abstenção</option>
-                                                <option value="AUSENTE">Ausente</option>
-                                            </select>
-                                            <input name="observacao" class="field" placeholder="Observação opcional" style="max-width:320px;">
-                                            <button class="btn btn-primary" type="submit">Registrar</button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            <?php endif; ?>
         </article>
     <?php endforeach; ?>
     <?php endif; ?>
