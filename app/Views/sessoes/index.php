@@ -77,10 +77,7 @@ $podeConduzir = user_can('presidencia.conduzir');
                             <td>
                                 <div class="action-row">
                                     <?php if ($sessaoPodeIniciar): ?>
-                                        <form method="post" action="<?= e(base_url('?r=presidencia/iniciar/' . (int) $s['id'])) ?>" style="display:inline-flex;">
-                                            <?= csrf_field() ?>
-                                            <button class="btn btn-primary btn--sm" type="submit">Iniciar sessão</button>
-                                        </form>
+                                        <a class="btn btn-primary btn--sm" href="<?= e(base_url('?r=presidencia/conduzir/' . (int) $s['id'] . '&abrir_presenca=1')) ?>">Iniciar sessão</a>
                                     <?php elseif ($sessaoPodeConduzir && in_array($statusLinha, ['ABERTA', 'EM_VOTACAO'], true)): ?>
                                         <a class="btn btn-soft btn--sm" href="<?= e(base_url('?r=presidencia/conduzir/' . (int) $s['id'])) ?>">Conduzir</a>
                                     <?php elseif ($sessaoPodeConduzir): ?>

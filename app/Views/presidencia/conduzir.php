@@ -749,7 +749,7 @@ $parlamentaresTransferencia = array_values(array_filter(
         document.addEventListener('keydown', function (event) {
             if (event.key === 'Escape' && modal && modal.classList.contains('is-open')) fecharModal();
         });
-        <?php if (($_GET['sessao_erro'] ?? '') === 'sem_presentes'): ?>abrirModal();<?php endif; ?>
+        <?php if (($_GET['sessao_erro'] ?? '') === 'sem_presentes' || ($_GET['abrir_presenca'] ?? '') === '1'): ?>abrirModal();<?php endif; ?>
     });
     </script>
     <?php endif; ?>
