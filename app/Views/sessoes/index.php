@@ -46,9 +46,14 @@ $podeConduzir = user_can('presidencia.conduzir');
                 <div class="panel-value"><?= $podeCriarEditar ? 'Cadastro e controle' : 'Sessões para condução' ?></div>
                 <div class="panel-meta"><?= $podeCriarEditar ? 'Clique em nova sessão para abrir a página completa de montagem.' : 'Acompanhe as sessões preparadas e acesse a condução quando houver roteiro disponível.' ?></div>
             </div>
-            <?php if ($podeCriarEditar): ?>
-                <a class="btn btn-primary" href="<?= e(base_url('?r=sessao/form')) ?>">Nova sessão</a>
-            <?php endif; ?>
+            <div class="action-row">
+                <?php if (user_can('sapl.sessoes')): ?>
+                    <a class="btn btn-soft" href="<?= e(route_url('sapl/sessoes')) ?>">Importar do SAPL (protótipo)</a>
+                <?php endif; ?>
+                <?php if ($podeCriarEditar): ?>
+                    <a class="btn btn-primary" href="<?= e(base_url('?r=sessao/form')) ?>">Nova sessão</a>
+                <?php endif; ?>
+            </div>
         </div>
     </article>
 

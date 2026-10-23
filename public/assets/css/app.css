@@ -6497,3 +6497,43 @@ body.public-page--telao .public-hero-mark--brasao { background: #fff; }
     color: rgba(255, 255, 255, 0.72);
 }
 .conducao-resultado-box .conducao-votos-resumo { margin-top: 0; }
+
+/* Ocupa a linha inteira do panel-grid (substitui style="grid-column:1/-1") */
+.span-full { grid-column: 1 / -1; }
+
+/* Importação de sessão do SAPL (protótipo) */
+.sapl-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.sapl-prototipo {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #92400e;
+    background: #fff4d6;
+    border: 1px solid #f0c36d;
+}
+.sapl-titulo { margin: 8px 0 4px; font-size: 1.35rem; color: var(--heading); }
+.sapl-subtitulo { margin: 0 0 12px; font-size: 1.05rem; color: var(--heading); }
+.sapl-paginacao { margin-top: 12px; align-items: center; gap: 12px; }
+.sapl-dados { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 0; }
+.sapl-dados dt { font-size: 12px; font-weight: 700; color: var(--muted-2); }
+.sapl-dados dd { margin: 2px 0 0; font-size: 15px; }
+.sapl-materias { margin: 0; padding-left: 22px; display: grid; gap: 12px; }
+.sapl-materia { padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel); }
+.sapl-materia-topo { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; flex-wrap: wrap; }
+.sapl-materia-autor { margin: 6px 0 4px; }
+.sapl-materia-ementa { margin: 0 0 6px; font-size: 13px; line-height: 1.5; color: var(--text); }
+.sapl-avisos { margin: 0; padding-left: 20px; display: grid; gap: 6px; color: #92400e; }
+.sapl-roteiro { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.sapl-roteiro-bloco {
+    margin-top: 12px;
+    padding: 6px 10px;
+    font-weight: 700;
+    color: var(--heading);
+    background: var(--accent-soft);
+    border-radius: 8px;
+}
+.sapl-roteiro-passo { padding: 4px 10px 4px 22px; line-height: 1.5; }
+.sapl-roteiro-passo .status-chip { margin-left: 6px; }
+.sapl-roteiro-passo--instrucao { font-style: italic; color: var(--muted-2); }

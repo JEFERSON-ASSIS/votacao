@@ -88,6 +88,13 @@ final class PermissaoCatalog
                     'pauta.reorder' => 'Reordenar pauta',
                 ],
             ],
+            'sapl' => [
+                'label' => 'Integração SAPL (protótipo)',
+                'items' => [
+                    'sapl.sessoes' => 'Ver sessões do SAPL',
+                    'sapl.previa' => 'Prévia da importação de sessão do SAPL',
+                ],
+            ],
             'roteiro' => [
                 'label' => 'Roteiro / condução',
                 'items' => [
