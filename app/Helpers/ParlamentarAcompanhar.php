@@ -59,6 +59,13 @@ final class ParlamentarAcompanhar
             && in_array($statusRaw, ['ABERTA', 'EM_VOTACAO'], true)
             && $usuarioApto;
 
+        $situacaoVotacao = $rodadaAberta
+            ? RodadaEleitor::situacaoDe((int) $rodadaAberta['id'], $userId)
+            : null;
+        if (!in_array($situacaoVotacao, ['IMPEDIDO', 'AUSENTE'], true)) {
+            $situacaoVotacao = null;
+        }
+
         $modo = self::resolverModo($podeVotar, $meuVoto, $passoAtual, $exibirAta, $rodadaAberta);
         $jaVotou = $meuVoto !== null && $meuVoto !== '';
         $podeRegistrarVoto = $podeVotar && !$jaVotou;
@@ -82,6 +89,8 @@ final class ParlamentarAcompanhar
             'podeVotar' => $podeVotar,
             'usuarioApto' => $usuarioApto,
             'podeRegistrarVoto' => $podeRegistrarVoto,
+            'situacaoVotacao' => $situacaoVotacao,
+            'situacaoVotacaoTexto' => self::textoSituacaoVotacao($situacaoVotacao),
             'jaVotou' => $jaVotou,
             'meuVoto' => $meuVoto,
             'modo' => $modo,
@@ -113,6 +122,8 @@ final class ParlamentarAcompanhar
             'status_chip' => sessao_status_chip_class($ctx['statusRaw']),
             'pode_votar' => $ctx['podeVotar'],
             'pode_registrar_voto' => $ctx['podeRegistrarVoto'],
+            'situacao_votacao' => $ctx['situacaoVotacao'],
+            'situacao_votacao_texto' => $ctx['situacaoVotacaoTexto'],
             'ja_votou' => !empty($ctx['jaVotou']),
             'meu_voto' => $ctx['meuVoto'],
             'meu_voto_label' => $ctx['meuVoto'] ? votacao_rotulo_voto($ctx['meuVoto']) : '',
@@ -222,12 +233,19 @@ final class ParlamentarAcompanhar
         return md5(json_encode($copia, JSON_UNESCAPED_UNICODE));
     }
 
+    /** Mensagem para o vereador impedido ou retirado da votação aberta. */
+    public static function textoSituacaoVotacao(?string $situacao): string
+    {
+        return match ($situacao) {
+            'IMPEDIDO' => 'Você foi declarado impedido nesta votação e não participa dela.',
+            'AUSENTE' => 'Você foi retirado desta votação e consta como ausente. Se estiver no plenário, fale com a Presidência.',
+            default => '',
+        };
+    }
+
     public static function hashEstado(array $estado): string
     {
-        $copia = $estado;
-        unset($copia['ts'], $copia['voto_html']);
-
-        return md5(json_encode($copia, JSON_UNESCAPED_UNICODE));
+        return estado_hash($estado, ['voto_html']);
     }
 
     /** @param array<string, mixed> $sessao */

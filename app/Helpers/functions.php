@@ -187,6 +187,33 @@ function votacao_exibicao_eleitor(array $eleitor, string $voto): array
     ];
 }
 
+/**
+ * Assinatura do estado enviado pelos canais ao vivo: só muda quando algo
+ * muda de verdade. Ignora o horário (ts) e o tempo restante do cronômetro,
+ * que mudam a cada segundo; o aparelho calcula o tempo pelo fim_ts.
+ *
+ * @param array<string, mixed> $estado
+ * @param list<string> $ignorarTopo chaves extras ignoradas no primeiro nível
+ */
+function estado_hash(array $estado, array $ignorarTopo = []): string
+{
+    foreach (array_merge(['ts'], $ignorarTopo) as $chave) {
+        unset($estado[$chave]);
+    }
+    $limpar = static function (array $dados) use (&$limpar): array {
+        unset($dados['restante_seg'], $dados['esgotado']);
+        foreach ($dados as $k => $v) {
+            if (is_array($v)) {
+                $dados[$k] = $limpar($v);
+            }
+        }
+
+        return $dados;
+    };
+
+    return md5((string) json_encode($limpar($estado), JSON_UNESCAPED_UNICODE));
+}
+
 /** Resultado da votação para exibição (REJEITADO → Reprovado). */
 function votacao_rotulo_resultado(?string $resultado): string
 {

@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Chamado por rodar_cenario() (tests/_db.php) em um processo separado,
  * porque as ações terminam com exit/header.
  *
- * Argumento: JSON {user: {...}, metodo, get_r?, path_info?, post: {...}}
+ * Argumento: JSON {user, metodo, get_r?, path_info?, headers?, post?}
  */
 
 if (PHP_SAPI !== 'cli') {
@@ -30,6 +30,9 @@ $_POST = $cfg['post'] ?? [];
 $_POST['csrf_token'] = csrf_token();
 if (!empty($cfg['get_r'])) {
     $_GET['r'] = $cfg['get_r'];
+}
+foreach ((array) ($cfg['headers'] ?? []) as $k => $v) {
+    $_SERVER[$k] = $v;
 }
 if (!empty($cfg['path_info'])) {
     $_SERVER['PATH_INFO'] = $cfg['path_info'];

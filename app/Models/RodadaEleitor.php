@@ -111,6 +111,18 @@ final class RodadaEleitor
         }
     }
 
+    /** Situação do vereador na votação (PENDENTE, IMPEDIDO, AUSENTE) ou null se não está na lista. */
+    public static function situacaoDe(int $rodadaId, int $userId): ?string
+    {
+        $stmt = DB::conn()->prepare(
+            'SELECT situacao FROM sessao_votacao_eleitores WHERE rodada_id = :rodada_id AND user_id = :user_id'
+        );
+        $stmt->execute(['rodada_id' => $rodadaId, 'user_id' => $userId]);
+        $situacao = $stmt->fetchColumn();
+
+        return $situacao === false ? null : (string) $situacao;
+    }
+
     /** @return list<string> nomes dos vereadores com a situação informada */
     public static function nomesPorSituacao(int $rodadaId, string $situacao): array
     {

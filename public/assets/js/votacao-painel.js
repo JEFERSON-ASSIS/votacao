@@ -209,7 +209,12 @@
         }
     }
 
+    var emVoo = false;
+
     function buscarEstado() {
+        // Uma consulta por vez: com o servidor lento, elas se acumulavam.
+        if (emVoo) return Promise.resolve();
+        emVoo = true;
         return fetch(estadoUrl + (estadoUrl.indexOf('?') >= 0 ? '&' : '?') + '_=' + Date.now(), {
             credentials: 'same-origin',
             headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
@@ -221,6 +226,9 @@
             .then(aplicarEstado)
             .catch(function () {
                 setLive(false);
+            })
+            .then(function () {
+                emVoo = false;
             });
     }
 

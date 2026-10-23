@@ -115,6 +115,15 @@ try {
     $vereadoresTelao = json_encode($telao, JSON_UNESCAPED_UNICODE);
     confere(str_contains((string) $vereadoresTelao, 'Impedido'), 'telao mostra Impedido');
 
+    // Tela do vereador explica o impedimento / a ausência
+    $estadoBruno = \App\Helpers\ParlamentarAcompanhar::estadoJson($sessaoId, $bruno);
+    confere(($estadoBruno['situacao_votacao'] ?? '') === 'IMPEDIDO', 'tela do vereador sabe que ele esta impedido');
+    confere(str_contains((string) ($estadoBruno['situacao_votacao_texto'] ?? ''), 'impedido'), 'tela do vereador mostra mensagem de impedimento');
+    $estadoCarla = \App\Helpers\ParlamentarAcompanhar::estadoJson($sessaoId, $carla);
+    confere(($estadoCarla['situacao_votacao'] ?? '') === 'AUSENTE', 'tela do vereador sabe que ele foi retirado da votacao');
+    $estadoAna = \App\Helpers\ParlamentarAcompanhar::estadoJson($sessaoId, $ana);
+    confere(($estadoAna['situacao_votacao'] ?? null) === null, 'vereador normal nao recebe mensagem de situacao');
+
     // Encerrada não pode mais ser alterada
     SessaoVotacaoRodada::encerrar($rodadaId);
     confere(

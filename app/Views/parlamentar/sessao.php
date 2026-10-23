@@ -151,6 +151,12 @@ $percentual = $totalPassos > 0 ? (int) round(($concluidos / $totalPassos) * 100)
 
     <div id="parl-voto-slot" style="grid-column:1/-1;">
         <?php require __DIR__ . '/../partials/_parlamentar_voto_box.php'; ?>
+        <?php if (!empty($situacaoVotacaoTexto) && $meuVoto === null): ?>
+            <article class="panel-card parl-voto-situacao" role="status">
+                <div class="panel-label">Votação em andamento</div>
+                <p class="parl-voto-situacao-texto"><?= e((string) $situacaoVotacaoTexto) ?></p>
+            </article>
+        <?php endif; ?>
     </div>
 
     <?php if ($exibirAta): ?>

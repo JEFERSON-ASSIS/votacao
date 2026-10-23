@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Teste do aviso de sessão expirada</title>
+<!--
+  Confere que, ao receber 401 do servidor, a tela mostra o aviso de sessão
+  expirada e para de consultar o servidor. Com o Apache ligado, sirva:
+    C:/xampp/php/php.exe -S 127.0.0.1:8099 -t tests/visual
+  e acesse http://127.0.0.1:8099/sessao-expirada.html
+-->
+<script>
+  var base = new URLSearchParams(location.search).get('base')
+    || 'http://localhost/producao/antigos/votacao/public';
+  document.write('<link rel="stylesheet" href="' + base + '/assets/css/app.css?t=' + Date.now() + '">');
+  document.write('<script src="' + base + '/assets/js/sessao-expirada.js?t=' + Date.now() + '" data-login-url="/login-teste"><\/script>');
+</script>
+<style>#resultado{white-space:pre-wrap;font:13px/1.5 Consolas,monospace;padding:12px;background:#fff;color:#000;border:2px solid #000;margin:12px}</style>
+</head>
+<body class="admin-layout">
+<pre id="resultado">rodando...</pre>
+<script>
+async function rodar() {
+  var linhas = [], falhas = 0;
+  function confere(ok, txt) { linhas.push((ok ? '[OK]    ' : '[FALHA] ') + txt); if (!ok) falhas++; }
+  try {
+    var r1 = await fetch('contraste.html');
+    confere(r1.ok, 'antes de expirar, as chamadas funcionam normalmente');
+    confere(!document.getElementById('sessao-expirada-aviso'), 'sem aviso enquanto a sessao esta valida');
+
+    var r2 = await fetch('responde-401.php', { headers: { Accept: 'application/json' } });
+    confere(r2.status === 401, 'a tela ainda recebe a resposta 401');
+    var aviso = document.getElementById('sessao-expirada-aviso');
+    confere(!!aviso && getComputedStyle(aviso).display !== 'none', 'aparece o aviso de sessao expirada');
+    confere(!!aviso && /expirou/i.test(aviso.textContent), 'aviso diz que a sessao expirou');
+    var link = aviso && aviso.querySelector('a');
+    confere(!!link && link.getAttribute('href') === '/login-teste', 'aviso tem link para entrar novamente');
+
+    var parou = false;
+    try { await fetch('contraste.html'); } catch (e) { parou = true; }
+    confere(parou, 'depois de expirar, para de consultar o servidor');
+
+    var es = new EventSource('contraste.html');
+    confere(es.readyState === 2, 'depois de expirar, nao abre canal ao vivo');
+    es.close();
+
+    await fetch('responde-401.php').catch(function () {});
+    confere(document.querySelectorAll('#sessao-expirada-aviso').length === 1, 'o aviso aparece uma vez so');
+  } catch (e) {
+    confere(false, 'erro: ' + e.message);
+  }
+  linhas.push('', falhas === 0 ? 'Tudo certo.' : falhas + ' falha(s).');
+  document.getElementById('resultado').textContent = linhas.join('\n');
+  window.__resultado = { falhas: falhas, linhas: linhas };
+}
+window.addEventListener('load', rodar);
+</script>
+</body>
+</html>

@@ -18,9 +18,27 @@ final class Auth
         return isset($_SESSION['user']);
     }
 
+    /** Requisição feita em segundo plano pelo JavaScript (fetch JSON ou canal ao vivo). */
+    private static function requisicaoAoVivo(): bool
+    {
+        $accept = strtolower((string) ($_SERVER['HTTP_ACCEPT'] ?? ''));
+
+        return str_contains($accept, 'application/json')
+            || str_contains($accept, 'text/event-stream')
+            || strtolower((string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest';
+    }
+
     public static function requireLogin(): void
     {
         if (!self::check()) {
+            if (self::requisicaoAoVivo()) {
+                // Chamadas em segundo plano (JSON/SSE) não podem receber a página de login:
+                // o aparelho mostraria "Reconectando…" para sempre.
+                http_response_code(401);
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['ok' => false, 'sessao_expirada' => true, 'mensagem' => 'Sua sessão expirou. Entre novamente.'], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
             redirect_route('auth/login');
             exit;
         }

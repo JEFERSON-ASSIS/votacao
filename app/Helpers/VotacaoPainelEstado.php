@@ -148,9 +148,6 @@ final class VotacaoPainelEstado
 
     public static function hashEstado(array $estado): string
     {
-        $copia = $estado;
-        unset($copia['ts']);
-
-        return md5(json_encode($copia, JSON_UNESCAPED_UNICODE));
+        return estado_hash($estado);
     }
 }

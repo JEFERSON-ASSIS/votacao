@@ -6183,3 +6183,37 @@ body.public-page--telao .voto-chip.voto-situacao {
 }
 .parl-voto-confirmacao-texto .voto-chip { font-size: 1.05rem; padding: 4px 12px; margin-left: 6px; }
 .parl-voto-confirmacao .parl-voto-botoes { margin-top: 12px; }
+
+/* Aviso de login expirado (sessao-expirada.js) */
+.sessao-expirada-aviso {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    max-width: calc(100% - 24px);
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: 1px solid #b02a37;
+    background: #fff;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+}
+
+/* Vereador impedido ou retirado da votação (tela Acompanhar sessão) */
+.parl-voto-situacao {
+    border: 1px dashed #868e96;
+    background: #f8f9fa;
+}
+.parl-voto-situacao-texto {
+    margin: 6px 0 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #495057;
+}

@@ -16,6 +16,7 @@ $mostrarAlertaParlGlobal = user_can('menu.sessoes_parlamentar')
     <title><?= e($title ?? config('app_name', 'Plenario')) ?></title>
     <link rel="icon" href="<?= e(favicon_url()) ?>" type="image/svg+xml">
     <link rel="stylesheet" href="<?= e(asset_url('assets/css/app.css')) ?>">
+    <script src="<?= e(asset_url('assets/js/sessao-expirada.js')) ?>" data-login-url="<?= e(route_url('auth/login')) ?>"></script>
 </head>
 <body class="<?= e($bodyClass ?? 'admin-layout') ?>">
     <div class="admin-shell">

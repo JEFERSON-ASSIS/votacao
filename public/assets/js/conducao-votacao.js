@@ -59,8 +59,12 @@
         }
     }
 
+    var emVoo = false;
+
     function buscarEstado() {
-        if (!estadoUrl) return;
+        // Uma consulta por vez: com o servidor lento, elas se acumulavam.
+        if (!estadoUrl || emVoo) return;
+        emVoo = true;
         fetch(estadoUrl + (estadoUrl.indexOf('?') >= 0 ? '&' : '?') + '_=' + Date.now(), {
             credentials: 'same-origin',
             headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
@@ -70,7 +74,10 @@
                 return resposta.json();
             })
             .then(aplicarEstado)
-            .catch(function () {});
+            .catch(function () {})
+            .then(function () {
+                emVoo = false;
+            });
     }
 
     function iniciarPolling() {

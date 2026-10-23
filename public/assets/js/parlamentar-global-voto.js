@@ -20,12 +20,18 @@
     var es = null;
     var sseAtivo = false;
     var pollTimer = null;
-    var pollRapido = 500;
-    var pollLento = 2000;
+    // Sem votação aberta não há pressa: consulta a cada 3 s. Com votação aberta,
+    // 1 s; com o canal ao vivo funcionando, a consulta é só uma reserva (5 s).
+    var pollOcioso = 3000;
+    var pollVotacao = 1000;
+    var pollReserva = 5000;
+    var temVotacao = false;
+    var emVoo = false;
 
     function reiniciarPolling() {
         if (pollTimer) clearInterval(pollTimer);
-        pollTimer = setInterval(buscarResumo, sseAtivo ? pollLento : pollRapido);
+        var intervalo = sseAtivo ? pollReserva : (temVotacao ? pollVotacao : pollOcioso);
+        pollTimer = setInterval(buscarResumo, intervalo);
     }
 
     function atualizarTabela(sessoes) {
@@ -70,7 +76,6 @@
         alerta.hidden = true;
         alerta.classList.remove('is-visible', 'parl-alerta-votacao--pulse');
         fecharStream();
-        dismissRodada = 0;
     }
 
     function fecharStream() {
@@ -179,6 +184,10 @@
 
         atualizarTabela(d.sessoes);
 
+        var tinhaVotacao = temVotacao;
+        temVotacao = !!(d.tem_votacao && rid);
+        if (tinhaVotacao !== temVotacao) reiniciarPolling();
+
         if (precisaAlertaGlobal(d)) {
             if (dismissRodada !== rid) {
                 mostrarAlerta(d);
@@ -191,6 +200,8 @@
     }
 
     function buscarResumo() {
+        if (emVoo || document.hidden) return Promise.resolve();
+        emVoo = true;
         return fetch(url + (url.indexOf('?') >= 0 ? '&' : '?') + '_=' + Date.now(), {
             credentials: 'same-origin',
             headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
@@ -200,7 +211,10 @@
                 return r.json();
             })
             .then(aplicarResumo)
-            .catch(function () { /* silencioso */ });
+            .catch(function () { /* silencioso */ })
+            .then(function () {
+                emVoo = false;
+            });
     }
 
     if (btnFechar) {

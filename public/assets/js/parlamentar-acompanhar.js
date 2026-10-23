@@ -350,6 +350,17 @@
         } else if (mostrarForm && !d.voto_html) {
             slot.innerHTML = '';
             buscarEstado();
+        } else if (d.situacao_votacao_texto) {
+            // Impedido ou retirado da votação: explica em vez de só esconder o voto.
+            var atual = slot.querySelector('.parl-voto-situacao-texto');
+            if (!atual || atual.textContent !== d.situacao_votacao_texto) {
+                slot.innerHTML =
+                    '<article class="panel-card parl-voto-situacao" role="status">' +
+                    '<div class="panel-label">Votação em andamento</div>' +
+                    '<p class="parl-voto-situacao-texto">' +
+                    escapeHtml(d.situacao_votacao_texto) +
+                    '</p></article>';
+            }
         } else {
             slot.innerHTML = '';
         }
@@ -408,9 +419,13 @@
         return estadoUrl + sep + 'html_voto=1&_=' + Date.now();
     }
 
+    var emVoo = false;
+
     function buscarEstado() {
         var url = urlEstado();
-        if (!url) return Promise.resolve();
+        // Uma consulta por vez: com o servidor lento, elas se acumulavam.
+        if (!url || emVoo) return Promise.resolve();
+        emVoo = true;
 
         return fetch(url, {
             credentials: 'same-origin',
@@ -426,6 +441,9 @@
             })
             .catch(function () {
                 if (!sseAtivo) setLiveOnline(false);
+            })
+            .then(function () {
+                emVoo = false;
             });
     }
 

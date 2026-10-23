@@ -315,9 +315,20 @@
         }
     }
 
+    // Conteúdo já exibido em cada tela do carrossel. Redesenhar sem mudança
+    // fazia as fotos piscarem; o valor do cronômetro não conta (ele se atualiza sozinho).
+    var conteudoExibido = {};
+
+    function assinaturaConteudo(html) {
+        return String(html).replace(/(data-sessao-timer-valor>)[^<]*/g, '$1');
+    }
+
     function atualizarConteudoPanes(slides) {
         if (!track) return;
         slides.forEach(function (s) {
+            var assinatura = assinaturaConteudo(s.html);
+            if (conteudoExibido[s.key] === assinatura) return;
+            conteudoExibido[s.key] = assinatura;
             var panes = track.querySelectorAll(
                 '.public-carrossel-pane[data-slide-key="' + s.key + '"]'
             );
@@ -335,6 +346,10 @@
         slidesKeys = sig;
 
         if (rebuild) {
+            conteudoExibido = {};
+            slides.forEach(function (s) {
+                conteudoExibido[s.key] = assinaturaConteudo(s.html);
+            });
             track.innerHTML = htmlPanes(slides);
             syncAnimacaoContinua(slides, true, fixoVotacao);
         } else {
