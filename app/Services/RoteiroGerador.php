@@ -27,32 +27,7 @@ final class RoteiroGerador
         }
 
         foreach ($itens as $item) {
-            $itemId = (int) $item['id'];
-            $vars = self::variaveisMateria($item);
-            $modelo = ConducaoModelo::findForTipoMateria((string) ($item['tipo_materia'] ?? ''));
-            if (!$modelo) {
-                continue;
-            }
-            $passos = ConducaoModelo::passos((int) $modelo['id']);
-            foreach ($passos as $passo) {
-                $texto = ConducaoTexto::acentuarTextoPresidente(ConducaoTexto::semInstrucaoVotacaoFisica(
-                    self::aplicarVariaveis((string) $passo['texto_template'], $vars)
-                ));
-                $tipoPasso = (string) ($passo['tipo_passo'] ?? 'FALA');
-                SessaoRoteiro::insert([
-                    'sessao_id' => $sessaoId,
-                    'ordem' => $ordem++,
-                    'tipo_item' => 'CONDUCAO',
-                    'pauta_item_id' => $itemId,
-                    'modelo_id' => (int) $modelo['id'],
-                    'titulo' => ConducaoTexto::acentuarTextoPresidente($vars['titulo']),
-                    'texto_fala' => $tipoPasso === 'FALA' ? $texto : '',
-                    'texto_instrucao' => $tipoPasso === 'INSTRUCAO' ? $texto : null,
-                    'tipo_passo' => $tipoPasso,
-                    'gera_votacao' => (int) ($passo['gera_votacao'] ?? 0),
-                ]);
-                $inseridos++;
-            }
+            $inseridos += self::inserirPassosMateria($sessaoId, $item, $ordem);
         }
 
         if ($incluirTribuna && isset($sessaoModelos['tribuna'])) {
@@ -61,6 +36,44 @@ final class RoteiroGerador
 
         if (isset($sessaoModelos['encerramento'])) {
             $inseridos += self::inserirPassosModelo($sessaoId, $sessaoModelos['encerramento'], null, $ordem, 'ENCERRAMENTO', 'encerramento');
+        }
+
+        return $inseridos;
+    }
+
+    /**
+     * Insere os passos do modelo de roteiro de uma matéria a partir da ordem
+     * informada (avançando $ordem). Devolve quantos passos foram inseridos.
+     *
+     * @param array<string, mixed> $item linha de pauta_itens
+     */
+    public static function inserirPassosMateria(int $sessaoId, array $item, int &$ordem): int
+    {
+        $itemId = (int) $item['id'];
+        $vars = self::variaveisMateria($item);
+        $modelo = ConducaoModelo::findForTipoMateria((string) ($item['tipo_materia'] ?? ''));
+        if (!$modelo) {
+            return 0;
+        }
+        $inseridos = 0;
+        foreach (ConducaoModelo::passos((int) $modelo['id']) as $passo) {
+            $texto = ConducaoTexto::acentuarTextoPresidente(ConducaoTexto::semInstrucaoVotacaoFisica(
+                self::aplicarVariaveis((string) $passo['texto_template'], $vars)
+            ));
+            $tipoPasso = (string) ($passo['tipo_passo'] ?? 'FALA');
+            SessaoRoteiro::insert([
+                'sessao_id' => $sessaoId,
+                'ordem' => $ordem++,
+                'tipo_item' => 'CONDUCAO',
+                'pauta_item_id' => $itemId,
+                'modelo_id' => (int) $modelo['id'],
+                'titulo' => ConducaoTexto::acentuarTextoPresidente($vars['titulo']),
+                'texto_fala' => $tipoPasso === 'FALA' ? $texto : '',
+                'texto_instrucao' => $tipoPasso === 'INSTRUCAO' ? $texto : null,
+                'tipo_passo' => $tipoPasso,
+                'gera_votacao' => (int) ($passo['gera_votacao'] ?? 0),
+            ]);
+            $inseridos++;
         }
 
         return $inseridos;
@@ -112,6 +125,11 @@ final class RoteiroGerador
             $numero = trim((string) ($numeracoes[0]['numero'] ?? ''));
             $ano = trim((string) ($numeracoes[0]['ano'] ?? $ano));
         }
+        // Número e ano gravados na matéria (ex.: importada do SAPL) têm prioridade sobre o protocolo.
+        if ($numero === '' && !empty($item['numero'])) {
+            $numero = (string) (int) $item['numero'];
+            $ano = !empty($item['ano']) ? (string) (int) $item['ano'] : $ano;
+        }
         if ($numero === '' && !empty($item['numero_protocolo'])) {
             $numero = trim((string) $item['numero_protocolo']);
         }
@@ -141,6 +159,8 @@ final class RoteiroGerador
             'comissoes' => implode('; ', $comissoes),
             'resultado' => 'APROVADO / REPROVADO',
             'resultado_urgencia' => 'APROVADO / REPROVADO',
+            // Os modelos usam a chave com acento.
+            'resultado_urgência' => 'APROVADO / REPROVADO',
         ];
     }
 

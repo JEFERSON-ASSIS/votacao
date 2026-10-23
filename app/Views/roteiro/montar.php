@@ -46,6 +46,9 @@ function roteiro_preview_texto(?array $passo): string
 $sessaoBloqueada = !empty($sessaoBloqueada) || (!empty($sessao) && sessao_esta_bloqueada($sessao));
 ?>
 <?php ob_start(); ?>
+<?php if (($_GET['sapl_ok'] ?? '') === 'importada'): ?>
+    <div class="sapl-ok sapl-ok--topo" role="status">Sessão importada do SAPL: pauta e roteiro criados. Confira os passos abaixo antes da sessão.</div>
+<?php endif; ?>
 <section class="roteiro-montar-page">
     <header class="roteiro-montar-top">
         <div>

@@ -2,14 +2,14 @@
 <?php
 /** @var array{itens: list<array<string, mixed>>, total: int, paginas: int} $lista */
 $itens = $lista['itens'] ?? [];
+$importadas = $importadas ?? [];
 ?>
 <?php ob_start(); ?>
 <section class="panel-grid">
     <article class="panel-card accent span-full sapl-topo">
         <div>
-            <span class="sapl-prototipo">Protótipo — nada é gravado</span>
             <h1 class="sapl-titulo">Sessões cadastradas no SAPL</h1>
-            <p class="panel-meta">Escolha uma sessão para ver a prévia do que seria importado: dados da sessão, matérias com autores e o roteiro do presidente.</p>
+            <p class="panel-meta">Escolha a sessão e confira a prévia: dados da sessão, matérias com autores e o roteiro do presidente. Depois é só importar.</p>
         </div>
         <a class="btn btn-soft" href="<?= e($saplUrl . '/sessao/pesquisar-sessao') ?>" target="_blank" rel="noopener">Abrir o SAPL</a>
     </article>
@@ -42,7 +42,14 @@ $itens = $lista['itens'] ?? [];
                                 <td><strong><?= e((string) ($s['__str__'] ?? '')) ?></strong></td>
                                 <td><?= e($dataFmt) ?><?= !empty($s['hora_inicio']) ? ' às ' . e((string) $s['hora_inicio']) : '' ?></td>
                                 <td><span class="status-chip <?= e($chip) ?>"><?= e($situacao) ?></span></td>
-                                <td><a class="btn btn-primary btn--sm" href="<?= e(route_url('sapl/previa/' . (int) $s['id'])) ?>">Ver prévia</a></td>
+                                <td>
+                                    <?php if (isset($importadas[(int) $s['id']])): ?>
+                                        <span class="status-chip vote">Já importada</span>
+                                        <a class="btn btn-soft btn--sm" href="<?= e(route_url('roteiro/montar/' . (int) $importadas[(int) $s['id']])) ?>">Abrir</a>
+                                    <?php else: ?>
+                                        <a class="btn btn-primary btn--sm" href="<?= e(route_url('sapl/previa/' . (int) $s['id'])) ?>">Ver prévia e importar</a>
+                                    <?php endif; ?>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>

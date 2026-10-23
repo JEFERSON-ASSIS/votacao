@@ -12,7 +12,7 @@ $dataFmt = $data !== '' ? date('d/m/Y', strtotime($data) ?: time()) : '—';
 <section class="panel-grid">
     <article class="panel-card accent span-full sapl-topo">
         <div>
-            <span class="sapl-prototipo">Protótipo — nada é gravado</span>
+            <span class="sapl-prototipo">Confira antes de importar</span>
             <h1 class="sapl-titulo"><?= e((string) ($sessao['__str__'] ?? 'Sessão do SAPL')) ?></h1>
             <p class="panel-meta"><?= e($dataFmt) ?><?= !empty($sessao['hora_inicio']) ? ' às ' . e((string) $sessao['hora_inicio']) : '' ?></p>
         </div>
@@ -22,11 +22,39 @@ $dataFmt = $data !== '' ? date('d/m/Y', strtotime($data) ?: time()) : '—';
         </div>
     </article>
 
+    <?php if (!empty($_GET['sapl_erro'])): ?>
+        <article class="panel-card span-full">
+            <div class="auth-error" role="alert"><?= e(mb_substr((string) $_GET['sapl_erro'], 0, 200)) ?></div>
+        </article>
+    <?php endif; ?>
+
     <?php if ($erro !== ''): ?>
         <article class="panel-card span-full">
             <div class="auth-error" role="alert">Não foi possível consultar o SAPL agora. <?= e($erro) ?></div>
         </article>
     <?php else: ?>
+        <article class="panel-card span-full sapl-acao">
+            <?php if (!empty($sessaoImportadaId)): ?>
+                <div>
+                    <strong>Esta sessão já foi importada.</strong>
+                    <p class="panel-meta">Para trazer mudanças feitas no SAPL depois da importação, use "Atualizar do SAPL" na lista de sessões.</p>
+                </div>
+                <a class="btn btn-primary" href="<?= e(route_url('roteiro/montar/' . (int) $sessaoImportadaId)) ?>">Abrir a sessão importada</a>
+            <?php elseif (user_can('sapl.importar')): ?>
+                <div>
+                    <strong>Tudo certo?</strong>
+                    <p class="panel-meta">A importação cria a sessão, a pauta com <?= count($materias) ?> matéria(s) e o roteiro do presidente. Você pode ajustar o roteiro depois.</p>
+                </div>
+                <form method="post" action="<?= e(route_url('sapl/importar/' . (int) $saplId)) ?>"
+                      data-confirm-title="Importar sessão do SAPL"
+                      data-confirm="Criar a sessão, a pauta e o roteiro a partir do SAPL?"
+                      data-confirm-ok="Importar"
+                      data-confirm-variant="primary">
+                    <?= csrf_field() ?>
+                    <button class="btn btn-primary" type="submit">Importar esta sessão</button>
+                </form>
+            <?php endif; ?>
+        </article>
         <article class="panel-card span-full">
             <h2 class="sapl-subtitulo">1. Dados da sessão</h2>
             <dl class="sapl-dados">

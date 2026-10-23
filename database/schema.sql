@@ -394,7 +394,12 @@ CREATE TABLE IF NOT EXISTS `sessoes` (
   `ata_conteudo` text COLLATE utf8mb4_unicode_ci,
   `ata_conteudo_arquivo` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
+  `data_sessao` date DEFAULT NULL,
+  `hora_inicio` varchar(5) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `sapl_sessao_id` int DEFAULT NULL,
+  `sapl_atualizado_em` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_sessao_sapl` (`sapl_sessao_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `user_permissoes` (

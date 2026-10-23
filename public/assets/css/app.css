@@ -6537,3 +6537,7 @@ body.public-page--telao .public-hero-mark--brasao { background: #fff; }
 .sapl-roteiro-passo { padding: 4px 10px 4px 22px; line-height: 1.5; }
 .sapl-roteiro-passo .status-chip { margin-left: 6px; }
 .sapl-roteiro-passo--instrucao { font-style: italic; color: var(--muted-2); }
+.sapl-acao { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; border-left: 4px solid var(--accent); }
+.sapl-acao p { margin: 4px 0 0; }
+.sapl-retiradas { margin: 8px 0 0; color: #92400e; }
+.sapl-ok--topo { margin: 0 0 12px; }

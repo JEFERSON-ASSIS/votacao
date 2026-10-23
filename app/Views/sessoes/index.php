@@ -8,6 +8,25 @@ $podeResetar = user_can('sessao.resetar');
 $podeConduzir = user_can('presidencia.conduzir');
 ?>
 <section class="panel-grid">
+    <?php if (!empty($_GET['sapl_erro'])): ?>
+        <article class="panel-card span-full">
+            <div class="auth-error" role="alert"><?= e(mb_substr((string) $_GET['sapl_erro'], 0, 200)) ?></div>
+        </article>
+    <?php endif; ?>
+    <?php $relatorioSapl = $_SESSION['sapl_relatorio'] ?? null; unset($_SESSION['sapl_relatorio']); ?>
+    <?php if (($_GET['sapl_ok'] ?? '') === 'atualizada' && is_array($relatorioSapl)): ?>
+        <article class="panel-card span-full">
+            <div class="sapl-ok">
+                Pauta atualizada do SAPL: <?= (int) $relatorioSapl['novas'] ?> matéria(s) nova(s) incluída(s) no roteiro, <?= (int) $relatorioSapl['atualizadas'] ?> atualizada(s).
+            </div>
+            <?php if (!empty($relatorioSapl['retiradas'])): ?>
+                <p class="panel-meta sapl-retiradas">
+                    Saíram da pauta no SAPL e continuam aqui (remova no roteiro se for o caso):
+                    <strong><?= e(implode('; ', $relatorioSapl['retiradas'])) ?></strong>
+                </p>
+            <?php endif; ?>
+        </article>
+    <?php endif; ?>
     <?php if (($_GET['conducao_encerrada'] ?? '') === '1'): ?>
         <article class="panel-card" style="grid-column:1/-1;">
             <div class="panel-meta">Sessão encerrada. A condução ficou disponível apenas para consulta administrativa.</div>
@@ -48,7 +67,7 @@ $podeConduzir = user_can('presidencia.conduzir');
             </div>
             <div class="action-row">
                 <?php if (user_can('sapl.sessoes')): ?>
-                    <a class="btn btn-soft" href="<?= e(route_url('sapl/sessoes')) ?>">Importar do SAPL (protótipo)</a>
+                    <a class="btn btn-soft" href="<?= e(route_url('sapl/sessoes')) ?>">Importar do SAPL</a>
                 <?php endif; ?>
                 <?php if ($podeCriarEditar): ?>
                     <a class="btn btn-primary" href="<?= e(base_url('?r=sessao/form')) ?>">Nova sessão</a>
@@ -77,10 +96,23 @@ $podeConduzir = user_can('presidencia.conduzir');
                         ?>
                         <tr>
                             <td><strong><?= e($s['titulo']) ?></strong></td>
-                            <td>#<?= e($s['numero']) ?>/<?= e($s['ano']) ?></td>
+                            <td>
+                                #<?= e($s['numero']) ?>/<?= e($s['ano']) ?>
+                                <?php if (!empty($s['sapl_sessao_id'])): ?><span class="status-chip open" title="Importada do SAPL">SAPL</span><?php endif; ?>
+                            </td>
                             <td><span class="status-chip <?= e(sessao_status_chip_class((string) $s['status'])) ?>"><?= e(sessao_status_label((string) $s['status'])) ?></span></td>
                             <td>
                                 <div class="action-row">
+                                    <?php if (!empty($s['sapl_sessao_id']) && user_can('sapl.atualizar') && in_array($statusLinha, ['RASCUNHO', 'CRIADO'], true)): ?>
+                                        <form method="post" action="<?= e(route_url('sapl/atualizar/' . (int) $s['id'])) ?>"
+                                              data-confirm-title="Atualizar do SAPL"
+                                              data-confirm="Buscar no SAPL as mudanças desta pauta? Matérias novas entram no roteiro; seus ajustes no roteiro são mantidos."
+                                              data-confirm-ok="Atualizar"
+                                              data-confirm-variant="primary">
+                                            <?= csrf_field() ?>
+                                            <button class="btn btn-soft btn--sm" type="submit">Atualizar do SAPL</button>
+                                        </form>
+                                    <?php endif; ?>
                                     <?php if ($sessaoPodeIniciar): ?>
                                         <a class="btn btn-primary btn--sm" href="<?= e(base_url('?r=presidencia/conduzir/' . (int) $s['id'] . '&abrir_presenca=1')) ?>">Iniciar sessão</a>
                                     <?php elseif ($sessaoPodeConduzir && in_array($statusLinha, ['ABERTA', 'EM_VOTACAO'], true)): ?>

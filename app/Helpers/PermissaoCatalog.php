@@ -89,10 +89,12 @@ final class PermissaoCatalog
                 ],
             ],
             'sapl' => [
-                'label' => 'Integração SAPL (protótipo)',
+                'label' => 'Integração SAPL',
                 'items' => [
                     'sapl.sessoes' => 'Ver sessões do SAPL',
                     'sapl.previa' => 'Prévia da importação de sessão do SAPL',
+                    'sapl.importar' => 'Importar sessão do SAPL',
+                    'sapl.atualizar' => 'Atualizar sessão importada do SAPL',
                 ],
             ],
             'roteiro' => [

@@ -31,7 +31,7 @@ final class ConducaoModelo
 
     public static function findForTipoMateria(string $tipoMateria): ?array
     {
-        $tipoMateria = trim($tipoMateria);
+        $tipoMateria = self::tipoParaModelo($tipoMateria);
         $pdo = DB::conn();
         $stmt = $pdo->prepare(
             'SELECT * FROM conducao_modelos
@@ -51,6 +51,32 @@ final class ConducaoModelo
         $stmt->execute(['slug' => 'materia_generica']);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
+    }
+
+    /**
+     * Traduz o tipo da matéria (como vem do SAPL ou da pauta, com acento e
+     * variações) para o tipo usado nos modelos de roteiro.
+     */
+    public static function tipoParaModelo(string $tipo): string
+    {
+        $t = strtr(trim($tipo), ['á' => 'a', 'à' => 'a', 'â' => 'a', 'ã' => 'a', 'é' => 'e', 'ê' => 'e', 'í' => 'i', 'ó' => 'o', 'ô' => 'o', 'õ' => 'o', 'ú' => 'u', 'ç' => 'c',
+            'Á' => 'A', 'Â' => 'A', 'Ã' => 'A', 'É' => 'E', 'Ê' => 'E', 'Í' => 'I', 'Ó' => 'O', 'Ô' => 'O', 'Õ' => 'O', 'Ú' => 'U', 'Ç' => 'C']);
+        $regras = [
+            'Projeto de Lei Complementar' => 'Projeto de Lei Complementar',
+            'Projeto de Lei' => 'Projeto de Lei Ordinaria',
+            'Projeto de Resolucao' => 'Projeto de Resolucao',
+            'Indicacao' => 'Indicacao',
+            'Requerimento' => 'Requerimento',
+            'Mocao' => 'Mocao',
+            'Emenda' => 'Emenda',
+        ];
+        foreach ($regras as $prefixo => $modelo) {
+            if (stripos($t, $prefixo) === 0) {
+                return $modelo;
+            }
+        }
+
+        return $t;
     }
 
     public static function passos(int $modeloId): array

@@ -66,23 +66,7 @@ final class SaplImportacaoPrevia
     /** Traduz o tipo do SAPL para o tipo usado nos modelos de roteiro. */
     public static function tipoModelo(string $tipoSapl): string
     {
-        $t = self::semAcento($tipoSapl);
-        $regras = [
-            'Projeto de Lei Complementar' => 'Projeto de Lei Complementar',
-            'Projeto de Lei' => 'Projeto de Lei Ordinaria',
-            'Projeto de Resolucao' => 'Projeto de Resolucao',
-            'Indicacao' => 'Indicacao',
-            'Requerimento' => 'Requerimento',
-            'Mocao' => 'Mocao',
-            'Emenda' => 'Emenda',
-        ];
-        foreach ($regras as $prefixo => $tipo) {
-            if (stripos($t, $prefixo) === 0) {
-                return $tipo;
-            }
-        }
-
-        return $t;
+        return ConducaoModelo::tipoParaModelo($tipoSapl);
     }
 
     /**
@@ -145,13 +129,5 @@ final class SaplImportacaoPrevia
                 'votacao' => !empty($p['gera_votacao']),
             ];
         }
-    }
-
-    private static function semAcento(string $texto): string
-    {
-        $mapa = ['á' => 'a', 'à' => 'a', 'â' => 'a', 'ã' => 'a', 'é' => 'e', 'ê' => 'e', 'í' => 'i', 'ó' => 'o', 'ô' => 'o', 'õ' => 'o', 'ú' => 'u', 'ç' => 'c',
-            'Á' => 'A', 'À' => 'A', 'Â' => 'A', 'Ã' => 'A', 'É' => 'E', 'Ê' => 'E', 'Í' => 'I', 'Ó' => 'O', 'Ô' => 'O', 'Õ' => 'O', 'Ú' => 'U', 'Ç' => 'C'];
-
-        return strtr(trim($texto), $mapa);
     }
 }
