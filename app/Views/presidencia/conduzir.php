@@ -517,7 +517,7 @@ $parlamentaresTransferencia = array_values(array_filter(
                                 </div>
                             <?php elseif ($rodada && ($rodada['status'] ?? '') === 'ENCERRADA'): ?>
                                 <p class="conducao-votacao-msg">
-                                    Resultado: <strong class="conducao-resultado"><?= e(votacao_rotulo_resultado((string) ($rodada['resultado'] ?? ''))) ?></strong>
+                                    Resultado: <strong class="conducao-resultado conducao-resultado--<?= e(strtolower((string) ($rodada['resultado'] ?? ''))) ?>"><?= e(votacao_rotulo_resultado((string) ($rodada['resultado'] ?? ''))) ?></strong>
                                 </p>
                                 <a class="btn btn-soft" href="<?= e(base_url('?r=votacao/apuracaoRodada/' . (int) $rodada['id'])) ?>">Ver quem votou</a>
                             <?php else: ?>

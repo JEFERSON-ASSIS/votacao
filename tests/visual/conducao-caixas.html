@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Caixas da condução</title>
+<!--
+  Mostra as caixas da tela de condução (votação nos três estados e "Exibir no
+  telão") com o CSS real, para revisar o visual. Mede também o contraste dos
+  campos no painel escuro.
+  Sirva: C:/xampp/php/php.exe -S 127.0.0.1:8099 -t tests/visual
+  e acesse http://127.0.0.1:8099/conducao-caixas.html
+-->
+<script>
+  var base = new URLSearchParams(location.search).get('base')
+    || 'http://localhost/producao/antigos/votacao/public';
+  document.write('<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&display=swap">');
+  document.write('<link rel="stylesheet" href="' + base + '/assets/css/app.css?t=' + Date.now() + '">');
+</script>
+<style>.grade{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px;max-width:1200px}</style>
+</head>
+<body class="admin-layout admin-layout--conducao">
+<div class="grade">
+  <article class="conducao-stage" style="padding:12px 0">
+    <!-- Antes de abrir -->
+    <div class="conducao-votacao-box conducao-votacao-box--stage">
+      <div class="conducao-votacao-head">
+        <span class="conducao-votacao-icon" aria-hidden="true">⚖</span>
+        <div>
+          <div class="conducao-votacao-title">Votação deste passo</div>
+          <div class="conducao-votacao-sub">pedido de urgência</div>
+        </div>
+      </div>
+      <form class="conducao-votacao-actions">
+        <div class="conducao-tempo-field">
+          <label class="panel-label" for="t1">Tempo da votação</label>
+          <select class="field" id="t1"><option>3 min</option><option selected>5 min</option></select>
+        </div>
+        <button class="btn btn-primary btn-has-icon" type="button"><span class="icon-glyph" aria-hidden="true">&#9654;</span><span>Abrir votação</span></button>
+      </form>
+    </div>
+    <!-- Aberta -->
+    <div class="conducao-votacao-box conducao-votacao-box--stage">
+      <div class="conducao-votacao-head">
+        <span class="conducao-votacao-icon" aria-hidden="true">⚖</span>
+        <div>
+          <div class="conducao-votacao-title">Votação deste passo</div>
+          <div class="conducao-votacao-sub">Ata da sessão anterior</div>
+        </div>
+      </div>
+      <p class="conducao-votacao-msg">Votação <strong>aberta</strong> — acompanhe os votos dos vereadores em tempo real no painel e conclua quando terminar.</p>
+      <div class="sessao-timer sessao-timer--conducao"><span class="sessao-timer-label">Tempo da votação</span><strong class="sessao-timer-valor">4:56</strong></div>
+      <div class="conducao-votos-resumo">
+        <div class="conducao-placar"><span class="conducao-placar-item conducao-placar-item--sim">Sim <strong>2</strong></span><span class="conducao-placar-item conducao-placar-item--nao">Não <strong>1</strong></span><span class="conducao-placar-item conducao-placar-item--abst">Abstenção <strong>0</strong></span></div>
+        <ul class="conducao-votos-lista"><li class="conducao-voto-item"><span class="conducao-voto-nome">Ana Lima</span><span class="voto-chip voto-sim">Sim</span></li><li class="conducao-voto-item conducao-voto-item--aguardando"><span class="conducao-voto-nome">Davi Souza</span><span class="conducao-voto-aguardando">Aguardando</span></li></ul>
+      </div>
+      <div class="conducao-votacao-actions">
+        <a class="btn btn-primary btn-has-icon" href="#"><span class="icon-glyph" aria-hidden="true">&#9632;</span><span>Painel de votação</span></a>
+        <div class="conducao-presidente-alert conducao-presidente-alert--inline conducao-votos-pendentes"><strong>Aguardando 1 voto</strong></div>
+        <button class="btn btn-danger" type="button" disabled>Concluir votação</button>
+      </div>
+    </div>
+    <!-- Encerrada -->
+    <div class="conducao-votacao-box conducao-votacao-box--stage">
+      <div class="conducao-votacao-head">
+        <span class="conducao-votacao-icon" aria-hidden="true">⚖</span>
+        <div>
+          <div class="conducao-votacao-title">Votação deste passo</div>
+          <div class="conducao-votacao-sub">Ata da sessão anterior</div>
+        </div>
+      </div>
+      <div class="sapl-ok conducao-votacao-msg">Votação encerrada. Confira o resultado abaixo ou na apuração.</div>
+      <p class="conducao-votacao-msg">Resultado: <strong class="conducao-resultado conducao-resultado--aprovado">Aprovado</strong></p>
+      <a class="btn btn-soft" href="#">Ver quem votou</a>
+    </div>
+  </article>
+
+  <div>
+    <aside class="conducao-destaque-box conducao-destaque-box--fora">
+      <div class="conducao-destaque-head">
+        <span class="conducao-destaque-icon" aria-hidden="true">▣</span>
+        <div>
+          <div class="conducao-destaque-title">Exibir no telão</div>
+          <div class="conducao-destaque-sub">Selecione o parlamentar que pediu a indicação (ou a palavra)</div>
+        </div>
+      </div>
+      <form class="conducao-destaque-form">
+        <label class="panel-label" for="p1">Parlamentar</label>
+        <select class="field" id="p1"><option>Selecione</option></select>
+        <div class="conducao-tempo-field">
+          <label class="panel-label" for="t2">Tempo de fala</label>
+          <select class="field" id="t2"><option>5 min</option></select>
+        </div>
+        <div class="action-row conducao-destaque-actions">
+          <button class="btn btn-primary" type="button">Mostrar no telão</button>
+          <button class="btn btn-soft" type="button">Limpar</button>
+        </div>
+      </form>
+    </aside>
+  </div>
+</div>
+</body>
+</html>

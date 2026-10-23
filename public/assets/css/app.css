@@ -6367,3 +6367,109 @@ body.public-page--telao .public-hero-mark--brasao { background: #fff; }
     font-size: 12px;
     font-weight: 700;
 }
+
+/* =====================================================================
+   Caixas da condução (votação do passo e "Exibir no telão"):
+   cabeçalho com selo, campos e botões na mesma altura, seletor escuro
+   no painel escuro.
+   ===================================================================== */
+.conducao-votacao-box--stage { padding: 14px 16px; }
+.conducao-votacao-head,
+.conducao-destaque-head {
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+}
+.conducao-votacao-head { border-bottom: 1px solid rgba(255, 255, 255, 0.12); }
+.conducao-destaque-box--fora .conducao-destaque-head { border-bottom: 1px solid var(--border); }
+.conducao-votacao-icon,
+.conducao-destaque-icon {
+    display: inline-grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    font-size: 1.1rem;
+    opacity: 1;
+}
+.conducao-votacao-icon {
+    color: #9fdcff;
+    background: rgba(95, 214, 255, 0.12);
+    border: 1px solid rgba(95, 214, 255, 0.35);
+}
+.conducao-destaque-box--fora .conducao-destaque-icon {
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: 1px solid rgba(0, 74, 124, 0.22);
+}
+.conducao-votacao-title,
+.conducao-destaque-title { font-size: 15px; font-weight: 700; }
+.conducao-votacao-sub { font-size: 13px; color: #c8d6ea; margin-top: 2px; }
+.conducao-destaque-sub { font-size: 13px; margin-top: 2px; }
+
+/* Campos e botões: mesma altura, alinhados pela base */
+.conducao-votacao-box--stage .field,
+.conducao-destaque-form .field { height: 40px; padding: 0 12px; font-size: 14px; }
+.conducao-votacao-box--stage .btn,
+.conducao-destaque-form .btn { min-height: 40px; padding: 0 16px; font-size: 14px; }
+.conducao-votacao-actions { align-items: flex-end; gap: 12px; }
+.conducao-votacao-actions .conducao-tempo-field { margin-top: 0; flex: 0 0 180px; }
+.conducao-tempo-field .panel-label { display: block; margin-bottom: 6px; }
+
+/* Seletor escuro no painel escuro */
+.conducao-votacao-box--stage select.field {
+    -webkit-appearance: none;
+    appearance: none;
+    padding-right: 36px;
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.08);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23ffffff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    border: 1px solid rgba(255, 255, 255, 0.32);
+    cursor: pointer;
+}
+.conducao-votacao-box--stage select.field:hover { border-color: rgba(255, 255, 255, 0.55); }
+.conducao-votacao-box--stage select.field option { color: #0f172a; background: #fff; }
+.conducao-votacao-box--stage select.field:focus-visible { outline: 2px solid #9fdcff; outline-offset: 2px; }
+
+/* Votação aberta: aviso de pendentes acima, botões lado a lado */
+.conducao-votacao-actions .conducao-votos-pendentes { order: -1; flex-basis: 100%; margin: 0; }
+.conducao-votacao-actions form { margin: 0; }
+
+/* "Exibir no telão": tempo de fala e botões na mesma linha */
+.conducao-destaque-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 6px 12px;
+}
+.conducao-destaque-form > .panel-label,
+.conducao-destaque-form > select.field { flex-basis: 100%; }
+.conducao-destaque-form > select.field { margin-top: 0; }
+.conducao-destaque-form .conducao-tempo-field { flex: 0 0 180px; margin-top: 8px; max-width: none; }
+.conducao-destaque-form .conducao-destaque-actions { margin-top: 0; }
+
+/* Resultado da votação encerrada, com a cor do resultado */
+.conducao-votacao-box--stage .conducao-resultado {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 3px 12px;
+    border-radius: 999px;
+    font-size: 14px;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+.conducao-votacao-box--stage .conducao-resultado--aprovado {
+    background: rgba(34, 197, 94, 0.18);
+    border-color: rgba(134, 239, 172, 0.7);
+    color: #bbf7d0;
+}
+.conducao-votacao-box--stage .conducao-resultado--rejeitado {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(252, 165, 165, 0.7);
+    color: #fecaca;
+}
