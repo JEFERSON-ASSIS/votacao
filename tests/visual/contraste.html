@@ -51,6 +51,36 @@
   </article>
 </div>
 
+<div style="padding:12px">
+  <!-- Painel escuro da condução (o fundo real é um degradê; data-fundo informa a cor média) -->
+  <div class="conducao-stage" data-fundo="#0e1a2e" style="padding:12px">
+    <p class="conducao-stage-materia" data-teste="condução: nome da matéria">Projeto de Lei 001/2026</p>
+    <p class="conducao-fala conducao-fala--stage conducao-fala--muted" data-teste="condução: sem texto cadastrado">Sem texto cadastrado para este passo.</p>
+    <p class="conducao-instrucao conducao-instrucao--stage" data-teste="condução: instrução do passo">Peça a leitura da ata.</p>
+    <div class="conducao-votacao-box conducao-votacao-box--stage">
+      <div class="conducao-votacao-title" data-teste="condução: título da votação">Votação deste passo</div>
+      <div class="conducao-tempo-field"><label class="panel-label" data-teste="condução: rótulo Tempo da votação">Tempo da votação</label></div>
+      <div class="sessao-timer sessao-timer--conducao" data-teste-caixa="condução: cronômetro">
+        <span class="sessao-timer-label" data-teste="condução: rótulo do cronômetro">Tempo da votação</span>
+        <strong class="sessao-timer-valor" data-teste="condução: cronômetro">4:56</strong>
+      </div>
+      <div class="sessao-timer sessao-timer--conducao sessao-timer--alerta">
+        <span class="sessao-timer-label">Tempo</span>
+        <strong class="sessao-timer-valor" data-teste="condução: cronômetro nos últimos 30 s">0:25</strong>
+      </div>
+      <div class="sessao-timer sessao-timer--conducao sessao-timer--esgotado">
+        <span class="sessao-timer-label">Tempo</span>
+        <strong class="sessao-timer-valor" data-teste="condução: cronômetro esgotado">Esgotado</strong>
+      </div>
+      <div class="conducao-votacao-actions">
+        <a class="btn btn-primary btn-has-icon" href="#" data-teste="condução: botão Painel de votação">Painel de votação</a>
+        <button class="btn btn-danger" data-teste="condução: botão Concluir votação" data-borda="1">Concluir votação</button>
+        <a class="btn btn-soft" href="#" data-teste="condução: botão Ver quem votou" data-borda="1">Ver quem votou</a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div style="padding:12px" id="telao-area">
   <div class="public-vereador-card--telao">
     <span class="voto-chip voto-nao" id="telao-chip-nao">Não</span>
@@ -71,10 +101,16 @@ function sobre(cima, baixo) {
 }
 function fundo(el) {
   var camadas = [];
+  var cor = [255, 255, 255, 1];
   for (var n = el; n && n.nodeType === 1; n = n.parentElement) {
     camadas.push(rgba(getComputedStyle(n).backgroundColor));
+    if (n.dataset && n.dataset.fundo) {
+      var h = n.dataset.fundo.replace('#', '');
+      cor = [parseInt(h.substr(0, 2), 16), parseInt(h.substr(2, 2), 16), parseInt(h.substr(4, 2), 16), 1];
+      camadas.pop();
+      break;
+    }
   }
-  var cor = [255, 255, 255, 1];
   for (var i = camadas.length - 1; i >= 0; i--) cor = sobre(camadas[i], cor);
   return cor;
 }

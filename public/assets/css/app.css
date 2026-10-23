@@ -6270,3 +6270,48 @@ button, input, select, textarea { font-family: inherit; }
 .public-hero-mark--brasao { background: #fff; padding: 3px; overflow: hidden; }
 body.public-page--telao .public-hero-mark--brasao { background: #fff; }
 .public-hero-mark--brasao img { display: block; width: 100%; height: 100%; object-fit: contain; }
+
+/* Painel escuro da condução: cronômetro, rótulos e botões feitos para fundo escuro */
+.conducao-votacao-box--stage .panel-label { color: rgba(255, 255, 255, 0.78); }
+.conducao-votacao-box--stage .sessao-timer {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.22);
+}
+.conducao-votacao-box--stage .sessao-timer-label { color: rgba(255, 255, 255, 0.78); }
+.conducao-votacao-box--stage .sessao-timer-valor { color: #fff; font-size: 1.6rem; font-weight: 700; }
+.conducao-votacao-box--stage .sessao-timer--alerta {
+    background: rgba(245, 158, 11, 0.18);
+    border-color: rgba(251, 191, 36, 0.6);
+}
+.conducao-votacao-box--stage .sessao-timer--alerta .sessao-timer-valor { color: #fcd34d; }
+.conducao-votacao-box--stage .sessao-timer--esgotado {
+    background: rgba(220, 38, 38, 0.22);
+    border-color: rgba(248, 113, 113, 0.65);
+}
+.conducao-votacao-box--stage .sessao-timer--esgotado .sessao-timer-valor { color: #fca5a5; }
+
+.conducao-votacao-box--stage .btn-primary {
+    background: #1f6fae;
+    border-color: rgba(255, 255, 255, 0.25);
+    color: #fff;
+}
+.conducao-votacao-box--stage .btn-primary:hover:not(:disabled) { background: #185d93; }
+.conducao-votacao-box--stage .btn-danger {
+    background: #c9343d;
+    border-color: rgba(255, 255, 255, 0.55);
+    color: #fff;
+}
+.conducao-votacao-box--stage .btn-danger:hover:not(:disabled) { background: #b02a37; }
+.conducao-votacao-box--stage .btn-soft {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.45);
+    color: #fff;
+}
+.conducao-votacao-box--stage .btn-soft:hover { background: rgba(255, 255, 255, 0.08); }
+.conducao-votacao-box--stage .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.conducao-stage .conducao-stage-materia,
+.conducao-stage .conducao-fala--muted,
+.conducao-stage .conducao-instrucao--stage { color: #b8c4d6; }
