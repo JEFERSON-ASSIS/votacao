@@ -516,10 +516,24 @@ $parlamentaresTransferencia = array_values(array_filter(
                                     </form>
                                 </div>
                             <?php elseif ($rodada && ($rodada['status'] ?? '') === 'ENCERRADA'): ?>
-                                <p class="conducao-votacao-msg">
-                                    Resultado: <strong class="conducao-resultado conducao-resultado--<?= e(strtolower((string) ($rodada['resultado'] ?? ''))) ?>"><?= e(votacao_rotulo_resultado((string) ($rodada['resultado'] ?? ''))) ?></strong>
-                                </p>
-                                <a class="btn btn-soft" href="<?= e(base_url('?r=votacao/apuracaoRodada/' . (int) $rodada['id'])) ?>">Ver quem votou</a>
+                                <?php $descricaoResultado = \App\Services\ResultadoRoteiro::descricao((int) $rodada['id']); ?>
+                                <div class="conducao-resultado-box">
+                                    <p class="conducao-votacao-msg conducao-resultado-linha">
+                                        Resultado: <strong class="conducao-resultado conducao-resultado--<?= e(strtolower((string) ($rodada['resultado'] ?? ''))) ?>"><?= e(votacao_rotulo_resultado((string) ($rodada['resultado'] ?? ''))) ?></strong>
+                                    </p>
+                                    <?php if ($descricaoResultado): ?>
+                                        <p class="conducao-resultado-frase"><?= e($descricaoResultado['frase']) ?></p>
+                                        <p class="conducao-resultado-explicacao"><?= e($descricaoResultado['explicacao']) ?></p>
+                                    <?php endif; ?>
+                                    <div class="conducao-resultado-subtitulo">Placar e voto de cada vereador</div>
+                                    <?php
+                                    $estadoVotacao = \App\Helpers\VotacaoPainelEstado::jsonRodada((int) $rodada['id']);
+                                    $listaVotos = $estadoVotacao['parlamentares'] ?? [];
+                                    $placarVotos = $estadoVotacao['resumo'] ?? [];
+                                    require __DIR__ . '/../partials/_conducao_votos_lista.php';
+                                    ?>
+                                </div>
+                                <a class="btn btn-soft" href="<?= e(base_url('?r=votacao/apuracaoRodada/' . (int) $rodada['id'])) ?>">Ver apuração completa</a>
                             <?php else: ?>
                                 <?php if ($rodadaAbertaGlobal && (int) ($rodadaAbertaGlobal['roteiro_passo_id'] ?? 0) !== (int) $passo['id']): ?>
                                     <div class="conducao-presidente-alert conducao-presidente-alert--inline">

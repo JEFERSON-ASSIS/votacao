@@ -92,6 +92,68 @@ final class ResultadoRoteiro
         return $palavra . ($contra > 0 ? ' por maioria' : '') . ', com ' . $lista;
     }
 
+    /**
+     * Explicação do resultado em linguagem simples (caixa da votação encerrada).
+     *
+     * @param array<string, int> $resumo SIM / NAO / ABSTENCAO
+     * @param string|null $votoDesempate SIM / NAO quando a Presidência desempatou
+     */
+    public static function explicacao(array $resumo, string $resultado, ?string $votoDesempate): string
+    {
+        $sim = (int) ($resumo['SIM'] ?? 0);
+        $nao = (int) ($resumo['NAO'] ?? 0);
+        $abst = (int) ($resumo['ABSTENCAO'] ?? 0);
+
+        if ($votoDesempate !== null) {
+            return 'Sim e Não empataram em ' . $sim . ' a ' . $nao . '. O presidente desempatou votando '
+                . ($votoDesempate === 'SIM' ? 'Sim' : 'Não') . '.';
+        }
+
+        $aprovado = $resultado === 'APROVADO';
+        $contra = $aprovado ? $nao : $sim;
+        if ($contra === 0 && $abst === 0) {
+            return 'Todos os vereadores que votaram foram ' . ($aprovado ? 'a favor.' : 'contra.');
+        }
+        if ($contra === 0) {
+            return 'Ninguém votou ' . ($aprovado ? 'contra' : 'a favor') . '. As abstenções não entram na conta do resultado.';
+        }
+
+        $texto = $aprovado
+            ? 'Houve mais votos a favor (' . $sim . ') do que contra (' . $nao . ').'
+            : 'Houve mais votos contra (' . $nao . ') do que a favor (' . $sim . ').';
+
+        return $texto . ($abst > 0 ? ' As abstenções não entram nessa conta.' : '');
+    }
+
+    /**
+     * Resumo de uma votação encerrada para exibir: frase, explicação e placar.
+     *
+     * @return array{frase: string, explicacao: string, resumo: array<string, int>, resultado: string}|null
+     */
+    public static function descricao(int $rodadaId): ?array
+    {
+        $stmt = DB::conn()->prepare('SELECT status, resultado FROM sessao_votacao_rodadas WHERE id = :id');
+        $stmt->execute(['id' => $rodadaId]);
+        $rodada = $stmt->fetch(PDO::FETCH_ASSOC);
+        $resultado = strtoupper((string) ($rodada['resultado'] ?? ''));
+        if (!$rodada || ($rodada['status'] ?? '') !== 'ENCERRADA' || !in_array($resultado, ['APROVADO', 'REJEITADO'], true)) {
+            return null;
+        }
+
+        $resumo = SessaoVoto::resumoParlamentaresPorRodada($rodadaId);
+        $votoDesempate = SessaoVotoDesempate::voto($rodadaId);
+        $frase = self::frase($resumo, $resultado, $votoDesempate !== null, 'O');
+        // "APROVADO por ..." -> "Aprovado por ..." (no roteiro fica em maiúsculas, aqui em texto normal)
+        $frase = preg_replace_callback('/^(APROVADO|REPROVADO)/', static fn (array $m): string => ucfirst(strtolower($m[1])), $frase);
+
+        return [
+            'frase' => (string) $frase,
+            'explicacao' => self::explicacao($resumo, $resultado, $votoDesempate),
+            'resumo' => $resumo,
+            'resultado' => $resultado,
+        ];
+    }
+
     private static function quantidade(int $n, string $singular, string $plural): string
     {
         return $n . ' ' . ($n === 1 ? $singular : $plural);

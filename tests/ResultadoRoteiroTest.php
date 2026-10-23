@@ -47,6 +47,38 @@ confere(
     'empate decidido pela Presidencia'
 );
 
+// 1b) Explicação em linguagem simples (caixa da votação encerrada)
+confere(
+    ResultadoRoteiro::explicacao(['SIM' => 7, 'NAO' => 0, 'ABSTENCAO' => 0], 'APROVADO', null)
+        === 'Todos os vereadores que votaram foram a favor.',
+    'explicacao: unanimidade a favor'
+);
+confere(
+    ResultadoRoteiro::explicacao(['SIM' => 0, 'NAO' => 4, 'ABSTENCAO' => 0], 'REJEITADO', null)
+        === 'Todos os vereadores que votaram foram contra.',
+    'explicacao: unanimidade contra'
+);
+confere(
+    ResultadoRoteiro::explicacao(['SIM' => 5, 'NAO' => 3, 'ABSTENCAO' => 1], 'APROVADO', null)
+        === 'Houve mais votos a favor (5) do que contra (3). As abstenções não entram nessa conta.',
+    'explicacao: maioria a favor com abstencao'
+);
+confere(
+    ResultadoRoteiro::explicacao(['SIM' => 2, 'NAO' => 6, 'ABSTENCAO' => 0], 'REJEITADO', null)
+        === 'Houve mais votos contra (6) do que a favor (2).',
+    'explicacao: maioria contra'
+);
+confere(
+    ResultadoRoteiro::explicacao(['SIM' => 5, 'NAO' => 0, 'ABSTENCAO' => 2], 'APROVADO', null)
+        === 'Ninguém votou contra. As abstenções não entram na conta do resultado.',
+    'explicacao: sem contrarios, com abstencoes'
+);
+confere(
+    ResultadoRoteiro::explicacao(['SIM' => 3, 'NAO' => 3, 'ABSTENCAO' => 0], 'APROVADO', 'SIM')
+        === 'Sim e Não empataram em 3 a 3. O presidente desempatou votando Sim.',
+    'explicacao: empate desempatado pela Presidencia'
+);
+
 // 2) Troca no texto do roteiro, usando a votação do passo anterior
 $pdo = preparar_banco_teste();
 $v1 = criar_usuario_teste($pdo, 'Vereador R1');
@@ -83,6 +115,11 @@ try {
         ResultadoRoteiro::aplicar($texto, $anuncio) === 'Ata da sessão anterior APROVADA por unanimidade',
         'depois de encerrada: APROVADA por unanimidade (obtido: ' . ResultadoRoteiro::aplicar($texto, $anuncio) . ')'
     );
+
+    $desc = ResultadoRoteiro::descricao($rodadaId);
+    confere(($desc['frase'] ?? '') === 'Aprovado por unanimidade', 'descricao: frase em linguagem normal (obtido: ' . ($desc['frase'] ?? '') . ')');
+    confere(str_contains((string) ($desc['explicacao'] ?? ''), 'Todos'), 'descricao: traz a explicacao');
+    confere(($desc['resumo']['SIM'] ?? -1) === 2, 'descricao: traz o placar');
 
     $html = '<p>Ata da sessão anterior <strong>APROVADA</strong> / <strong>REPROVADA</strong> por &ldquo;unanimidade&rdquo;.</p>';
     confere(

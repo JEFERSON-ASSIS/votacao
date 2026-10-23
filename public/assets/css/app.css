@@ -6473,3 +6473,27 @@ body.public-page--telao .public-hero-mark--brasao { background: #fff; }
     border-color: rgba(252, 165, 165, 0.7);
     color: #fecaca;
 }
+
+/* Votação encerrada: resultado explicado */
+.conducao-resultado-box { margin-bottom: 12px; }
+.conducao-resultado-linha { margin-bottom: 8px; }
+.conducao-resultado-frase {
+    margin: 0 0 4px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+}
+.conducao-resultado-explicacao {
+    margin: 0 0 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #c8d6ea;
+}
+.conducao-resultado-subtitulo {
+    margin: 4px 0 8px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: rgba(255, 255, 255, 0.72);
+}
+.conducao-resultado-box .conducao-votos-resumo { margin-top: 0; }
