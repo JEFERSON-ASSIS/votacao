@@ -15,6 +15,21 @@ final class Sessao
         return $row ?: null;
     }
 
+    /** Próxima sessão marcada (hoje em diante), para o aviso da tela de login. */
+    public static function proxima(): ?array
+    {
+        $stmt = DB::conn()->query(
+            "SELECT * FROM sessoes
+             WHERE status NOT IN ('RASCUNHO','ENCERRADA')
+               AND data_sessao IS NOT NULL
+               AND data_sessao >= CURDATE()
+             ORDER BY data_sessao ASC, hora_inicio ASC, id ASC
+             LIMIT 1"
+        );
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
     public static function pauta(int $sessaoId): array
     {
         $stmt = DB::conn()->prepare('SELECT * FROM pauta_itens WHERE sessao_id = :id ORDER BY ordem ASC, id ASC');

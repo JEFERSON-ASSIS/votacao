@@ -27,6 +27,42 @@ function sessao_status_label(?string $status): string
     return ucwords(strtolower(str_replace('_', ' ', $key)));
 }
 
+/** Nome curto da sessão: "27ª Sessão Ordinária". */
+function sessao_nome_curto(array $sessao): string
+{
+    $tipos = [
+        'ORDINARIA' => 'Ordinária',
+        'EXTRAORDINARIA' => 'Extraordinária',
+        'SOLENE' => 'Solene',
+        'ESPECIAL' => 'Especial',
+    ];
+    $tipo = strtoupper(trim((string) ($sessao['tipo'] ?? '')));
+    $rotulo = $tipos[$tipo] ?? ($tipo !== '' ? ucfirst(mb_strtolower($tipo)) : '');
+    $numero = (int) ($sessao['numero'] ?? 0);
+
+    $nome = trim('Sessão ' . $rotulo);
+    return $numero > 0 ? $numero . 'ª ' . $nome : $nome;
+}
+
+/** Data e hora da sessão para avisos: "Segunda, 26/10 às 09:00". */
+function sessao_quando(array $sessao): string
+{
+    $data = (string) ($sessao['data_sessao'] ?? '');
+    $ts = $data !== '' ? strtotime($data) : false;
+    if ($ts === false) {
+        return '';
+    }
+
+    $dias = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    $texto = $dias[(int) date('w', $ts)] . ', ' . date('d/m', $ts);
+    if (date('Y-m-d', $ts) === date('Y-m-d')) {
+        $texto = 'Hoje';
+    }
+
+    $hora = trim((string) ($sessao['hora_inicio'] ?? ''));
+    return $hora !== '' ? $texto . ' às ' . $hora : $texto;
+}
+
 /** Classe CSS do chip conforme o status interno. */
 function sessao_status_chip_class(?string $status): string
 {

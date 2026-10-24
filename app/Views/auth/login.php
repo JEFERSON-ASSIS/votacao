@@ -1,66 +1,124 @@
-<?php declare(strict_types=1); ?>
+<?php declare(strict_types=1);
+
+$appName = (string) config('app_name', 'Plenário Vera');
+// "Plenário Vera" -> a última palavra fica em destaque (dourado).
+$partesNome = preg_split('/\s+/u', trim($appName)) ?: [$appName];
+$destaqueNome = count($partesNome) > 1 ? array_pop($partesNome) : '';
+$inicioNome = implode(' ', $partesNome);
+?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= e(config('app_name', 'Plenário Vera')) ?> · Entrar</title>
+    <title><?= e($appName) ?> · Entrar</title>
     <link rel="icon" href="<?= e(favicon_url()) ?>" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800;900&display=swap">
     <link rel="stylesheet" href="<?= e(asset_url('assets/css/app.css')) ?>">
 </head>
-<body>
-<main class="auth-shell">
-    <section class="auth-visual">
-        <div class="auth-hero">
-            <div class="auth-kicker">Câmara Municipal de Vera - MT</div>
-            <h1 class="auth-title"><?= e(config('app_name', 'Plenário Vera')) ?></h1>
-            <p class="auth-text">
-                Sessões, pautas, presença e votação em um só lugar.
-            </p>
+<body class="login-page">
+<main class="login">
+    <section class="login-marca">
+        <p class="login-sobretitulo">Câmara Municipal de Vera · MT</p>
 
-            <img class="auth-brasao" src="<?= e(asset_url('assets/img/brasao-vera-mt.png')) ?>" alt="Brasão do Município de Vera - MT">
+        <div class="login-destaque">
+            <div class="login-chamada">
+                <h1 class="login-titulo">
+                    <?= e($inicioNome) ?><?php if ($destaqueNome !== ''): ?> <span><?= e($destaqueNome) ?></span><?php endif; ?>
+                </h1>
+                <p class="login-lema">Sessões, pautas, presença e votação em um só lugar.</p>
+            </div>
+            <img class="login-brasao" src="<?= e(asset_url('assets/img/brasao-vera-mt.png')) ?>" alt="Brasão do Município de Vera - MT">
+        </div>
 
-            <!-- <div class="auth-notes">
-                <div class="auth-note">Fluxo de presidência com visão centralizada da sessão.</div>
-                <div class="auth-note">Acesso administrativo organizado por perfis e responsabilidades.</div>
-                <div class="auth-note">Base pronta para expansão de ata, histórico e trilha de auditoria.</div>
-            </div> -->
-        </div>       
+        <p class="login-assinatura">Sistema de votação eletrônica do Poder Legislativo de Vera</p>
     </section>
 
-    <section class="auth-panel">
-        <div class="auth-card">
-            <div class="auth-kicker">Acesso interno</div>
-            <h2>Entrar no sistema</h2>
-            <p class="auth-help">Use suas credenciais para acessar o painel administrativo.</p>
+    <section class="login-acesso">
+        <div class="login-conteudo">
+            <header class="login-cabecalho">
+                <h2>Entrar</h2>
+                <p>Use o e-mail e a senha cadastrados na Câmara.</p>
+            </header>
 
             <?php if (!empty($error)): ?>
-                <div class="auth-error"><?= e($error) ?></div>
+                <div class="login-erro" role="alert"><?= e($error) ?></div>
             <?php endif; ?>
 
-            <form method="post" class="auth-form">
+            <form method="post" class="login-form">
                 <?= csrf_field() ?>
-                <div class="auth-field">
+                <div class="login-campo">
                     <label for="email">E-mail</label>
-                    <input id="email" name="email" type="email" class="field" placeholder="nome@servidor.gov.br" required>
+                    <input id="email" name="email" type="email" placeholder="seu@email.com"
+                           autocomplete="username" value="<?= e($email ?? '') ?>" required>
                 </div>
-                <div class="auth-field">
+                <div class="login-campo">
                     <label for="senha">Senha</label>
-                    <input id="senha" name="senha" type="password" class="field" placeholder="Digite sua senha" required>
+                    <div class="login-senha">
+                        <input id="senha" name="senha" type="password" placeholder="Sua senha"
+                               autocomplete="current-password" required>
+                        <button type="button" class="login-ver-senha" aria-controls="senha"
+                                aria-pressed="false" aria-label="Mostrar senha" hidden>
+                            <svg class="login-icone-ver" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 12s3.5-7 9.5-7 9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                            <svg class="login-icone-ocultar" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.1A10.7 10.7 0 0 1 12 5c6 0 9.5 7 9.5 7a17 17 0 0 1-3.2 4.1"/><path d="M6.6 6.6C3.9 8.4 2.5 12 2.5 12s3.5 7 9.5 7a9.9 9.9 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
+                        </button>
+                    </div>
                 </div>
-                <div class="auth-actions">                    
-                    <button class="btn btn-primary" type="submit">Entrar</button>
-                </div>
+                <button class="login-entrar" type="submit">Entrar</button>
+                <p class="login-ajuda">Esqueceu a senha? Fale com a secretaria da Câmara.</p>
             </form>
 
-            <div class="auth-publico">
-                <a class="btn btn-soft" href="<?= e(route_url('publico/index')) ?>">Visão pública (ao vivo)</a>
-            </div>
+            <hr class="login-divisor">
+
+            <?php if (!empty($sessaoAoVivo)): ?>
+                <a class="login-sessao login-sessao--ao-vivo" href="<?= e(route_url('publico/index')) ?>">
+                    <span class="login-sessao-ponto" aria-hidden="true"></span>
+                    <span class="login-sessao-texto">
+                        <span class="login-sessao-rotulo">Ao vivo agora</span>
+                        <span class="login-sessao-nome"><?= e(sessao_nome_curto($sessaoAoVivo)) ?></span>
+                    </span>
+                    <span class="login-sessao-acao">Acompanhar →</span>
+                </a>
+            <?php elseif (!empty($proximaSessao)): ?>
+                <a class="login-sessao" href="<?= e(route_url('publico/index')) ?>">
+                    <span class="login-sessao-ponto" aria-hidden="true"></span>
+                    <span class="login-sessao-texto">
+                        <span class="login-sessao-rotulo">Próxima sessão</span>
+                        <span class="login-sessao-nome"><?= e(sessao_quando($proximaSessao) ?: sessao_nome_curto($proximaSessao)) ?></span>
+                    </span>
+                    <span class="login-sessao-acao">Visão pública →</span>
+                </a>
+            <?php else: ?>
+                <a class="login-sessao" href="<?= e(route_url('publico/index')) ?>">
+                    <span class="login-sessao-ponto" aria-hidden="true"></span>
+                    <span class="login-sessao-texto">
+                        <span class="login-sessao-rotulo">Visão pública</span>
+                        <span class="login-sessao-nome">Acompanhe as sessões ao vivo</span>
+                    </span>
+                    <span class="login-sessao-acao">Abrir →</span>
+                </a>
+            <?php endif; ?>
         </div>
+
+        <p class="login-copy">© Câmara Municipal de Vera - MT</p>
     </section>
 </main>
+<script>
+(function () {
+    var botao = document.querySelector('.login-ver-senha');
+    var campo = document.getElementById('senha');
+    if (!botao || !campo) { return; }
+    botao.hidden = false;
+    botao.addEventListener('click', function () {
+        var mostrar = campo.type === 'password';
+        campo.type = mostrar ? 'text' : 'password';
+        botao.setAttribute('aria-pressed', mostrar ? 'true' : 'false');
+        botao.setAttribute('aria-label', mostrar ? 'Ocultar senha' : 'Mostrar senha');
+        campo.focus();
+    });
+})();
+</script>
 </body>
 </html>

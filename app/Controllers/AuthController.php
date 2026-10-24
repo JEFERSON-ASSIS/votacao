@@ -5,6 +5,7 @@ namespace App\Controllers;
 
 use App\Core\Auth;
 use App\Core\View;
+use App\Models\Sessao;
 use App\Models\User;
 
 final class AuthController
@@ -50,7 +51,24 @@ final class AuthController
             }
         }
 
-        View::render('auth/login', ['error' => $error]);
+        // Aviso de sessão na tela de login. Se o banco falhar, a tela abre sem o aviso.
+        $sessaoAoVivo = null;
+        $proximaSessao = null;
+        try {
+            $sessaoAoVivo = Sessao::atual();
+            if (!$sessaoAoVivo) {
+                $proximaSessao = Sessao::proxima();
+            }
+        } catch (\Throwable $e) {
+            app_log('login: aviso de sessão indisponível — ' . $e->getMessage());
+        }
+
+        View::render('auth/login', [
+            'error' => $error,
+            'email' => (string) ($_POST['email'] ?? ''),
+            'sessaoAoVivo' => $sessaoAoVivo,
+            'proximaSessao' => $proximaSessao,
+        ]);
     }
 
     public function logout(): void
