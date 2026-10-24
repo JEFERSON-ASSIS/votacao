@@ -80,4 +80,52 @@ $semTurno = $texto(SaplRoteiro::passos([
 ]));
 confere(str_contains($semTurno, 'Coloco em votação o Requerimento nº 14/2026.'), 'sem turno: votacao simples');
 
+// 7) Urgência (turno A): apresentação, votação do pedido de urgência, dispensa, leitura, discussão, votação única
+$urg = SaplRoteiro::passos(['tipo_materia' => 'Projeto de Lei Ordinária', 'numero' => 46, 'ano' => 2026, 'autor' => 'Yago Pezarico Giacomelli (Prefeito Municipal)', 'sapl_turno' => 'A', 'sapl_autores_parlamentares' => '']);
+$t = $texto($urg);
+confere(str_contains($t, 'Apresento o Projeto de Lei Ordinária nº 46/2026, de autoria de Yago Pezarico Giacomelli (Prefeito Municipal), e encaminho às Comissões Permanentes'), 'urgencia: apresenta e encaminha');
+confere(str_contains($t, 'Coloco em votação o pedido de urgência (redução do interstício regimental) do Projeto de Lei Ordinária nº 46/2026.'), 'urgencia: vota o pedido de urgencia');
+confere(str_contains($t, 'Pedido de urgência APROVADO / REPROVADO por unanimidade.'), 'urgencia: resultado do pedido (preenchido na sessao)');
+confere(str_contains($t, 'Dispenso a reunião das Comissões.'), 'urgencia: dispensa a reuniao das comissoes');
+confere(str_contains($t, 'em única votação, o Projeto de Lei Ordinária nº 46/2026.') && str_contains($t, 'em uma única votação.'), 'urgencia: votacao unica');
+confere($votacoes($urg) === 2, 'urgencia: duas votacoes (pedido e materia)');
+
+// 8) Turnos juntos (G = 1ª e 2ª, E = 1ª, 2ª e 3ª): ata registra "em uma única votação"
+foreach (['G', 'E'] as $tj) {
+    $t = $texto(SaplRoteiro::passos(['tipo_materia' => 'Projeto de Lei Ordinária', 'numero' => 38, 'ano' => 2026, 'autor' => 'Prefeito (Prefeito Municipal)', 'sapl_turno' => $tj, 'sapl_autores_parlamentares' => '']));
+    confere(str_contains($t, 'em uma única votação.'), "turno $tj: resultado em uma unica votacao");
+}
+$t = $texto(SaplRoteiro::passos(['tipo_materia' => 'Projeto de Emenda à Lei Orgânica', 'numero' => 2, 'ano' => 2026, 'autor' => 'Prefeito (Prefeito Municipal)', 'sapl_turno' => 'P', 'sapl_tipo_votacao' => 2, 'sapl_autores_parlamentares' => '']));
+confere(str_contains($t, 'Coloco em votação nominal, em primeira votação, o Projeto de Emenda à Lei Orgânica nº 2/2026.'), 'turno P = primeira votacao; votacao nominal quando o SAPL indica');
+
+// 9) Autor que não é vereador (Mesa Diretora, Comissão): sem defesa
+$mesa = $texto(SaplRoteiro::passos(['tipo_materia' => 'Projeto de Resolução', 'numero' => 3, 'ano' => 2026, 'autor' => 'Mesa Diretora', 'sapl_turno' => 'U', 'sapl_autores_parlamentares' => '']));
+confere(!str_contains($mesa, 'defesa'), 'Mesa Diretora: sem defesa do autor');
+confere(str_contains($mesa, 'Coloco em discussão o mérito do Projeto de Resolução nº 3/2026.'), 'Mesa Diretora: discussao do merito');
+$comissao = $texto(SaplRoteiro::passos(['tipo_materia' => 'Projeto de Decreto Legislativo', 'numero' => 5, 'ano' => 2025, 'autor' => 'CCJ - Comissão de Constituição, Justiça e Redação', 'sapl_turno' => 'U', 'sapl_tipo_votacao' => 2, 'sapl_autores_parlamentares' => '']));
+confere(!str_contains($comissao, 'defesa') && str_contains($comissao, 'votação nominal, em única votação'), 'Comissao: sem defesa, votacao nominal');
+
+// 10) Projeto de vereador: leitura (sem "resumida"), defesa, sem discussão
+$pll = $texto(SaplRoteiro::passos(['tipo_materia' => 'Projeto de Lei Legislativo', 'numero' => 12, 'ano' => 2026, 'autor' => 'Juca Moro', 'sapl_turno' => 'U', 'sapl_autores_parlamentares' => 'Juca Moro']));
+confere(str_contains($pll, 'Peço a leitura do Projeto de Lei Legislativo nº 12/2026.'), 'projeto de vereador: leitura sem resumida');
+confere(str_contains($pll, 'Com a palavra o autor, Vereador Juca Moro, para a defesa.'), 'projeto de vereador: defesa');
+confere(!str_contains($pll, 'discussão'), 'projeto de vereador: a defesa substitui a discussao (como nas atas)');
+
+// 11) Veto: leitura, discussão das razões do veto, votação
+$veto = $texto(SaplRoteiro::passos(['tipo_materia' => 'Veto', 'numero' => 1, 'ano' => 2026, 'autor' => 'Yago Pezarico Giacomelli (Prefeito Municipal)', 'sapl_turno' => 'U', 'sapl_autores_parlamentares' => '']));
+confere(str_contains($veto, 'Peço a leitura do Veto nº 1/2026.'), 'veto: leitura');
+confere(str_contains($veto, 'Coloco em discussão as razões do veto apresentadas pelo Poder Executivo.'), 'veto: discussao das razoes do veto');
+confere(str_contains($veto, 'Veto nº 1/2026 APROVADO / REPROVADO por unanimidade em uma única votação.'), 'veto: resultado');
+
+// 12) Emenda: votada uma vez só, mesmo com turno C; feminino
+$emenda = $texto(SaplRoteiro::passos(['tipo_materia' => 'Emenda Supressiva', 'numero' => 1, 'ano' => 2026, 'autor' => 'Yago Pezarico Giacomelli (Prefeito Municipal)', 'sapl_turno' => 'C', 'sapl_autores_parlamentares' => '']));
+confere(str_contains($emenda, 'Coloco em discussão a Emenda Supressiva nº 1/2026.'), 'emenda: discussao');
+confere(str_contains($emenda, 'Emenda Supressiva nº 1/2026 APROVADA / REPROVADA por unanimidade em uma única votação.'), 'emenda: uma unica votacao, feminino');
+
+// 13) Muitos autores (ex.: todos os vereadores): sem listar todos os nomes
+$pdl = $texto(SaplRoteiro::passos(['tipo_materia' => 'Projeto de Decreto Legislativo', 'numero' => 1, 'ano' => 2026, 'autor' => 'A, B, C, D', 'sapl_turno' => 'U', 'sapl_autores_parlamentares' => 'Ana, Bia, Caio, Davi']));
+confere(str_contains($pdl, 'Com a palavra os autores, para a defesa.'), 'mais de 3 autores: texto curto');
+$dois = $texto(SaplRoteiro::passos(['tipo_materia' => 'Indicação', 'numero' => 2, 'ano' => 2026, 'autor' => 'Ana, Bia', 'sapl_turno' => 'U', 'sapl_autores_parlamentares' => 'Ana, Bia']));
+confere(str_contains($dois, 'Com a palavra os autores, Vereadores Ana e Bia, para a defesa.'), 'dois autores: nomes ligados por e');
+
 finalizar_testes();

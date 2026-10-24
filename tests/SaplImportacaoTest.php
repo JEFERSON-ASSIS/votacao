@@ -42,13 +42,15 @@ $materia = static fn (int $id, string $tipo, int $numero, string $ementa, array 
     'observacao' => '',
     'autores' => $autores,
 ];
-$prefeito = [['nome' => 'Yago Pezarico Giacomelli', 'cargo' => 'Prefeito Municipal', 'primeiro' => true]];
-$vereador = [['nome' => 'Juca Moro', 'cargo' => 'Vereador', 'primeiro' => true]];
+$prefeito = [['nome' => 'Yago Pezarico Giacomelli', 'cargo' => 'Prefeito Municipal', 'primeiro' => true, 'parlamentar' => false]];
+$vereador = [['nome' => 'Juca Moro', 'cargo' => '', 'primeiro' => true, 'parlamentar' => true]];
+$mesa = [['nome' => 'Mesa Diretora', 'cargo' => '', 'primeiro' => true, 'parlamentar' => false]];
 
 $materias = [
     $materia($saplId + 1, 'Projeto de Lei Ordinária', 48, 'Institui o Conselho Municipal de Política Cultural.', $prefeito, 'Ordem do Dia', 1),
     $materia($saplId + 2, 'Indicação', 9, 'Indica a construção de uma praça.', $vereador, 'Ordem do Dia', 2),
     $materia($saplId + 4, 'Projeto de Lei Ordinária', 54, 'Altera a lei do magistério.', $prefeito, 'Ordem do Dia', 3, 'D'),
+    $materia($saplId + 5, 'Projeto de Resolução', 3, 'Altera o regimento.', $mesa, 'Ordem do Dia', 4, 'U'),
 ];
 
 $sessaoId = 0;
@@ -62,7 +64,13 @@ try {
     confere((int) $s['sapl_sessao_id'] === $saplId, 'guarda de qual sessao do SAPL veio');
 
     $itens = $pdo->query("SELECT * FROM pauta_itens WHERE sessao_id = $sessaoId ORDER BY ordem")->fetchAll(PDO::FETCH_ASSOC);
-    confere(count($itens) === 3, 'pauta com as 3 materias');
+    confere(count($itens) === 4, 'pauta com as 4 materias');
+    confere($itens[1]['sapl_autores_parlamentares'] === 'Juca Moro' && $itens[0]['sapl_autores_parlamentares'] === '', 'guarda os autores vereadores (tipo de autor do SAPL)');
+    confere((int) $itens[0]['sapl_tipo_votacao'] === 1, 'guarda o tipo de votacao do SAPL');
+    $textoMesa = implode(' ', $pdo->query("SELECT texto_fala FROM sessao_roteiro WHERE pauta_item_id = " . (int) $itens[3]['id'])->fetchAll(PDO::FETCH_COLUMN));
+    confere(!str_contains($textoMesa, 'defesa') && str_contains($textoMesa, 'discussão do mérito') === false && str_contains($textoMesa, 'Coloco em discussão o mérito'), 'Mesa Diretora: sem defesa, com discussao');
+    $textoInd = implode(' ', $pdo->query("SELECT texto_fala FROM sessao_roteiro WHERE pauta_item_id = " . (int) $itens[1]['id'])->fetchAll(PDO::FETCH_COLUMN));
+    confere(str_contains($textoInd, 'Com a palavra o autor, Vereador Juca Moro, para a defesa.'), 'indicacao de vereador: defesa do autor');
     confere($itens[2]['sapl_turno'] === 'D', 'guarda o turno da materia (Deliberacao)');
     $passosD = $pdo->query("SELECT texto_fala, gera_votacao FROM sessao_roteiro WHERE pauta_item_id = " . (int) $itens[2]['id'])->fetchAll(PDO::FETCH_ASSOC);
     confere(count($passosD) === 1 && (int) $passosD[0]['gera_votacao'] === 0 && str_contains($passosD[0]['texto_fala'], 'Comissões Permanentes'), 'materia em deliberacao: so apresenta e encaminha, sem votacao');

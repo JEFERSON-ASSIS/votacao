@@ -112,6 +112,8 @@ CREATE TABLE IF NOT EXISTS `pauta_itens` (
   `local_origem_externa` varchar(180) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `autores_ids` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `sapl_turno` varchar(5) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `sapl_tipo_votacao` int DEFAULT NULL,
+  `sapl_autores_parlamentares` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `fk_pauta_sessao` (`sessao_id`),
   CONSTRAINT `fk_pauta_sessao` FOREIGN KEY (`sessao_id`) REFERENCES `sessoes` (`id`) ON DELETE CASCADE

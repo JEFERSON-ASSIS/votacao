@@ -54,7 +54,8 @@ final class SaplImportacaoPrevia
                 continue;
             }
             $cargo = $a['cargo'];
-            $partes[] = $cargo !== '' && stripos($cargo, 'vereador') === false
+            $parlamentar = $a['parlamentar'] ?? ($cargo === '' || stripos($cargo, 'vereador') !== false);
+            $partes[] = !$parlamentar && $cargo !== ''
                 ? $a['nome'] . ' (' . $cargo . ')'
                 : $a['nome'];
         }
@@ -62,13 +63,35 @@ final class SaplImportacaoPrevia
         return implode(', ', $partes);
     }
 
+    /**
+     * Nomes dos autores que são vereadores (os únicos que fazem a defesa).
+     *
+     * @param list<array<string, mixed>> $autores
+     */
+    public static function autoresParlamentares(array $autores): string
+    {
+        $nomes = [];
+        foreach ($autores as $a) {
+            $parlamentar = $a['parlamentar'] ?? ((string) ($a['cargo'] ?? '') === '');
+            if ($parlamentar && trim((string) ($a['nome'] ?? '')) !== '') {
+                $nomes[] = trim((string) $a['nome']);
+            }
+        }
+
+        return implode(', ', $nomes);
+    }
+
     /** Nome do turno como aparece na pauta do SAPL. */
     public static function turnoTexto(string $turno): string
     {
         return match (strtoupper($turno)) {
             'D' => 'Deliberação (apresentação e envio às comissões)',
-            'B' => '1ª votação',
+            'A' => 'Votação única em regime de urgência',
+            'B', 'P' => '1ª votação',
             'C' => '2ª e 3ª votações',
+            'S' => '2ª votação',
+            'G' => '1ª e 2ª votações (em uma única votação)',
+            'E' => '1ª, 2ª e 3ª votações (em uma única votação)',
             'U' => 'Votação única',
             '' => 'Não informado',
             default => 'Turno ' . strtoupper($turno),
@@ -104,6 +127,8 @@ final class SaplImportacaoPrevia
                 'ano' => (string) $m['ano'],
                 'autor' => (string) $m['autor_texto'],
                 'sapl_turno' => (string) ($m['turno'] ?? ''),
+                'sapl_tipo_votacao' => (int) ($m['tipo_votacao'] ?? 0),
+                'sapl_autores_parlamentares' => self::autoresParlamentares($m['autores']),
             ];
             foreach (SaplRoteiro::passos($item) as $p) {
                 $passos[] = [

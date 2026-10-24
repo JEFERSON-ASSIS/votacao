@@ -135,7 +135,10 @@ final class SaplCliente
         return SaplRoteiro::turnoNaData($tramitacoes, $dataSessao);
     }
 
-    /** @return list<array{nome: string, cargo: string, primeiro: bool}> */
+    /** Tipo de autor "Parlamentar" no SAPL. */
+    public const AUTOR_PARLAMENTAR = 2;
+
+    /** @return list<array{nome: string, cargo: string, primeiro: bool, parlamentar: bool}> */
     public static function autoresDaMateria(int $materiaId): array
     {
         $autores = [];
@@ -145,6 +148,7 @@ final class SaplCliente
                 'nome' => trim((string) ($autor['nome'] ?? '')),
                 'cargo' => trim((string) ($autor['cargo'] ?? '')),
                 'primeiro' => !empty($autoria['primeiro_autor']),
+                'parlamentar' => (int) ($autor['tipo'] ?? 0) === self::AUTOR_PARLAMENTAR,
             ];
         }
         usort($autores, static fn (array $a, array $b): int => (int) $b['primeiro'] <=> (int) $a['primeiro']);

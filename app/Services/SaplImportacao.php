@@ -140,13 +140,15 @@ final class SaplImportacao
                 $saplMateria = (int) $m['sapl_materia_id'];
                 $vistos[$saplMateria] = true;
                 if (isset($existentes[$saplMateria])) {
-                    $pdo->prepare('UPDATE pauta_itens SET titulo = :titulo, ementa = :ementa, autor = :autor, numero_protocolo = :protocolo, sapl_turno = :turno WHERE id = :id')
+                    $pdo->prepare('UPDATE pauta_itens SET titulo = :titulo, ementa = :ementa, autor = :autor, numero_protocolo = :protocolo, sapl_turno = :turno, sapl_tipo_votacao = :tipo_votacao, sapl_autores_parlamentares = :parlamentares WHERE id = :id')
                         ->execute([
                             'titulo' => mb_substr((string) $m['titulo'], 0, 200),
                             'ementa' => (string) $m['ementa'],
                             'autor' => mb_substr(SaplImportacaoPrevia::autorTexto($m['autores']), 0, 180),
                             'protocolo' => (string) $m['protocolo'],
                             'turno' => mb_substr(strtoupper((string) ($m['turno'] ?? '')), 0, 5),
+                            'tipo_votacao' => (int) ($m['tipo_votacao'] ?? 0) ?: null,
+                            'parlamentares' => mb_substr(SaplImportacaoPrevia::autoresParlamentares($m['autores']), 0, 255),
                             'id' => (int) $existentes[$saplMateria]['id'],
                         ]);
                     // Inclui o link do texto do projeto onde ainda não houver.
@@ -209,8 +211,8 @@ final class SaplImportacao
     {
         $pdo = DB::conn();
         $pdo->prepare(
-            'INSERT INTO pauta_itens (sessao_id, ordem, tipo_materia, titulo, ementa, numero, ano, sapl_id, autor, numero_protocolo, texto_original, observacao, sapl_turno)
-             VALUES (:sessao, :ordem, :tipo, :titulo, :ementa, :numero, :ano, :sapl, :autor, :protocolo, :texto, :obs, :turno)'
+            'INSERT INTO pauta_itens (sessao_id, ordem, tipo_materia, titulo, ementa, numero, ano, sapl_id, autor, numero_protocolo, texto_original, observacao, sapl_turno, sapl_tipo_votacao, sapl_autores_parlamentares)
+             VALUES (:sessao, :ordem, :tipo, :titulo, :ementa, :numero, :ano, :sapl, :autor, :protocolo, :texto, :obs, :turno, :tipo_votacao, :parlamentares)'
         )->execute([
             'sessao' => $sessaoId,
             'ordem' => $ordem,
@@ -225,6 +227,8 @@ final class SaplImportacao
             'texto' => mb_substr((string) $m['texto_original'], 0, 255),
             'obs' => trim(((string) ($m['parte'] ?? '')) . (($m['observacao'] ?? '') !== '' ? ' — ' . $m['observacao'] : '')),
             'turno' => mb_substr(strtoupper((string) ($m['turno'] ?? '')), 0, 5),
+            'tipo_votacao' => (int) ($m['tipo_votacao'] ?? 0) ?: null,
+            'parlamentares' => mb_substr(SaplImportacaoPrevia::autoresParlamentares($m['autores']), 0, 255),
         ]);
 
         return (int) $pdo->lastInsertId();
