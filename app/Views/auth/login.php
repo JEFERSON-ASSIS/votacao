@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acesso ao Sistema</title>
+    <title><?= e(config('app_name', 'Plenário Vera')) ?> · Entrar</title>
     <link rel="icon" href="<?= e(favicon_url()) ?>" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,10 +15,10 @@
 <main class="auth-shell">
     <section class="auth-visual">
         <div class="auth-hero">
-            <div class="auth-kicker">Câmara Municipal</div>
-            <h1 class="auth-title">Plenário digital para gestão legislativa</h1>
+            <div class="auth-kicker">Câmara Municipal de Vera - MT</div>
+            <h1 class="auth-title"><?= e(config('app_name', 'Plenário Vera')) ?></h1>
             <p class="auth-text">
-                Acompanhe sessões, pautas, presença, votação e apuração em um painel pensado para operação institucional.
+                Sessões, pautas, presença e votação em um só lugar.
             </p>
 
             <img class="auth-brasao" src="<?= e(asset_url('assets/img/brasao-vera-mt.png')) ?>" alt="Brasão do Município de Vera - MT">

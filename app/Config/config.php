@@ -84,7 +84,7 @@ if ($isLocalhost) {
 }
 
 return [
-    'app_name' => $env('APP_NAME', 'Plenario'),
+    'app_name' => $env('APP_NAME', 'Plenário Vera'),
     'base_url' => $env('APP_BASE_URL', $derivedBaseUrl),
     'timezone' => $env('APP_TIMEZONE', 'America/Cuiaba'),
     'env' => $isLocalhost ? 'local' : 'production',
