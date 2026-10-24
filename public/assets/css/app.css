@@ -6017,6 +6017,36 @@ body.public-page--telao .public-footer {
     object-fit: contain;
 }
 
+/* Login no computador: a tela cabe na janela sem rolagem.
+   O brasão ocupa só o espaço que sobra abaixo do texto. */
+@media (min-width: 961px) {
+    .auth-shell {
+        height: 100vh;
+        height: 100dvh;
+        min-height: 480px;
+    }
+    .auth-visual {
+        padding-top: clamp(28px, 6vh, 72px);
+        padding-bottom: clamp(28px, 5vh, 56px);
+        overflow: hidden;
+    }
+    .auth-visual .auth-hero {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    .auth-brasao {
+        flex: 1 1 0;
+        min-height: 0;
+        width: 100%;
+        max-width: 420px;
+        max-height: 420px;
+        margin-top: clamp(16px, 4vh, 48px);
+    }
+}
+
 /* Telao publico: botao de tela cheia */
 .public-fullscreen-btn {
     display: inline-flex;
