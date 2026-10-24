@@ -671,6 +671,45 @@ $parlamentaresTransferencia = array_values(array_filter(
                         </button>
                     </form>
                 </nav>
+
+                <?php
+                $materiaAtual = $sessaoIniciada ? \App\Services\RetiradaPauta::materiaDoPasso($passo ?: null) : null;
+                $retiradaId = (int) ($_GET['retirada'] ?? 0);
+                ?>
+                <?php if (!empty($_GET['pauta_erro'])): ?>
+                    <div class="conducao-presidente-alert conducao-presidente-alert--inline" role="alert"><?= e(mb_substr((string) $_GET['pauta_erro'], 0, 200)) ?></div>
+                <?php endif; ?>
+                <?php if ($retiradaId > 0): ?>
+                    <div class="sapl-ok conducao-retirada-ok" role="status">
+                        Matéria retirada de pauta. A condução seguiu para o próximo passo.
+                        <form method="post" action="<?= e(route_url('presidencia/desfazerRetirada/' . (int) $sessao['id'])) ?>">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="pauta_item_id" value="<?= $retiradaId ?>">
+                            <button class="btn btn-soft btn--sm" type="submit">Desfazer</button>
+                        </form>
+                    </div>
+                <?php elseif (!empty($_GET['retirada_desfeita'])): ?>
+                    <div class="sapl-ok conducao-retirada-ok" role="status">A matéria voltou para a pauta.</div>
+                <?php endif; ?>
+                <?php if ($materiaAtual): ?>
+                    <form method="post" action="<?= e(route_url('presidencia/retirarPauta/' . (int) $sessao['id'])) ?>"
+                          class="conducao-retirada"
+                          data-confirm-title="Retirar de pauta"
+                          data-confirm="Retirar de pauta: <?= e((string) $materiaAtual['titulo']) ?>? Os passos dela serão pulados e o fato fica registrado na ata."
+                          data-confirm-ok="Retirar de pauta">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="pauta_item_id" value="<?= (int) $materiaAtual['id'] ?>">
+                        <span class="conducao-retirada-materia">Em andamento: <strong><?= e((string) $materiaAtual['titulo']) ?></strong></span>
+                        <label class="sr-only" for="retirada-motivo">Motivo da retirada</label>
+                        <select class="field" id="retirada-motivo" name="motivo">
+                            <option value="A pedido do autor">A pedido do autor</option>
+                            <option value="A pedido da Presidência">A pedido da Presidência</option>
+                            <option value="A pedido de vereador">A pedido de vereador</option>
+                            <option value="">Sem motivo informado</option>
+                        </select>
+                        <button class="btn btn-soft" type="submit">Retirar de pauta</button>
+                    </form>
+                <?php endif; ?>
             </div>
 
             <aside class="conducao-timeline-panel" aria-label="Roteiro completo">

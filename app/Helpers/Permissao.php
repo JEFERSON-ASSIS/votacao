@@ -32,6 +32,7 @@ final class Permissao
             'presidencia.conduzir', 'presidencia.avancar', 'presidencia.voltar',
             'presidencia.encerrarSessao', 'presidencia.destacarParlamentar', 'presidencia.limparDestaque',
             'presidencia.transferirConducao', 'presidencia.devolverConducao',
+            'presidencia.retirarPauta', 'presidencia.desfazerRetirada',
             'votacao.painel', 'votacao.abrirRodada', 'votacao.encerrarRodada', 'votacao.votarRodada',
             'votacao.estadoRodada', 'votacao.streamRodada', 'votacao.situacaoEleitor',
         ];

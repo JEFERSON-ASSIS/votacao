@@ -228,6 +228,7 @@ $percentual = $totalPassos > 0 ? (int) round(($concluidos / $totalPassos) * 100)
                             <div class="parl-pauta-item-top">
                                 <span class="public-pauta-ordem">Item <?= (int) $item['ordem'] ?></span>
                                 <?php if ($emVotacao): ?><span class="status-chip vote">Em votação</span><?php endif; ?>
+                                <?php if (strtoupper((string) ($item['status'] ?? '')) === 'RETIRADA'): ?><span class="status-chip closed">Retirada de pauta</span><?php endif; ?>
                             </div>
                             <h3><?= e((string) $item['titulo']) ?></h3>
                             <?php $resumo = pauta_resumo($item, 160); ?>

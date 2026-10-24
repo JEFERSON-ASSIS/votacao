@@ -6562,3 +6562,35 @@ body.public-page--telao .public-hero-mark--brasao { background: #fff; }
 .relatorio-votacao .conducao-votos-lista { max-height: none; margin-bottom: 10px; }
 .relatorio-votacao .conducao-voto-item { color: var(--text); background: var(--panel); border-color: var(--border); }
 .relatorio-votacao .conducao-voto-aguardando { color: var(--muted-2); }
+
+/* Retirada de pauta na condução */
+.conducao-retirada {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 10px;
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 1px dashed var(--border-strong);
+    border-radius: 10px;
+    background: var(--panel);
+    font-size: 13px;
+}
+.conducao-retirada-materia { flex: 1 1 260px; min-width: 0; }
+.conducao-retirada .field { width: auto; height: 36px; }
+.conducao-retirada-ok { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+.conducao-retirada-ok form { margin: 0; }
+.conducao-timeline-item.is-retirado { opacity: 0.55; }
+.conducao-timeline-item.is-retirado .conducao-timeline-preview,
+.conducao-timeline-item.is-retirado strong { text-decoration: line-through; }
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}

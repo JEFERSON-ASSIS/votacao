@@ -175,10 +175,10 @@ final class SessaoRoteiro
         $stmt = DB::conn()->prepare(
             'SELECT
                 SUM(CASE WHEN ativo = 1 THEN 1 ELSE 0 END) AS total,
-                SUM(CASE WHEN ativo = 1 AND status_execucao = :concluido THEN 1 ELSE 0 END) AS concluidos
+                SUM(CASE WHEN ativo = 1 AND status_execucao IN (:concluido, :retirado) THEN 1 ELSE 0 END) AS concluidos
              FROM sessao_roteiro WHERE sessao_id = :id'
         );
-        $stmt->execute(['id' => $sessaoId, 'concluido' => 'CONCLUIDO']);
+        $stmt->execute(['id' => $sessaoId, 'concluido' => 'CONCLUIDO', 'retirado' => 'RETIRADO']);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return [
             'total' => (int) ($row['total'] ?? 0),

@@ -332,6 +332,42 @@ final class PresidenciaController
         ], JSON_UNESCAPED_UNICODE);
     }
 
+    /** Retira de pauta a matéria do passo atual (só quem conduz). */
+    public function retirarPauta(int $sessaoId): void
+    {
+        Permissao::exigir('presidencia.retirarPauta');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !csrf_check($_POST['csrf_token'] ?? null)) {
+            responder_erro(400, 'Requisição inválida', 'Recarregue a página e tente novamente.');
+            return;
+        }
+        if (!$this->sessaoEstaIniciada($sessaoId)) {
+            redirect_route('presidencia/conduzir/' . $sessaoId, ['sessao_erro' => 'nao_iniciada']);
+        }
+        $itemId = (int) ($_POST['pauta_item_id'] ?? 0);
+        try {
+            \App\Services\RetiradaPauta::retirar($sessaoId, $itemId, (string) ($_POST['motivo'] ?? ''), (int) (Auth::user()['id'] ?? 0));
+        } catch (\DomainException $e) {
+            redirect_route('presidencia/conduzir/' . $sessaoId, ['pauta_erro' => $e->getMessage()]);
+        }
+        redirect_route('presidencia/conduzir/' . $sessaoId, ['retirada' => $itemId]);
+    }
+
+    /** Devolve à pauta uma matéria retirada por engano. */
+    public function desfazerRetirada(int $sessaoId): void
+    {
+        Permissao::exigir('presidencia.desfazerRetirada');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !csrf_check($_POST['csrf_token'] ?? null)) {
+            responder_erro(400, 'Requisição inválida', 'Recarregue a página e tente novamente.');
+            return;
+        }
+        try {
+            \App\Services\RetiradaPauta::desfazer($sessaoId, (int) ($_POST['pauta_item_id'] ?? 0), (int) (Auth::user()['id'] ?? 0));
+        } catch (\DomainException $e) {
+            redirect_route('presidencia/conduzir/' . $sessaoId, ['pauta_erro' => $e->getMessage()]);
+        }
+        redirect_route('presidencia/conduzir/' . $sessaoId, ['retirada_desfeita' => 1]);
+    }
+
     public function avancar(int $sessaoId): void
     {
         Permissao::exigir('presidencia.avancar');
@@ -380,7 +416,7 @@ final class PresidenciaController
             if (!SessaoRoteiro::isAtivo($p)) {
                 continue;
             }
-            if (($p['status_execucao'] ?? '') !== 'CONCLUIDO') {
+            if (!in_array((string) ($p['status_execucao'] ?? ''), ['CONCLUIDO', 'RETIRADO'], true)) {
                 $idxAtual = $i;
                 break;
             }
@@ -388,7 +424,7 @@ final class PresidenciaController
         if ($idxAtual !== null && $idxAtual > 0) {
             $anterior = null;
             for ($k = $idxAtual - 1; $k >= 0; $k--) {
-                if (SessaoRoteiro::isAtivo($roteiro[$k])) {
+                if (SessaoRoteiro::isAtivo($roteiro[$k]) && ($roteiro[$k]['status_execucao'] ?? '') !== 'RETIRADO') {
                     $anterior = $roteiro[$k];
                     break;
                 }

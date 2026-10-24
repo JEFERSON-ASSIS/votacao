@@ -31,6 +31,10 @@ final class SessaoAtaMinuta
         foreach (SessaoItem::allBySessao($sessaoId) as $i => $item) {
             $linhas[] = ($i + 1) . '. ' . (string) ($item['tipo_materia'] ?? 'Matéria')
                 . ' — ' . (string) ($item['titulo'] ?? '');
+            if (strtoupper((string) ($item['status'] ?? '')) === 'RETIRADA') {
+                $linhas[] = '   ' . (string) ($item['titulo'] ?? '') . ' — retirado de pauta'
+                    . (!empty($item['retirada_motivo']) ? ' (' . $item['retirada_motivo'] . ')' : '');
+            }
             $ementa = trim((string) ($item['ementa'] ?? ''));
             if ($ementa !== '') {
                 $linhas[] = '   ' . mb_strimwidth($ementa, 0, 200, '…');
