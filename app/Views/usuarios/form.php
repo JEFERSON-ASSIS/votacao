@@ -84,6 +84,10 @@ $dataNasc = (string) ($user['data_nascimento_formatada'] ?? User::formatarDataNa
             <h3 class="usuario-form-section-title">Gabinete e contato</h3>
             <div class="usuario-form-grid">
                 <div class="usuario-form-field">
+                    <label class="panel-label" for="nome_parlamentar">Nome parlamentar (como no SAPL)</label>
+                    <input class="field" id="nome_parlamentar" name="nome_parlamentar" value="<?= $v('nome_parlamentar') ?>" placeholder="Ex.: Jadão do Dogão" maxlength="120">
+                </div>
+                <div class="usuario-form-field">
                     <label class="panel-label">Partido</label>
                     <input class="field" name="partido" value="<?= $v('partido') ?>" placeholder="Ex.: UNIÃO" maxlength="80">
                 </div>

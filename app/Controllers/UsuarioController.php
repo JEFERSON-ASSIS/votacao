@@ -117,6 +117,12 @@ final class UsuarioController
             }
         }
 
+        if (array_key_exists('nome_parlamentar', $_POST)) {
+            $nomeParlamentar = mb_substr(trim((string) $_POST['nome_parlamentar']), 0, 120);
+            \App\Core\DB::conn()->prepare('UPDATE users SET nome_parlamentar = :nome WHERE id = :id')
+                ->execute(['nome' => $nomeParlamentar !== '' ? $nomeParlamentar : null, 'id' => $userId]);
+        }
+
         $current = Auth::user();
         if ($current && (int) $current['id'] === $userId) {
             $fresh = User::find($userId);

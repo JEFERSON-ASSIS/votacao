@@ -22,6 +22,7 @@ final class SaplImportacao
     public static function importar(int $saplSessaoId, int $usuarioId): int
     {
         $sessao = self::sessaoComTipo($saplSessaoId);
+        self::sincronizarParlamentares();
 
         return self::criarSessao($sessao, SaplCliente::materiasDaSessao($saplSessaoId, (string) ($sessao['data_inicio'] ?? '')), $usuarioId);
     }
@@ -35,8 +36,19 @@ final class SaplImportacao
         }
 
         $sessao = self::sessaoComTipo($saplId);
+        self::sincronizarParlamentares();
 
         return self::atualizarSessao($sessaoId, $sessao, SaplCliente::materiasDaSessao($saplId, (string) ($sessao['data_inicio'] ?? '')), $usuarioId);
+    }
+
+    /** Liga os vereadores ao nome parlamentar do SAPL; falha aqui não impede a importação. */
+    private static function sincronizarParlamentares(): void
+    {
+        try {
+            SaplParlamentares::sincronizar();
+        } catch (\Throwable $e) {
+            app_log('SAPL: não foi possível sincronizar parlamentares: ' . $e->getMessage());
+        }
     }
 
     public static function sessaoImportada(int $saplSessaoId): ?int

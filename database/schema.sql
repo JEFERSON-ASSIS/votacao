@@ -438,6 +438,8 @@ CREATE TABLE IF NOT EXISTS `users` (
   `grau_instrucao` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `historico_politico` text COLLATE utf8mb4_unicode_ci,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `nome_parlamentar` varchar(120) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `sapl_parlamentar_id` int DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `email` (`email`),
   UNIQUE KEY `uq_users_cpf` (`cpf`)

@@ -67,6 +67,23 @@ $parlamentaresTransferencia = array_values(array_filter(
 ?>
 <?php ob_start(); ?>
 <section class="conducao-presidente" aria-label="Condução da sessão plenária" data-server-ts="<?= time() ?>">
+    <?php $sugestaoPresidencia = $sessaoIniciada ? \App\Services\AutoriaPresidencia::sugestao((int) $sessao['id'], $passo ?: null) : null; ?>
+    <?php if ($sugestaoPresidencia === 'passar' && !$rodadaAberta): ?>
+        <div class="conducao-presidente-alert conducao-presidente-alert--warn conducao-aviso-autoria" role="alert">
+            <span><strong>Você é autor desta matéria.</strong> Pelo Regimento, passe a presidência antes de colocá-la em discussão e retome ao final.</span>
+            <?php if ($parlamentaresTransferencia !== []): ?>
+                <button class="btn btn-primary btn--sm" type="button" onclick="var b = document.getElementById('abrir-transferencia-conducao'); if (b) b.click();">Passar presidência</button>
+            <?php endif; ?>
+        </div>
+    <?php elseif ($sugestaoPresidencia === 'devolver' && !$rodadaAberta): ?>
+        <div class="conducao-presidente-alert conducao-presidente-alert--warn conducao-aviso-autoria" role="alert">
+            <span><strong>A matéria do presidente titular terminou.</strong> Devolva a presidência a <?= e((string) ($conducaoEstado['titular_nome'] ?? 'o presidente titular')) ?>.</span>
+            <form method="post" action="<?= e(base_url('?r=presidencia/devolverConducao/' . (int) $sessao['id'])) ?>">
+                <?= csrf_field() ?>
+                <button class="btn btn-primary btn--sm" type="submit">Devolver presidência</button>
+            </form>
+        </div>
+    <?php endif; ?>
     <header class="conducao-presidente-head">
         <div class="conducao-presidente-intro">
             <p class="conducao-presidente-eyebrow">Condução da sessão</p>
