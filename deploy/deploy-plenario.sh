@@ -24,16 +24,16 @@ git reset --hard origin/main
 echo "==> Copiando para $APP_DIR (preserva .env, logs e uploads)"
 mkdir -p "$APP_DIR"
 rsync -a --delete \
-  --exclude='.git' \
-  --exclude='.github' \
-  --exclude='.vscode' \
-  --exclude='.claude' \
-  --exclude='.env' \
-  --exclude='.env.local' \
-  --exclude='logs' \
-  --exclude='public/uploads' \
-  --exclude='tests' \
-  --exclude='img' \
+  --exclude='/.git' \
+  --exclude='/.github' \
+  --exclude='/.vscode' \
+  --exclude='/.claude' \
+  --exclude='/.env' \
+  --exclude='/.env.local' \
+  --exclude='/logs' \
+  --exclude='/public/uploads' \
+  --exclude='/tests' \
+  --exclude='/img' \
   "$REPO_DIR"/ "$APP_DIR"/
 
 if [ ! -f "$APP_DIR/.env" ]; then
