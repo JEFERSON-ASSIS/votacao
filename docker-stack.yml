@@ -31,7 +31,10 @@ services:
         - traefik.docker.network=SGDMNET
         - traefik.http.routers.plenario.rule=Host(`plenariovera.com.br`)
         - traefik.http.routers.plenario.entrypoints=websecure
+        - traefik.http.routers.plenario.service=plenario
+        - traefik.http.routers.plenario.tls=true
         - traefik.http.routers.plenario.tls.certresolver=letsencryptresolver
+        - traefik.http.services.plenario.loadbalancer.passHostHeader=true
         - traefik.http.services.plenario.loadbalancer.server.port=80
 
 networks:
