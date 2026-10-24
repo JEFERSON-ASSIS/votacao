@@ -91,16 +91,28 @@ $pdo->exec("UPDATE users SET role = 'ADMINISTRADOR' WHERE UPPER(role) IN ('ADMIN
 $pdo->exec("UPDATE users SET role = 'USUARIO' WHERE UPPER(role) = 'USER'");
 $pdo->exec("UPDATE users SET role = 'PARLAMENTAR' WHERE UPPER(role) = 'VEREADOR'");
 
-// 5) Administrador inicial
+// 5) Administrador inicial (só com o banco sem usuários)
 if ((int) $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn() === 0) {
-    $pdo->prepare('INSERT INTO users (nome, email, senha_hash, role) VALUES (:nome, :email, :senha_hash, :role)')
-        ->execute([
-            'nome' => 'Administrador',
-            'email' => 'admin@local.test',
-            'senha_hash' => '$2y$10$RveCiNIn9n9IONaQHH4eFOtJo8JuxaVtpF12WPxVdI3ZFnTQFqycy',
-            'role' => 'ADMINISTRADOR',
-        ]);
-    echo "Usuario admin@local.test criado.\n";
+    $producao = in_array(strtolower((string) getenv('APP_ENV')), ['production', 'prod'], true);
+    $adminEmail = trim((string) getenv('ADMIN_EMAIL'));
+    $adminSenha = (string) getenv('ADMIN_PASSWORD');
+
+    if ($producao && ($adminEmail === '' || mb_strlen($adminSenha) < 10)) {
+        // Em produção nunca cria o admin de desenvolvimento (admin@local.test / admin123).
+        echo "Nenhum administrador criado: defina ADMIN_EMAIL e ADMIN_PASSWORD (10+ caracteres) no .env e rode de novo.\n";
+    } else {
+        $email = $producao ? $adminEmail : 'admin@local.test';
+        $pdo->prepare('INSERT INTO users (nome, email, senha_hash, role) VALUES (:nome, :email, :senha_hash, :role)')
+            ->execute([
+                'nome' => 'Administrador',
+                'email' => $email,
+                'senha_hash' => $producao
+                    ? password_hash($adminSenha, PASSWORD_DEFAULT)
+                    : '$2y$10$RveCiNIn9n9IONaQHH4eFOtJo8JuxaVtpF12WPxVdI3ZFnTQFqycy',
+                'role' => 'ADMINISTRADOR',
+            ]);
+        echo "Usuario {$email} criado.\n";
+    }
 }
 
 echo "Migracao concluida.\n";

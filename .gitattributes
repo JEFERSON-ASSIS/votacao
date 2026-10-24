@@ -1,0 +1,10 @@
+# Scripts e arquivos do Docker sempre com fim de linha LF (o Windows grava CRLF
+# e o container quebra com "no such file or directory").
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.ini text eol=lf
+*.pdf binary
+*.png binary
+*.jpg binary

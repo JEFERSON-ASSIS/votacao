@@ -1,0 +1,58 @@
+# SOMENTE TESTE LOCAL da imagem de produção (não usar na VPS: senhas de exemplo).
+# Imita a VPS: MySQL 8.0 com o nome mysql_mysql e Redis com o nome redis_redis.
+# Portas presas em 127.0.0.1. Subir: docker compose up -d --build
+# Acessar: http://127.0.0.1:8088   (admin: admin@plenario.local / SenhaLocal#2026)
+services:
+  plenario_app:
+    build: .
+    image: plenario_app:latest
+    ports:
+      - "127.0.0.1:8088:80"
+    environment:
+      APP_ENV: production
+      APP_BASE_URL: http://127.0.0.1:8088
+      APP_DEBUG: "0"
+      APP_KEY: chave-local-de-teste
+      DB_HOST: mysql_mysql
+      DB_PORT: "3306"
+      DB_NAME: plenario
+      DB_USER: plenario
+      DB_PASS: plenario_local
+      ADMIN_EMAIL: admin@plenario.local
+      ADMIN_PASSWORD: SenhaLocal#2026
+    volumes:
+      # Teste local é HTTP: o cookie de sessão não pode exigir HTTPS.
+      - ./docker/local-http.ini:/usr/local/etc/php/conf.d/zzz-local-http.ini:ro
+    depends_on:
+      mysql_mysql:
+        condition: service_healthy
+      redis_redis:
+        condition: service_healthy
+
+  mysql_mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root_local
+      MYSQL_DATABASE: plenario
+      MYSQL_USER: plenario
+      MYSQL_PASSWORD: plenario_local
+    ports:
+      - "127.0.0.1:3316:3306"
+    volumes:
+      - plenario_mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot_local"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis_redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  plenario_mysql:

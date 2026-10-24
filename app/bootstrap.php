@@ -106,6 +106,11 @@ function public_base_url(): string
     if (str_ends_with(strtolower($base), '/public')) {
         return $base;
     }
+    // Servidor já aponta para public/ (ex.: Docker na VPS): não acrescenta "/public".
+    $docRoot = realpath((string) ($_SERVER['DOCUMENT_ROOT'] ?? ''));
+    if ($docRoot !== false && $docRoot === realpath(dirname(__DIR__) . '/public')) {
+        return $base;
+    }
     if (is_file(dirname(__DIR__) . '/public/index.php')) {
         return $base . '/public';
     }

@@ -1,0 +1,11 @@
+.git
+.github
+.vscode
+.claude
+.env
+.env.local
+logs
+public/uploads
+tests
+img
+*.log
