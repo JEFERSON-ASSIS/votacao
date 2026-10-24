@@ -21,7 +21,7 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-av
     && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf \
     && sed -ri 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf \
     && a2enmod rewrite headers \
-    && printf '%s\n' 'ServerTokens Prod' 'ServerSignature Off' > /etc/apache2/conf-available/zz-plenario.conf \
+    && printf '%s\n' 'ServerName plenariovera.com.br' 'ServerTokens Prod' 'ServerSignature Off' > /etc/apache2/conf-available/zz-plenario.conf \
     && a2enconf zz-plenario
 
 WORKDIR /var/www/html
