@@ -8,6 +8,7 @@ use App\Models\RodadaEleitor;
 use App\Models\SessaoConducao;
 use App\Models\SessaoCrud;
 use App\Models\SessaoItem;
+use App\Models\SessaoPedidoPalavra;
 use App\Models\SessaoRoteiro;
 use App\Models\SessaoRoteiroAnexo;
 use App\Models\SessaoVotacaoRodada;
@@ -95,7 +96,33 @@ final class ParlamentarAcompanhar
             'meuVoto' => $meuVoto,
             'modo' => $modo,
             'statusRaw' => $statusRaw,
+            'pedidoPalavra' => self::pedidoPalavra($sessaoId, $userId, $statusRaw),
         ];
+    }
+
+    /**
+     * Botão "Pedir a palavra" na tela do vereador.
+     *
+     * @return array{pode_pedir: bool, situacao: string}
+     */
+    public static function pedidoPalavra(int $sessaoId, int $userId, string $statusRaw): array
+    {
+        $emAndamento = in_array($statusRaw, ['ABERTA', 'EM_VOTACAO'], true);
+        $podePedir = $emAndamento && SessaoConducao::usuarioPodeAcompanharComoParlamentar($sessaoId, $userId);
+        $situacao = 'NENHUM';
+        if ($podePedir) {
+            try {
+                $situacao = SessaoPedidoPalavra::situacaoDoUsuario(
+                    $sessaoId,
+                    $userId,
+                    SessaoConducao::destaqueUserId($sessaoId)
+                );
+            } catch (\Throwable) {
+                $podePedir = false;
+            }
+        }
+
+        return ['pode_pedir' => $podePedir, 'situacao' => $situacao];
     }
 
     /** @return array<string, mixed> */
@@ -142,6 +169,7 @@ final class ParlamentarAcompanhar
             'sou_condutor' => in_array($ctx['statusRaw'], ['ABERTA', 'EM_VOTACAO'], true)
                 && SessaoConducao::usuarioPodeConduzir($sessaoId, $userId),
             'url_conduzir' => route_url('presidencia/conduzir/' . $sessaoId, ['conducao_ok' => 'assumida']),
+            'pedido_palavra' => $ctx['pedidoPalavra'],
         ];
 
         if ($comHtmlVoto && $rodada) {

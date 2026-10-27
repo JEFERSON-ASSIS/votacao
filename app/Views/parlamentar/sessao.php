@@ -124,6 +124,41 @@ $percentual = $totalPassos > 0 ? (int) round(($concluidos / $totalPassos) * 100)
         <?php endif; ?>
     </article>
 
+    <?php
+    $pedidoPalavra = $pedidoPalavra ?? ['pode_pedir' => false, 'situacao' => 'NENHUM'];
+    $textosPalavra = [
+        'NENHUM' => ['titulo' => 'Quer falar?', 'sub' => 'Peça a palavra ao presidente, como levantar a mão.', 'botao' => '✋ Pedir a palavra', 'acao' => 'pedir'],
+        'PENDENTE' => ['titulo' => 'Pedido enviado', 'sub' => 'Aguardando o presidente conceder a palavra.', 'botao' => 'Cancelar pedido', 'acao' => 'cancelar'],
+        'CONCEDIDO' => ['titulo' => 'Você está com a palavra', 'sub' => 'Seu nome está no telão.', 'botao' => '', 'acao' => ''],
+        'RECUSADO' => ['titulo' => 'O presidente não concedeu a palavra agora', 'sub' => 'Você pode pedir de novo.', 'botao' => '✋ Pedir de novo', 'acao' => 'pedir'],
+    ];
+    $situacaoPalavra = isset($textosPalavra[$pedidoPalavra['situacao']]) ? $pedidoPalavra['situacao'] : 'NENHUM';
+    $txtPalavra = $textosPalavra[$situacaoPalavra];
+    ?>
+    <article
+        class="panel-card parl-palavra parl-palavra--<?= e(strtolower($situacaoPalavra)) ?>"
+        id="parl-palavra"
+        style="grid-column:1/-1;"
+        data-textos="<?= e((string) json_encode($textosPalavra, JSON_UNESCAPED_UNICODE)) ?>"
+        <?= empty($pedidoPalavra['pode_pedir']) ? 'hidden' : '' ?>
+    >
+        <form method="post" action="<?= e(route_url('parlamentar/pedirPalavra/' . $sessaoId)) ?>" class="parl-palavra-form">
+            <?= csrf_field() ?>
+            <input type="hidden" name="acao" value="<?= e($txtPalavra['acao']) ?>" data-palavra-acao>
+            <span class="parl-palavra-icone" aria-hidden="true">✋</span>
+            <div class="parl-palavra-texto" role="status" aria-live="polite">
+                <strong data-palavra-titulo><?= e($txtPalavra['titulo']) ?></strong>
+                <span data-palavra-sub><?= e($txtPalavra['sub']) ?></span>
+            </div>
+            <button
+                class="btn <?= $situacaoPalavra === 'PENDENTE' ? 'btn-soft' : 'btn-primary' ?> parl-palavra-btn"
+                type="submit"
+                data-palavra-botao
+                <?= $txtPalavra['botao'] === '' ? 'hidden' : '' ?>
+            ><?= e($txtPalavra['botao']) ?></button>
+        </form>
+    </article>
+
     <article class="panel-card parl-momento-card" style="grid-column:1/-1;" id="parl-momento-card" data-modo="<?= e($modo) ?>">
         <?php if ($modo === 'votacao' || $modo === 'voto_registrado'): ?>
             <span class="parl-momento-tag parl-momento-tag--vote">Votação</span>
@@ -244,6 +279,7 @@ $percentual = $totalPassos > 0 ? (int) round(($concluidos / $totalPassos) * 100)
     <?php endif; ?>
 </section>
 <script src="<?= e(asset_url('assets/js/parlamentar-voto-confirmar.js')) ?>" defer></script>
+<script src="<?= e(asset_url('assets/js/parlamentar-pedido-palavra.js')) ?>" defer></script>
 <script src="<?= e(asset_url('assets/js/parlamentar-acompanhar.js')) ?>" defer></script>
 <?php $content = ob_get_clean(); ?>
 <?php

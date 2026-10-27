@@ -1539,7 +1539,7 @@ span.btn.is-disabled {
     min-height: 0;
     display: flex;
     flex-direction: column;
-    max-width: 1280px;
+    max-width: 1920px;
     margin: 0 auto;
     width: 100%;
 }
@@ -1688,7 +1688,7 @@ span.btn.is-disabled {
     flex: 1;
     min-height: 0;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
     gap: 14px;
     align-items: stretch;
 }
@@ -2252,12 +2252,13 @@ span.btn.is-disabled {
         font-size: 11px;
     }
 
-    .admin-layout--conducao .conducao-presidente-tools .btn-has-icon span:not(.icon-glyph) {
-        display: none;
-    }
-
+    /* Tela baixa: botões menores, mas sempre com o nome visível */
     .admin-layout--conducao .conducao-presidente-tools .btn-has-icon {
-        padding: 8px 10px;
+        min-height: 36px;
+        padding: 6px 12px;
+        gap: 6px;
+        font-size: 13px;
+        white-space: nowrap;
     }
 
     .conducao-stage-header {
@@ -6956,3 +6957,285 @@ body.public-page--telao .public-hero-mark--brasao { background: #fff; }
 /* Aviso de autoria do presidente (passar / devolver presidência) */
 .conducao-aviso-autoria { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
 .conducao-aviso-autoria form { margin: 0; }
+
+/* =====================================================================
+   "Exibir no telão" compacto: rótulo, parlamentar, tempo e botões numa
+   linha só. Em telas estreitas quebra em duas linhas.
+   ===================================================================== */
+.conducao-destaque-box--compacta { padding: 10px 14px; }
+.conducao-destaque-box--compacta .conducao-destaque-form {
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 10px;
+}
+.conducao-destaque-box--compacta .conducao-destaque-rotulo {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    white-space: nowrap;
+}
+.conducao-destaque-box--compacta .conducao-destaque-icon {
+    width: 30px;
+    height: 30px;
+    font-size: 0.95rem;
+}
+.conducao-destaque-box--compacta .conducao-destaque-form > select.field {
+    flex: 1 1 220px;
+    min-width: 0;
+    margin-top: 0;
+}
+.conducao-destaque-box--compacta .conducao-tempo-field {
+    flex: 0 0 110px;
+    margin-top: 0;
+}
+.conducao-destaque-box--compacta .conducao-tempo-field .field { margin-top: 0; width: 100%; }
+.conducao-destaque-box--compacta .conducao-tempo-field .panel-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+.conducao-destaque-box--compacta .conducao-destaque-actions {
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    gap: 8px;
+}
+.conducao-destaque-box--compacta .conducao-destaque-actions .btn { white-space: nowrap; }
+
+/* Quem está no telão agora: uma linha curta acima do formulário */
+.conducao-destaque-box--compacta .conducao-destaque-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 14px;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}
+.conducao-destaque-box--compacta .conducao-destaque-ativo {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    font-size: 14px;
+}
+.conducao-destaque-ponto {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #16a34a;
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.18);
+}
+.conducao-destaque-box--compacta .sessao-timer--conducao {
+    margin-top: 0;
+    padding: 4px 10px;
+    gap: 8px;
+}
+.conducao-destaque-box--compacta .sessao-timer--conducao .sessao-timer-valor { font-size: 1.05rem; }
+.conducao-destaque-box--compacta .conducao-destaque-msg,
+.conducao-destaque-box--compacta .conducao-destaque-aviso { margin: 0 0 8px; }
+
+@media (max-width: 640px) {
+    .conducao-destaque-box--compacta .conducao-destaque-form > select.field { flex-basis: calc(100% - 90px); }
+    .conducao-destaque-box--compacta .conducao-tempo-field { flex: 1 1 100px; }
+}
+
+/* "Tirar do telão" no fim da linha de quem está no telão */
+.conducao-destaque-box--compacta .conducao-destaque-tirar { margin: 0 0 0 auto; }
+.conducao-destaque-box--compacta .conducao-destaque-tirar .btn { min-height: 32px; padding: 0 12px; font-size: 13px; white-space: nowrap; }
+
+/* =====================================================================
+   Pedidos de palavra — tela do presidente
+   Faixa âmbar acima do telão; pisca quando chega pedido novo.
+   ===================================================================== */
+.conducao-pedidos {
+    --pedido-cor: #b45309;
+    --pedido-fundo: #fffbeb;
+    --pedido-borda: #fcd34d;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: var(--pedido-fundo);
+    border: 1px solid var(--pedido-borda);
+    box-shadow: 0 4px 14px rgba(180, 83, 9, 0.08);
+}
+.conducao-pedidos[hidden] { display: none; }
+.conducao-pedidos-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: var(--pedido-cor);
+}
+.conducao-pedidos-icone { font-size: 1.1rem; }
+.conducao-pedidos-count {
+    display: inline-grid;
+    place-items: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--pedido-cor);
+}
+.conducao-pedidos-lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 6px;
+    max-height: 168px;
+    overflow-y: auto;
+}
+.conducao-pedido {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    border-radius: 10px;
+    background: #fff;
+    border: 1px solid rgba(180, 83, 9, 0.18);
+}
+.conducao-pedido-foto {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: #f1f5f9;
+}
+.conducao-pedido-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 6px;
+    font-size: 14px;
+    color: #0f172a;
+}
+.conducao-pedido-nome { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.conducao-pedido-partido { color: #475569; }
+.conducao-pedido-quando { color: var(--pedido-cor); font-size: 13px; }
+.conducao-pedido-acoes { display: flex; gap: 6px; flex-shrink: 0; }
+.conducao-pedido-form { margin: 0; }
+.conducao-pedido-acoes .btn { min-height: 34px; padding: 0 14px; font-size: 13px; }
+
+.conducao-pedidos.is-alerta { animation: pedido-pisca 0.6s ease-in-out 0s 5; }
+.conducao-pedido.is-novo { animation: pedido-novo 1.2s ease-in-out 0s 4; }
+@keyframes pedido-pisca {
+    0%, 100% { box-shadow: 0 4px 14px rgba(180, 83, 9, 0.08); border-color: var(--pedido-borda); }
+    50% { box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.45); border-color: #f59e0b; }
+}
+@keyframes pedido-novo {
+    0%, 100% { background: #fff; }
+    50% { background: #fef3c7; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .conducao-pedidos.is-alerta,
+    .conducao-pedido.is-novo { animation: none; }
+}
+@media (max-width: 640px) {
+    .conducao-pedido { flex-wrap: wrap; }
+    .conducao-pedido-acoes { width: 100%; justify-content: flex-end; }
+}
+
+/* =====================================================================
+   Pedir a palavra — tela do vereador
+   ===================================================================== */
+.parl-palavra { padding: 14px 16px; }
+.parl-palavra[hidden],
+.parl-palavra-btn[hidden] { display: none; }
+.parl-palavra-form {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 0;
+}
+.parl-palavra-icone {
+    display: inline-grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    font-size: 1.35rem;
+    background: var(--accent-soft, #e6f0f7);
+}
+.parl-palavra-texto { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.parl-palavra-texto strong { font-size: 16px; }
+.parl-palavra-texto span { font-size: 14px; color: #475569; }
+.parl-palavra-btn { min-height: 46px; padding: 0 20px; font-size: 15px; white-space: nowrap; }
+
+.parl-palavra--pendente {
+    border-color: #fcd34d;
+    background: #fffbeb;
+    animation: parl-palavra-espera 1.8s ease-in-out infinite;
+}
+.parl-palavra--pendente .parl-palavra-icone { background: #fef3c7; }
+.parl-palavra--concedido { border-color: #86efac; background: #f0fdf4; }
+.parl-palavra--concedido .parl-palavra-icone { background: #dcfce7; }
+.parl-palavra--recusado { border-color: #fecaca; background: #fef2f2; }
+@keyframes parl-palavra-espera {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+    50% { box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.3); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .parl-palavra--pendente { animation: none; }
+}
+@media (max-width: 560px) {
+    .parl-palavra-form { flex-wrap: wrap; }
+    .parl-palavra-btn { width: 100%; }
+}
+
+/* =====================================================================
+   Tela pública — cartões dos vereadores na votação
+   Linhas com altura máxima (antes esticavam até ocupar a tela toda) e o
+   aviso "Aguardando voto" desce para baixo do nome quando falta espaço,
+   em vez de espremer o nome até sobrar uma letra.
+   ===================================================================== */
+.public-vereador-grid--carrossel {
+    grid-auto-rows: minmax(0, clamp(64px, 12vh, 120px));
+    align-content: center;
+}
+.public-vereador-card--carrossel {
+    flex-wrap: wrap;
+    row-gap: 4px;
+}
+.public-vereador-card--carrossel .public-vereador-info {
+    flex: 1 1 7.5em;
+}
+.public-vereador-card--carrossel .public-vereador-aguardando {
+    margin-left: auto;
+}
+/* Até 8 vereadores: cartões grandes, legíveis de longe no telão */
+.public-vereador-grid--carrossel:not(.public-vereador-grid--denso) {
+    grid-auto-rows: minmax(0, clamp(80px, 20vh, 190px));
+}
+.public-vereador-grid--carrossel:not(.public-vereador-grid--denso) .public-vereador-card--carrossel {
+    padding: 10px 12px;
+    gap: 12px;
+}
+.public-vereador-grid--carrossel:not(.public-vereador-grid--denso) .public-vereador-foto {
+    width: clamp(48px, 8vh, 84px);
+    height: clamp(48px, 8vh, 84px);
+}
+.public-vereador-grid--carrossel:not(.public-vereador-grid--denso) .public-vereador-info strong {
+    font-size: clamp(0.85rem, 1.25vw, 1.15rem);
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+.public-vereador-grid--carrossel:not(.public-vereador-grid--denso) .public-vereador-info span {
+    font-size: clamp(0.7rem, 0.9vw, 0.85rem);
+}

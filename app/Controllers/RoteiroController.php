@@ -376,6 +376,11 @@ final class RoteiroController
 
         SessaoBloqueio::abortSeBloqueada(SessaoCrud::find($sessaoId), base_url('?r=presidencia/conduzir/' . $sessaoId));
 
+        // Votação aberta é cancelada: senão o telão e os vereadores continuam vendo "Em votação".
+        if (\App\Models\SessaoVotacaoRodada::cancelarAberta($sessaoId)) {
+            Auditoria::log('cancelar_votacao', 'sessao', $sessaoId, 'Votação aberta cancelada ao reiniciar a condução');
+            SessaoEvento::registrar($sessaoId, 'votacao', 'Votação aberta cancelada ao reiniciar a condução');
+        }
         SessaoRoteiro::resetExecucao($sessaoId);
         header('Location: ' . base_url('?r=presidencia/conduzir/' . $sessaoId));
         exit;

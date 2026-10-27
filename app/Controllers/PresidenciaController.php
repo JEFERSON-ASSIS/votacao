@@ -11,6 +11,7 @@ use App\Helpers\SessaoBloqueio;
 use App\Models\Sessao;
 use App\Models\SessaoCrud;
 use App\Models\SessaoEvento;
+use App\Models\SessaoPedidoPalavra;
 use App\Models\SessaoRoteiro;
 use App\Models\SessaoPresenca;
 use App\Models\SessaoVotacaoRodada;
@@ -200,6 +201,7 @@ final class PresidenciaController
             'presentesIds' => SessaoPresenca::idsPresentes($sessaoId),
             'conducaoEstado' => SessaoConducao::estado($sessaoId),
             'destaqueAtual' => self::destaqueAtualPayload($sessaoId),
+            'pedidosPalavra' => SessaoPedidoPalavra::pendentesPayload($sessaoId),
         ]);
     }
 
@@ -220,6 +222,11 @@ final class PresidenciaController
         $tempoSeg = sessao_tempo_normalizar($_POST['tempo_seg'] ?? 0);
         try {
             SessaoConducao::setDestaque($sessaoId, $userId, $tempoSeg);
+            // Quem estava na fila de pedidos e foi para o telão pela lista: pedido atendido.
+            $pendente = SessaoPedidoPalavra::pendenteDoUsuario($sessaoId, $userId);
+            if ($pendente) {
+                SessaoPedidoPalavra::responder((int) $pendente['id'], $sessaoId, SessaoPedidoPalavra::CONCEDIDO, (int) (Auth::user()['id'] ?? 0));
+            }
             $user = User::find($userId);
             $nome = (string) ($user['nome'] ?? 'Parlamentar');
             $tempoTxt = $tempoSeg > 0 ? ' (' . (sessao_tempo_opcoes()[$tempoSeg] ?? '') . ')' : '';
@@ -249,6 +256,76 @@ final class PresidenciaController
         Auditoria::log('destaque_limpar', 'sessao_conducao', $sessaoId, 'Destaque do telão removido');
         SessaoEvento::registrar($sessaoId, 'destaque', 'Destaque do telão removido');
         header('Location: ' . base_url('?r=presidencia/conduzir/' . $sessaoId . '&destaque_limpo=1'));
+        exit;
+    }
+
+    /** JSON: fila de vereadores pedindo a palavra (a tela do presidente consulta a cada poucos segundos). */
+    public function pedidosPalavra(int $sessaoId): void
+    {
+        Permissao::exigir('presidencia.pedidosPalavra');
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store');
+        echo json_encode([
+            'ok' => true,
+            'pedidos' => SessaoPedidoPalavra::pendentesPayload($sessaoId),
+        ], JSON_UNESCAPED_UNICODE);
+    }
+
+    /** Concede a palavra: marca o pedido e coloca o vereador no telão com o tempo de fala. */
+    public function concederPalavra(int $sessaoId): void
+    {
+        Permissao::exigir('presidencia.concederPalavra');
+        $this->responderPedidoPalavra($sessaoId, SessaoPedidoPalavra::CONCEDIDO);
+    }
+
+    public function recusarPalavra(int $sessaoId): void
+    {
+        Permissao::exigir('presidencia.recusarPalavra');
+        $this->responderPedidoPalavra($sessaoId, SessaoPedidoPalavra::RECUSADO);
+    }
+
+    private function responderPedidoPalavra(int $sessaoId, string $status): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !csrf_check($_POST['csrf_token'] ?? null)) {
+            http_response_code(400);
+            echo 'Requisição inválida.';
+            return;
+        }
+        $voltar = '?r=presidencia/conduzir/' . $sessaoId;
+        if (!$this->sessaoEstaIniciada($sessaoId)) {
+            header('Location: ' . base_url($voltar . '&sessao_erro=nao_iniciada'));
+            exit;
+        }
+
+        $pedidoId = (int) ($_POST['pedido_id'] ?? 0);
+        $pedido = SessaoPedidoPalavra::find($pedidoId);
+        if (!$pedido || (int) $pedido['sessao_id'] !== $sessaoId || $pedido['status'] !== SessaoPedidoPalavra::PENDENTE) {
+            header('Location: ' . base_url($voltar . '&destaque_erro=' . rawurlencode('Esse pedido de palavra não está mais pendente.')));
+            exit;
+        }
+        $userId = (int) $pedido['user_id'];
+        $nome = (string) (User::find($userId)['nome'] ?? 'Parlamentar');
+        $authId = (int) (Auth::user()['id'] ?? 0);
+
+        if ($status === SessaoPedidoPalavra::CONCEDIDO) {
+            $tempoSeg = sessao_tempo_normalizar($_POST['tempo_seg'] ?? 300);
+            try {
+                SessaoConducao::setDestaque($sessaoId, $userId, $tempoSeg);
+            } catch (\RuntimeException $e) {
+                header('Location: ' . base_url($voltar . '&destaque_erro=' . rawurlencode($e->getMessage())));
+                exit;
+            }
+            SessaoPedidoPalavra::responder($pedidoId, $sessaoId, $status, $authId);
+            $tempoTxt = $tempoSeg > 0 ? ' (' . (sessao_tempo_opcoes()[$tempoSeg] ?? '') . ')' : '';
+            Auditoria::log('palavra_conceder', 'sessao_conducao', $sessaoId, 'Palavra concedida a ' . $nome . $tempoTxt);
+            SessaoEvento::registrar($sessaoId, 'palavra', 'Palavra concedida a ' . $nome . $tempoTxt);
+        } else {
+            SessaoPedidoPalavra::responder($pedidoId, $sessaoId, $status, $authId);
+            Auditoria::log('palavra_recusar', 'sessao_conducao', $sessaoId, 'Pedido de palavra de ' . $nome . ' não concedido');
+            SessaoEvento::registrar($sessaoId, 'palavra', 'Pedido de palavra de ' . $nome . ' não concedido');
+        }
+
+        header('Location: ' . base_url($voltar));
         exit;
     }
 
@@ -410,6 +487,12 @@ final class PresidenciaController
             exit;
         }
 
+        // Voltar com votação aberta deixaria o telão "Em votação" num passo que já passou.
+        if (SessaoVotacaoRodada::findAberta($sessaoId)) {
+            header('Location: ' . base_url('?r=presidencia/conduzir/' . $sessaoId . '&sessao_erro=rodada_aberta_voltar'));
+            exit;
+        }
+
         $roteiro = SessaoRoteiro::allBySessao($sessaoId);
         $idxAtual = null;
         foreach ($roteiro as $i => $p) {
@@ -470,6 +553,7 @@ final class PresidenciaController
         }
 
         SessaoConducao::clearDestaque($sessaoId);
+        SessaoPedidoPalavra::cancelarPendentesDaSessao($sessaoId);
         Sessao::updateStatus($sessaoId, 'ENCERRADA');
         Auditoria::log('encerrar', 'sessao', $sessaoId, (string) ($sessao['titulo'] ?? ''));
         SessaoEvento::registrar($sessaoId, 'status', 'Sessão encerrada');

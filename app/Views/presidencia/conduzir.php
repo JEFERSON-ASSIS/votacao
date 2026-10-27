@@ -152,7 +152,7 @@ $parlamentaresTransferencia = array_values(array_filter(
                 <?php endif; ?>
             <?php endif; ?>
             <?php if (!$sessaoBloqueada && $podeResetarRoteiro): ?>
-            <form method="post" action="<?= e(base_url('?r=roteiro/resetarExecucao/' . (int) $sessao['id'])) ?>" onsubmit="return confirm('Reiniciar a condução do início?');">
+            <form method="post" action="<?= e(base_url('?r=roteiro/resetarExecucao/' . (int) $sessao['id'])) ?>" onsubmit="return confirm(<?= e((string) json_encode($rodadaAberta ? 'Reiniciar a condução do início? A votação aberta será cancelada e os votos dela descartados.' : 'Reiniciar a condução do início?', JSON_UNESCAPED_UNICODE)) ?>);">
                 <?= csrf_field() ?>
                 <button class="btn btn-soft btn-has-icon" type="submit" title="Reiniciar condução">
                     <span class="icon-glyph" aria-hidden="true">&#8634;</span>
@@ -261,6 +261,11 @@ $parlamentaresTransferencia = array_values(array_filter(
     <?php if (!empty($_GET['sessao_erro']) && $_GET['sessao_erro'] === 'rodada_aberta'): ?>
         <div class="conducao-presidente-alert" role="alert">
             Encerre a <strong>votação em andamento</strong> antes de concluir a sessão.
+        </div>
+    <?php endif; ?>
+    <?php if (($_GET['sessao_erro'] ?? '') === 'rodada_aberta_voltar'): ?>
+        <div class="conducao-presidente-alert" role="alert">
+            Encerre a <strong>votação em andamento</strong> antes de voltar ao passo anterior.
         </div>
     <?php endif; ?>
     <?php if (!empty($_GET['sessao_erro']) && $_GET['sessao_erro'] === 'nao_criado'): ?>
@@ -584,22 +589,31 @@ $parlamentaresTransferencia = array_values(array_filter(
                 <?php if ($sessaoIniciada): ?>
                     <?php
                     $destaqueAtual = $destaqueAtual ?? null;
-                    $destaqueIdAtual = (int) ($destaqueAtual['id'] ?? 0);
                     $listaDestaque = $parlamentaresTransferencia !== []
                         ? $parlamentaresTransferencia
                         : ($parlamentares ?? []);
                     ?>
-                    <aside class="conducao-destaque-box conducao-destaque-box--fora" aria-label="Destacar parlamentar no telão">
-                        <div class="conducao-destaque-head">
-                            <span class="conducao-destaque-icon" aria-hidden="true">▣</span>
-                            <div>
-                                <div class="conducao-destaque-title">Exibir no telão</div>
-                                <div class="conducao-destaque-sub">Selecione o parlamentar que pediu a indicação (ou a palavra)</div>
-                            </div>
+                    <?php $pedidosPalavra = $pedidosPalavra ?? []; ?>
+                    <section
+                        class="conducao-pedidos"
+                        id="conducao-pedidos"
+                        aria-label="Pedidos de palavra"
+                        data-url="<?= e(base_url('?r=presidencia/pedidosPalavra/' . (int) $sessao['id'])) ?>"
+                        data-conceder-url="<?= e(base_url('?r=presidencia/concederPalavra/' . (int) $sessao['id'])) ?>"
+                        data-recusar-url="<?= e(base_url('?r=presidencia/recusarPalavra/' . (int) $sessao['id'])) ?>"
+                        data-csrf="<?= e(csrf_token()) ?>"
+                        data-inicial="<?= e((string) json_encode($pedidosPalavra, JSON_UNESCAPED_UNICODE)) ?>"
+                        <?= $pedidosPalavra === [] ? 'hidden' : '' ?>
+                    >
+                        <div class="conducao-pedidos-head">
+                            <span class="conducao-pedidos-icone" aria-hidden="true">✋</span>
+                            <strong>Pedidos de palavra</strong>
+                            <span class="conducao-pedidos-count" data-pedidos-count><?= count($pedidosPalavra) ?></span>
                         </div>
-                        <?php if (!empty($_GET['destaque_ok'])): ?>
-                            <div class="sapl-ok conducao-destaque-msg">Parlamentar em destaque no telão.</div>
-                        <?php endif; ?>
+                        <ul class="conducao-pedidos-lista" data-pedidos-lista aria-live="assertive"></ul>
+                    </section>
+
+                    <aside class="conducao-destaque-box conducao-destaque-box--fora conducao-destaque-box--compacta" aria-label="Destacar parlamentar no telão">
                         <?php if (!empty($_GET['destaque_limpo'])): ?>
                             <div class="sapl-ok conducao-destaque-msg">Destaque do telão removido.</div>
                         <?php endif; ?>
@@ -607,8 +621,10 @@ $parlamentaresTransferencia = array_values(array_filter(
                             <div class="conducao-presidente-alert conducao-presidente-alert--inline" role="alert"><?= e((string) $_GET['destaque_erro']) ?></div>
                         <?php endif; ?>
                         <?php if ($destaqueAtual): ?>
+                            <div class="conducao-destaque-status">
                             <p class="conducao-destaque-ativo" role="status">
-                                No telão agora:
+                                <span class="conducao-destaque-ponto" aria-hidden="true"></span>
+                                No telão:
                                 <strong><?= e((string) $destaqueAtual['nome']) ?></strong>
                                 <?php if (!empty($destaqueAtual['partido'])): ?>
                                     <span>(<?= e((string) $destaqueAtual['partido']) ?>)</span>
@@ -627,6 +643,11 @@ $parlamentaresTransferencia = array_values(array_filter(
                                     <strong class="sessao-timer-valor" data-sessao-timer-valor><?= e(sessao_tempo_formatar((int) $tempoDestaque['restante_seg'])) ?></strong>
                                 </div>
                             <?php endif; ?>
+                            <form method="post" action="<?= e(base_url('?r=presidencia/limparDestaque/' . (int) $sessao['id'])) ?>" class="conducao-destaque-tirar">
+                                <?= csrf_field() ?>
+                                <button class="btn btn-soft btn--sm" type="submit">&#10005; Tirar do telão</button>
+                            </form>
+                            </div>
                         <?php endif; ?>
                         <?php if ($parlamentaresTransferencia === [] && $listaDestaque !== []): ?>
                             <p class="conducao-destaque-aviso">Nenhum vereador marcado como presente. Ajuste a presença ou selecione abaixo (precisa estar presente para aparecer no telão).</p>
@@ -636,15 +657,19 @@ $parlamentaresTransferencia = array_values(array_filter(
                         <?php else: ?>
                             <form method="post" action="<?= e(base_url('?r=presidencia/destacarParlamentar/' . (int) $sessao['id'])) ?>" class="conducao-destaque-form">
                                 <?= csrf_field() ?>
-                                <label class="panel-label" for="destaque-parlamentar">Parlamentar</label>
-                                <select class="field" id="destaque-parlamentar" name="parlamentar_id" required>
-                                    <option value="">Selecione</option>
+                                <span class="conducao-destaque-rotulo" title="Mostrar no telão o parlamentar que pediu a palavra">
+                                    <span class="conducao-destaque-icon" aria-hidden="true">▣</span>
+                                    Telão
+                                </span>
+                                <label class="sr-only" for="destaque-parlamentar">Parlamentar que pediu a palavra</label>
+                                <select class="field conducao-destaque-parlamentar" id="destaque-parlamentar" name="parlamentar_id" required>
+                                    <option value="">Quem pediu a palavra?</option>
                                     <?php foreach ($listaDestaque as $parlamentar): ?>
                                         <?php
                                         $pid = (int) ($parlamentar['id'] ?? 0);
                                         $estaPresente = isset($presentesMap[$pid]);
                                         ?>
-                                        <option value="<?= $pid ?>" <?= $destaqueIdAtual === $pid ? 'selected' : '' ?>>
+                                        <option value="<?= $pid ?>">
                                             <?= e((string) ($parlamentar['nome'] ?? '')) ?>
                                             <?php if (!empty($parlamentar['partido'])): ?>
                                                 — <?= e((string) $parlamentar['partido']) ?>
@@ -662,10 +687,7 @@ $parlamentaresTransferencia = array_values(array_filter(
                                     ?>
                                 </div>
                                 <div class="action-row conducao-destaque-actions">
-                                    <button class="btn btn-primary" type="submit">Mostrar no telão</button>
-                                    <?php if ($destaqueAtual): ?>
-                                        <button class="btn btn-soft" type="submit" formaction="<?= e(base_url('?r=presidencia/limparDestaque/' . (int) $sessao['id'])) ?>" formnovalidate>Limpar</button>
-                                    <?php endif; ?>
+                                    <button class="btn btn-primary" type="submit"><?= $destaqueAtual ? 'Trocar' : 'Mostrar no telão' ?></button>
                                 </div>
                             </form>
                         <?php endif; ?>
@@ -675,7 +697,7 @@ $parlamentaresTransferencia = array_values(array_filter(
                 <nav class="conducao-nav conducao-nav--stage" aria-label="Navegação do roteiro">
                     <form method="post" action="<?= e(base_url('?r=presidencia/voltar/' . (int) $sessao['id'])) ?>">
                         <?= csrf_field() ?>
-                        <button class="btn btn-soft btn-has-icon conducao-nav-btn" type="submit" <?= (!$sessaoIniciada || ($indiceAtual ?? 0) <= 0) ? 'disabled' : '' ?>>
+                        <button class="btn btn-soft btn-has-icon conducao-nav-btn" type="submit" <?= (!$sessaoIniciada || ($indiceAtual ?? 0) <= 0 || $rodadaAberta) ? 'disabled' : '' ?><?= $rodadaAberta ? ' title="Encerre a votação antes de voltar"' : '' ?>>
                             <span class="icon-glyph" aria-hidden="true">&#8592;</span>
                             <span>Anterior</span>
                         </button>
@@ -866,6 +888,7 @@ $parlamentaresTransferencia = array_values(array_filter(
     <?php endif; ?>
     <script src="<?= e(asset_url('assets/js/sessao-timer.js')) ?>" defer></script>
     <script src="<?= e(asset_url('assets/js/conducao-votacao.js')) ?>" defer></script>
+    <script src="<?= e(asset_url('assets/js/conducao-pedidos-palavra.js')) ?>" defer></script>
 </section>
 <?php $content = ob_get_clean(); ?>
 <?php

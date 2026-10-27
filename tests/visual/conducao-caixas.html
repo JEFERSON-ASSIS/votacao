@@ -82,17 +82,15 @@
   </article>
 
   <div>
-    <aside class="conducao-destaque-box conducao-destaque-box--fora">
-      <div class="conducao-destaque-head">
-        <span class="conducao-destaque-icon" aria-hidden="true">▣</span>
-        <div>
-          <div class="conducao-destaque-title">Exibir no telão</div>
-          <div class="conducao-destaque-sub">Selecione o parlamentar que pediu a indicação (ou a palavra)</div>
-        </div>
+    <aside class="conducao-destaque-box conducao-destaque-box--fora conducao-destaque-box--compacta">
+      <div class="conducao-destaque-status">
+        <p class="conducao-destaque-ativo" role="status"><span class="conducao-destaque-ponto" aria-hidden="true"></span> No telão: <strong>Ana Lima</strong> <span>(PSD)</span></p>
+        <div class="sessao-timer sessao-timer--conducao"><span class="sessao-timer-label">Tempo de fala</span><strong class="sessao-timer-valor">03:12</strong></div>
       </div>
       <form class="conducao-destaque-form">
-        <label class="panel-label" for="p1">Parlamentar</label>
-        <select class="field" id="p1"><option>Selecione</option></select>
+        <span class="conducao-destaque-rotulo"><span class="conducao-destaque-icon" aria-hidden="true">▣</span> Telão</span>
+        <label class="sr-only" for="p1">Parlamentar que pediu a palavra</label>
+        <select class="field conducao-destaque-parlamentar" id="p1"><option>Quem pediu a palavra?</option></select>
         <div class="conducao-tempo-field">
           <label class="panel-label" for="t2">Tempo de fala</label>
           <select class="field" id="t2"><option>5 min</option></select>

@@ -30,10 +30,11 @@ final class SessaoVotacaoRodada
 
     public static function findByPasso(int $roteiroPassoId): ?array
     {
+        // Votação cancelada (ex.: condução reiniciada) não conta: o passo pode votar de novo.
         $stmt = DB::conn()->prepare(
-            'SELECT * FROM sessao_votacao_rodadas
-             WHERE roteiro_passo_id = :passo
-             ORDER BY id DESC LIMIT 1'
+            "SELECT * FROM sessao_votacao_rodadas
+             WHERE roteiro_passo_id = :passo AND status <> 'CANCELADA'
+             ORDER BY id DESC LIMIT 1"
         );
         $stmt->execute(['passo' => $roteiroPassoId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -120,6 +121,32 @@ final class SessaoVotacaoRodada
             }
             throw $e;
         }
+    }
+
+    /**
+     * Cancela a votação aberta sem apurar resultado (não vai para histórico nem altera a pauta).
+     * Usado quando a condução é reiniciada. Devolve true se havia votação aberta.
+     */
+    public static function cancelarAberta(int $sessaoId): bool
+    {
+        $aberta = self::findAberta($sessaoId);
+        if (!$aberta) {
+            return false;
+        }
+        DB::conn()->prepare(
+            "UPDATE sessao_votacao_rodadas
+             SET status = 'CANCELADA', encerrada_em = CURRENT_TIMESTAMP
+             WHERE id = :id AND status = 'ABERTA'"
+        )->execute(['id' => (int) $aberta['id']]);
+
+        if (self::findAberta($sessaoId) === null) {
+            $sessao = SessaoCrud::find($sessaoId);
+            if (strtoupper((string) ($sessao['status'] ?? '')) === 'EM_VOTACAO') {
+                Sessao::updateStatus($sessaoId, 'ABERTA');
+            }
+        }
+
+        return true;
     }
 
     /** @return array{resultado: string, resumo: array<string, int>} */

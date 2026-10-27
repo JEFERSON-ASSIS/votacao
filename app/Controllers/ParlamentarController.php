@@ -12,7 +12,9 @@ use App\Helpers\UserPerfil;
 use App\Models\Sessao;
 use App\Models\SessaoConducao;
 use App\Models\SessaoCrud;
+use App\Models\SessaoEvento;
 use App\Models\SessaoItem;
+use App\Models\SessaoPedidoPalavra;
 use App\Models\SessaoVotacaoRodada;
 use App\Models\RodadaEleitor;
 use App\Models\SessaoVoto;
@@ -227,6 +229,62 @@ final class ParlamentarController
         echo "event: reconnect\n";
         echo "data: {}\n\n";
         flush();
+    }
+
+    /** Vereador pede a palavra (acao=pedir) ou desiste (acao=cancelar). */
+    public function pedirPalavra(int $sessaoId): void
+    {
+        Permissao::exigir('parlamentar.pedirPalavra');
+        $json = self::requisicaoAjax();
+        $voltar = route_url('parlamentar/sessao/' . $sessaoId);
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !csrf_check($_POST['csrf_token'] ?? null)) {
+            $this->responderPedidoPalavra($json, $voltar, false, 'Requisição inválida. Recarregue a página.');
+            return;
+        }
+        $sessao = SessaoCrud::find($sessaoId);
+        $status = strtoupper((string) ($sessao['status'] ?? ''));
+        if (!in_array($status, ['ABERTA', 'EM_VOTACAO'], true)) {
+            $this->responderPedidoPalavra($json, $voltar, false, 'A sessão não está em andamento.');
+            return;
+        }
+
+        $userId = (int) Auth::user()['id'];
+        if (!SessaoConducao::usuarioPodeAcompanharComoParlamentar($sessaoId, $userId)) {
+            $this->responderPedidoPalavra($json, $voltar, false, 'Só vereadores presentes podem pedir a palavra.');
+            return;
+        }
+        $nome = (string) (Auth::user()['nome'] ?? 'Parlamentar');
+        if (($_POST['acao'] ?? 'pedir') === 'cancelar') {
+            SessaoPedidoPalavra::cancelar($sessaoId, $userId);
+            SessaoEvento::registrar($sessaoId, 'palavra', $nome . ' cancelou o pedido de palavra');
+        } else {
+            $jaPendente = SessaoPedidoPalavra::pendenteDoUsuario($sessaoId, $userId) !== null;
+            SessaoPedidoPalavra::pedir($sessaoId, $userId);
+            if (!$jaPendente) {
+                SessaoEvento::registrar($sessaoId, 'palavra', $nome . ' pediu a palavra');
+            }
+        }
+
+        $situacao = SessaoPedidoPalavra::situacaoDoUsuario(
+            $sessaoId,
+            $userId,
+            SessaoConducao::destaqueUserId($sessaoId)
+        );
+        $this->responderPedidoPalavra($json, $voltar, true, '', $situacao);
+    }
+
+    private function responderPedidoPalavra(bool $json, string $voltar, bool $ok, string $erro, string $situacao = ''): void
+    {
+        if ($json) {
+            header('Content-Type: application/json; charset=utf-8');
+            if (!$ok) {
+                http_response_code(400);
+            }
+            echo json_encode(['ok' => $ok, 'erro' => $erro, 'situacao' => $situacao], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        header('Location: ' . $voltar . ($ok ? '' : '&conducao_erro=' . rawurlencode($erro)));
+        exit;
     }
 
     public function materia(int $sessaoId, int $itemId): void

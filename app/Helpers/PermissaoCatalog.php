@@ -38,6 +38,7 @@ final class PermissaoCatalog
                     'parlamentar.stream' => 'Sessões — canal ao vivo (SSE)',
                     'parlamentar.materia' => 'Sessões — ver matéria',
                     'parlamentar.votar' => 'Sessões — votar (Sim/Não/Abstenção)',
+                    'parlamentar.pedirPalavra' => 'Sessões — pedir a palavra ao presidente',
                 ],
             ],
             'dashboard' => [
@@ -141,6 +142,9 @@ final class PermissaoCatalog
                     'presidencia.encerrarSessao' => 'Concluir / encerrar sessão',
                     'presidencia.destacarParlamentar' => 'Destacar parlamentar no telão',
                     'presidencia.limparDestaque' => 'Limpar destaque do telão',
+                    'presidencia.pedidosPalavra' => 'Ver pedidos de palavra dos vereadores (JSON)',
+                    'presidencia.concederPalavra' => 'Conceder a palavra (coloca no telão)',
+                    'presidencia.recusarPalavra' => 'Recusar pedido de palavra',
                     'presidencia.transferirConducao' => 'Passar condução',
                     'presidencia.devolverConducao' => 'Devolver condução',
                     'presidencia.retomarConducao' => 'Retomar presidência (titular)',
@@ -199,6 +203,7 @@ final class PermissaoCatalog
             'parlamentar.stream',
             'parlamentar.materia',
             'parlamentar.votar',
+            'parlamentar.pedirPalavra',
         ];
     }
 
@@ -221,6 +226,9 @@ final class PermissaoCatalog
             'presidencia.encerrarSessao',
             'presidencia.destacarParlamentar',
             'presidencia.limparDestaque',
+            'presidencia.pedidosPalavra',
+            'presidencia.concederPalavra',
+            'presidencia.recusarPalavra',
             'presidencia.transferirConducao',
             'presidencia.devolverConducao',
             'presidencia.retomarConducao',

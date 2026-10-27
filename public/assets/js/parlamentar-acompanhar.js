@@ -387,6 +387,9 @@
         setLeitura(d);
         setAnexos(d);
         setVotoSlot(d);
+        if (window.ParlPedidoPalavra && d.pedido_palavra) {
+            window.ParlPedidoPalavra.atualizar(d.pedido_palavra);
+        }
 
         var ata = document.getElementById('parl-ata-panel');
         if (ata) ata.style.display = d.exibir_ata ? '' : 'none';

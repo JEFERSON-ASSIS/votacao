@@ -19,7 +19,9 @@ services:
       resources:
         limits:
           cpus: "1"
-          memory: 512M
+          # Cada tela ao vivo (12 notebooks + telões) prende um processo do Apache
+          # durante a sessão; 512M ficava no limite. Medir com scripts/teste-carga.php.
+          memory: 1G
       restart_policy:
         condition: on-failure
       update_config:

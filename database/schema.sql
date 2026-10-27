@@ -368,6 +368,19 @@ CREATE TABLE IF NOT EXISTS `sessao_votos` (
   CONSTRAINT `fk_voto_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `sessao_pedidos_palavra` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `sessao_id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `status` varchar(12) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'PENDENTE',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `respondido_em` datetime NULL DEFAULT NULL,
+  `respondido_por` int NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_pedido_sessao_status` (`sessao_id`, `status`),
+  KEY `idx_pedido_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `sessao_votos_desempate` (
   `id` int NOT NULL AUTO_INCREMENT,
   `sessao_id` int NOT NULL,

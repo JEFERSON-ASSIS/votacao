@@ -132,6 +132,14 @@ final class DB
         }
 
         try {
+            self::ensurePedidosPalavraTable($pdo);
+        } catch (\Throwable $e) {
+            if (function_exists('app_log')) {
+                app_log('DB: falha ao criar sessao_pedidos_palavra — ' . $e->getMessage());
+            }
+        }
+
+        try {
             if (!$hasCol($pdo, 'sessao_votacao_rodadas', 'tempo_limite_seg')) {
                 if ($driver === 'sqlite') {
                     $pdo->exec('ALTER TABLE sessao_votacao_rodadas ADD COLUMN tempo_limite_seg INTEGER NULL');
@@ -142,6 +150,40 @@ final class DB
         } catch (\Throwable $e) {
             // Tabela pode não existir ainda em ambientes novos.
         }
+    }
+
+    /** Pedidos de palavra dos vereadores ao presidente. */
+    private static function ensurePedidosPalavraTable(PDO $pdo): void
+    {
+        if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+            $pdo->exec(
+                "CREATE TABLE IF NOT EXISTS sessao_pedidos_palavra (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    sessao_id INTEGER NOT NULL,
+                    user_id INTEGER NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'PENDENTE',
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    respondido_em TEXT NULL,
+                    respondido_por INTEGER NULL
+                )"
+            );
+            $pdo->exec('CREATE INDEX IF NOT EXISTS idx_pedido_sessao_status ON sessao_pedidos_palavra (sessao_id, status)');
+            return;
+        }
+        $pdo->exec(
+            "CREATE TABLE IF NOT EXISTS sessao_pedidos_palavra (
+                id INT NOT NULL AUTO_INCREMENT,
+                sessao_id INT NOT NULL,
+                user_id INT NOT NULL,
+                status VARCHAR(12) NOT NULL DEFAULT 'PENDENTE',
+                created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+                respondido_em DATETIME NULL DEFAULT NULL,
+                respondido_por INT NULL DEFAULT NULL,
+                PRIMARY KEY (id),
+                KEY idx_pedido_sessao_status (sessao_id, status),
+                KEY idx_pedido_user (user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
     }
 
     private static function ensureSessaoConducaoTables(PDO $pdo): void

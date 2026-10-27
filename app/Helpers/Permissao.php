@@ -31,6 +31,7 @@ final class Permissao
         $chavesCondutor = [
             'presidencia.conduzir', 'presidencia.avancar', 'presidencia.voltar',
             'presidencia.encerrarSessao', 'presidencia.destacarParlamentar', 'presidencia.limparDestaque',
+            'presidencia.pedidosPalavra', 'presidencia.concederPalavra', 'presidencia.recusarPalavra',
             'presidencia.transferirConducao', 'presidencia.devolverConducao',
             'presidencia.retirarPauta', 'presidencia.desfazerRetirada',
             'votacao.painel', 'votacao.abrirRodada', 'votacao.encerrarRodada', 'votacao.votarRodada',
@@ -62,7 +63,7 @@ final class Permissao
 
         $chavesParlamentarSessao = [
             'parlamentar.sessao', 'parlamentar.estado', 'parlamentar.stream',
-            'parlamentar.materia', 'parlamentar.votar',
+            'parlamentar.materia', 'parlamentar.votar', 'parlamentar.pedirPalavra',
         ];
         if (in_array($chave, $chavesParlamentarSessao, true)) {
             $sessaoId = $chave === 'parlamentar.votar'
