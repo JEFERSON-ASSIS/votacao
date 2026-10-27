@@ -80,6 +80,7 @@ final class PublicoSessaoEstado
             'user_id' => $userId,
             'nome' => (string) ($user['nome'] ?? ''),
             'partido' => trim((string) ($user['partido'] ?? '')),
+            'partido_rotulo' => partido_rotulo((string) ($user['partido'] ?? '')),
             'gabinete' => trim((string) ($user['gabinete'] ?? '')),
             'foto_url' => user_foto_url($user),
             'iniciais' => user_iniciais((string) ($user['nome'] ?? '')),

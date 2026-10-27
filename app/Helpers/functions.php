@@ -562,3 +562,48 @@ function sessao_tempo_formatar(int $segundosRestantes): string
 
     return sprintf('%d:%02d', $m, $s);
 }
+
+/**
+ * Partido para o telão: "UNIÃO – União Brasil". Sigla desconhecida aparece sozinha.
+ * Nomes conforme o registro dos partidos no TSE.
+ */
+function partido_rotulo(?string $sigla): string
+{
+    $sigla = trim((string) $sigla);
+    if ($sigla === '') {
+        return '';
+    }
+    $chave = strtoupper(strtr($sigla, ['Ã' => 'A', 'ã' => 'A', 'Á' => 'A', 'á' => 'A', 'É' => 'E', 'é' => 'E', 'Í' => 'I', 'í' => 'I', 'Ó' => 'O', 'ó' => 'O', 'Ç' => 'C', 'ç' => 'C']));
+    $partidos = [
+        'AGIR' => ['AGIR', 'Agir'],
+        'AVANTE' => ['AVANTE', 'Avante'],
+        'CIDADANIA' => ['CIDADANIA', 'Cidadania'],
+        'DC' => ['DC', 'Democracia Cristã'],
+        'MDB' => ['MDB', 'Movimento Democrático Brasileiro'],
+        'MOBILIZA' => ['MOBILIZA', 'Mobiliza'],
+        'NOVO' => ['NOVO', 'Partido Novo'],
+        'PCDOB' => ['PCdoB', 'Partido Comunista do Brasil'],
+        'PDT' => ['PDT', 'Partido Democrático Trabalhista'],
+        'PL' => ['PL', 'Partido Liberal'],
+        'PODE' => ['PODE', 'Podemos'],
+        'PODEMOS' => ['PODE', 'Podemos'],
+        'PP' => ['PP', 'Progressistas'],
+        'PRD' => ['PRD', 'Partido Renovação Democrática'],
+        'PSB' => ['PSB', 'Partido Socialista Brasileiro'],
+        'PSD' => ['PSD', 'Partido Social Democrático'],
+        'PSDB' => ['PSDB', 'Partido da Social Democracia Brasileira'],
+        'PSOL' => ['PSOL', 'Partido Socialismo e Liberdade'],
+        'PT' => ['PT', 'Partido dos Trabalhadores'],
+        'PV' => ['PV', 'Partido Verde'],
+        'REDE' => ['REDE', 'Rede Sustentabilidade'],
+        'REPUBLICANOS' => ['REPUBLICANOS', 'Republicanos'],
+        'SOLIDARIEDADE' => ['SOLIDARIEDADE', 'Solidariedade'],
+        'UNIAO' => ['UNIÃO', 'União Brasil'],
+    ];
+    if (!isset($partidos[$chave])) {
+        return $sigla;
+    }
+    [$siglaOficial, $nome] = $partidos[$chave];
+
+    return strcasecmp($siglaOficial, $nome) === 0 ? $nome : $siglaOficial . ' – ' . $nome;
+}

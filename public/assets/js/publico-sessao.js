@@ -142,8 +142,9 @@
               escapeHtml(dest.iniciais || '?') +
               '</div>';
         var meta = [];
-        if ((dest.partido || '').trim()) {
-            meta.push('<span class="public-destaque-partido">Partido ' + escapeHtml(dest.partido) + '</span>');
+        var partido = (dest.partido_rotulo || dest.partido || '').trim();
+        if (partido) {
+            meta.push('<span class="public-destaque-partido">' + escapeHtml(partido) + '</span>');
         }
         return (
             '<article class="public-carrossel-slide public-carrossel-slide--destaque">' +
