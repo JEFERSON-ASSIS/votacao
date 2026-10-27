@@ -40,9 +40,14 @@
         liveBadge.classList.toggle('is-offline', !on);
     }
 
+    // O telão consulta o servidor a cada 1 s, sempre — o canal ao vivo é só um extra.
+    // Assim ele nunca depende de uma conexão longa que o proxy/rede pode derrubar em silêncio.
+    var POLL_MS = 1000;
+    var ultimaAtualizacao = Date.now();
+
     function reiniciarPolling() {
-        if (pollTimer) clearInterval(pollTimer);
-        pollTimer = setInterval(buscarEstado, sseAtivo ? 2000 : 600);
+        if (pollTimer) return;
+        pollTimer = setInterval(buscarEstado, POLL_MS);
     }
 
     function placarTelaoHtml(resumo) {
@@ -427,22 +432,47 @@
         renderCarrossel(slides, fixoVotacao);
     }
 
+    var buscando = false;
+    var servidorRespondeuEm = 0;
+
+    function aplicarSeguro(d) {
+        try {
+            aplicarEstado(d);
+            ultimaAtualizacao = Date.now();
+        } catch (err) {
+            // Um erro de desenho não pode travar as próximas atualizações.
+            if (window.console) console.error('[telao] falha ao desenhar estado', err);
+        }
+    }
+
     function buscarEstado() {
-        if (!estadoUrl) return Promise.resolve();
+        if (!estadoUrl || buscando) return Promise.resolve();
+        buscando = true;
+        var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+        var limite = setTimeout(function () {
+            if (ctrl) ctrl.abort();
+        }, 5000);
         return fetch(estadoUrl + (estadoUrl.indexOf('?') >= 0 ? '&' : '?') + '_=' + Date.now(), {
             credentials: 'same-origin',
+            cache: 'no-store',
             headers: { Accept: 'application/json' },
+            signal: ctrl ? ctrl.signal : undefined,
         })
             .then(function (r) {
                 if (!r.ok) throw new Error('HTTP');
                 return r.json();
             })
             .then(function (d) {
-                aplicarEstado(d);
-                if (!sseAtivo) setLive(true);
+                servidorRespondeuEm = Date.now();
+                aplicarSeguro(d);
+                setLive(true);
             })
             .catch(function () {
-                if (!sseAtivo) setLive(false);
+                setLive(false);
+            })
+            .then(function () {
+                clearTimeout(limite);
+                buscando = false;
             });
     }
 
@@ -466,10 +496,14 @@
         });
 
         es.addEventListener('estado', function (ev) {
+            var d = null;
             try {
-                aplicarEstado(JSON.parse(ev.data));
-                setLive(true);
+                d = JSON.parse(ev.data);
             } catch (err) { /* ignore */ }
+            if (d) {
+                aplicarSeguro(d);
+                setLive(true);
+            }
         });
 
         es.addEventListener('reconnect', function () {
@@ -521,4 +555,18 @@
     buscarEstado();
     reiniciarPolling();
     conectarStream();
+
+    // Vigia: se passar 15 s sem nenhuma atualização, refaz a consulta e o canal ao vivo;
+    // depois de 60 s com o servidor respondendo mas a tela sem mudar, recarrega a página.
+    setInterval(function () {
+        var parado = Date.now() - ultimaAtualizacao;
+        // Só recarrega se o servidor está respondendo (senão o telão ficaria numa página de erro).
+        if (parado > 60000 && Date.now() - servidorRespondeuEm < 5000) {
+            window.location.reload();
+        } else if (parado > 15000) {
+            buscando = false;
+            buscarEstado();
+            conectarStream();
+        }
+    }, 5000);
 })();
