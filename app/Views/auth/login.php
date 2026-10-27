@@ -51,8 +51,8 @@ $inicioNome = implode(' ', $partesNome);
     <section class="login-acesso">
         <div class="login-conteudo">
             <header class="login-cabecalho">
-                <h2>Entrar</h2>
-                <p>Use o e-mail e a senha cadastrados na Câmara.</p>
+                <h2>Acesse sua conta</h2>
+                <p>Entre com o e-mail e a senha cadastrados pela secretaria da Câmara.</p>
             </header>
 
             <?php if (!empty($error)): ?>
@@ -63,13 +63,17 @@ $inicioNome = implode(' ', $partesNome);
                 <?= csrf_field() ?>
                 <div class="login-campo">
                     <label for="email">E-mail</label>
-                    <input id="email" name="email" type="email" placeholder="seu@email.com"
-                           autocomplete="username" value="<?= e($email ?? '') ?>" required>
+                    <div class="login-entrada">
+                        <svg class="login-entrada-icone" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 6.5 8.5 6.5 8.5-6.5"/></svg>
+                        <input id="email" name="email" type="email" placeholder="nome@exemplo.com"
+                               autocomplete="username" value="<?= e($email ?? '') ?>" required>
+                    </div>
                 </div>
                 <div class="login-campo">
                     <label for="senha">Senha</label>
-                    <div class="login-senha">
-                        <input id="senha" name="senha" type="password" placeholder="Sua senha"
+                    <div class="login-senha login-entrada">
+                        <svg class="login-entrada-icone" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>
+                        <input id="senha" name="senha" type="password" placeholder="Digite sua senha"
                                autocomplete="current-password" required>
                         <button type="button" class="login-ver-senha" aria-controls="senha"
                                 aria-pressed="false" aria-label="Mostrar senha" hidden>
@@ -79,7 +83,7 @@ $inicioNome = implode(' ', $partesNome);
                     </div>
                 </div>
                 <button class="login-entrar" type="submit">Entrar</button>
-                <p class="login-ajuda">Esqueceu a senha? Fale com a secretaria da Câmara.</p>
+                <p class="login-ajuda">Esqueceu a senha? <strong>Fale com a secretaria da Câmara.</strong></p>
             </form>
 
             <hr class="login-divisor">

@@ -7377,3 +7377,112 @@ body.public-page--telao .public-hero-mark--brasao { background: #fff; }
     .inst-casa { flex-direction: row; }
     .inst-casa div { align-items: flex-start; text-align: left; }
 }
+
+/* =====================================================================
+   Login — lado do formulário, no mesmo tom institucional
+   ===================================================================== */
+.login-acesso { background: #eef2f7; }
+.login-conteudo {
+    max-width: 440px;
+    padding: clamp(28px, 4.5vh, 44px) clamp(24px, 3vw, 40px);
+    background: #fff;
+    border: 1px solid #dbe3ec;
+    border-top: 4px solid var(--login-azul);
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(4, 48, 90, 0.06), 0 18px 40px -18px rgba(4, 48, 90, 0.28);
+}
+.login-cabecalho h2 {
+    margin: 0 0 8px;
+    font-family: 'Archivo', 'Public Sans', sans-serif;
+    font-variation-settings: 'wdth' 106;
+    font-stretch: 106%;
+    font-size: clamp(26px, 2.4vw, 32px);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--login-texto);
+}
+.login-cabecalho p { margin: 0; font-size: 15px; line-height: 1.5; color: var(--login-texto-2); }
+
+.login-campo label { font-size: 14px; font-weight: 600; color: var(--login-texto); }
+.login-entrada { position: relative; }
+.login-entrada-icone {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #7b8ba0;
+    pointer-events: none;
+    transition: color .15s;
+}
+.login-entrada input {
+    width: 100%;
+    height: 52px;
+    padding-left: 46px;
+    font-size: 16px;
+    color: var(--login-texto);
+    background: #f8fafc;
+    border: 1.5px solid #cfd8e3;
+    border-radius: 10px;
+    transition: border-color .15s, box-shadow .15s, background-color .15s;
+}
+.login-senha.login-entrada input { padding-right: 52px; }
+.login-entrada input::placeholder { color: #94a3b8; }
+.login-entrada input:hover { border-color: #aebccc; }
+.login-entrada input:focus {
+    outline: none;
+    background: #fff;
+    border-color: var(--login-azul);
+    box-shadow: 0 0 0 4px rgba(242, 194, 48, 0.35);
+}
+.login-entrada:focus-within .login-entrada-icone { color: var(--login-azul); }
+/* Preenchimento automático do navegador sem o fundo azulado */
+.login-entrada input:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 40px #f8fafc inset;
+    -webkit-text-fill-color: var(--login-texto);
+}
+
+.login-entrar {
+    height: 52px;
+    font-size: 16px;
+    font-weight: 700;
+    border-radius: 10px;
+    background: var(--login-azul);
+    box-shadow: inset 0 -3px 0 var(--login-dourado);
+    transition: background-color .15s, transform .05s;
+}
+.login-entrar:hover { background: #022a4d; }
+.login-entrar:active { transform: translateY(1px); }
+
+.login-ajuda { font-size: 14px; color: var(--login-texto-2); }
+.login-ajuda strong { font-weight: 600; color: var(--login-azul); }
+
+.login-erro {
+    border-radius: 10px;
+    border-left: 4px solid #dc2626;
+}
+
+.login-sessao {
+    border-radius: 12px;
+    border: 1px solid #dbe3ec;
+    background: #f8fafc;
+}
+.login-sessao--ao-vivo { border-color: #bbe5c7; background: #f2fbf4; }
+.login-sessao-rotulo {
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 13px;
+    font-weight: 700;
+}
+.login-sessao-acao {
+    padding: 7px 14px;
+    border-radius: 999px;
+    background: var(--login-azul);
+    color: #fff;
+    font-size: 13px;
+}
+.login-copy { color: #6b7a8d; }
+
+@media (max-width: 960px) {
+    .login-acesso { padding: 20px 16px 24px; }
+    .login-conteudo { padding: 26px 20px; }
+}
