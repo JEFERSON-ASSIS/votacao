@@ -19,7 +19,49 @@ final class PublicoController
             'sessao' => $sessao,
             'estadoInicial' => $estado,
             'aguardandoUrl' => route_url('publico/atual'),
+            'espera' => $sessao ? null : self::esperaPayload(),
         ]);
+    }
+
+    /**
+     * Tela de espera do telão: próxima sessão (já criada, ainda não iniciada,
+     * ou a próxima pela data) e as matérias da pauta.
+     *
+     * @return array{sessao: ?array, quando: string, nome: string, pauta: list<array{rotulo: string, ementa: string}>}
+     */
+    private static function esperaPayload(): array
+    {
+        $vazio = ['sessao' => null, 'quando' => '', 'nome' => '', 'pauta' => []];
+        try {
+            $prox = Sessao::proxima() ?? Sessao::criadaAguardando();
+            if (!$prox) {
+                return $vazio;
+            }
+            $pauta = [];
+            foreach (Sessao::pauta((int) $prox['id']) as $item) {
+                $numero = trim((string) ($item['numero'] ?? ''));
+                $ano = trim((string) ($item['ano'] ?? ''));
+                $tipo = trim((string) ($item['tipo_materia'] ?? ''));
+                $rotulo = $tipo !== '' && $numero !== ''
+                    ? $tipo . ' nº ' . $numero . ($ano !== '' ? '/' . $ano : '')
+                    : trim((string) ($item['titulo'] ?? ''));
+                $ementa = trim(preg_replace('/\s+/u', ' ', strip_tags((string) ($item['ementa'] ?? ''))) ?? '');
+                if ($rotulo === '' && $ementa === '') {
+                    continue;
+                }
+                $pauta[] = ['rotulo' => $rotulo, 'ementa' => $ementa];
+            }
+
+            return [
+                'sessao' => $prox,
+                'quando' => sessao_quando($prox),
+                'nome' => sessao_nome_curto($prox),
+                'pauta' => $pauta,
+            ];
+        } catch (\Throwable $e) {
+            app_log('telão: espera sem próxima sessão — ' . $e->getMessage());
+            return $vazio;
+        }
     }
 
     /** JSON: sessão em andamento (para o telão aguardando atualizar sozinho). */
@@ -27,12 +69,13 @@ final class PublicoController
     {
         header('Content-Type: application/json; charset=utf-8');
         $sessao = Sessao::atual();
-        if (!$sessao) {
+        $status = strtoupper((string) ($sessao['status'] ?? ''));
+        // Só "em andamento" tira o telão da espera (sessão criada ainda não iniciada não abre).
+        if (!$sessao || !in_array($status, ['ABERTA', 'EM_VOTACAO'], true)) {
             echo json_encode(['ok' => false, 'sessao_id' => 0], JSON_UNESCAPED_UNICODE);
             return;
         }
 
-        $status = strtoupper((string) ($sessao['status'] ?? ''));
         echo json_encode([
             'ok' => true,
             'sessao_id' => (int) $sessao['id'],

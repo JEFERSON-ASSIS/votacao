@@ -15,6 +15,19 @@ final class Sessao
         return $row ?: null;
     }
 
+    /** Sessão já criada e ainda não iniciada (a mais próxima pela data; sem data por último). */
+    public static function criadaAguardando(): ?array
+    {
+        $stmt = DB::conn()->query(
+            "SELECT * FROM sessoes
+             WHERE status = 'CRIADO'
+             ORDER BY (data_sessao IS NULL) ASC, ABS(DATEDIFF(data_sessao, CURDATE())) ASC, id DESC
+             LIMIT 1"
+        );
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
     /** Próxima sessão marcada (hoje em diante), para o aviso da tela de login. */
     public static function proxima(): ?array
     {

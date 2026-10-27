@@ -559,7 +559,17 @@
 
     // Vigia: se passar 15 s sem nenhuma atualização, refaz a consulta e o canal ao vivo;
     // depois de 60 s com o servidor respondendo mas a tela sem mudar, recarrega a página.
+    // Telão no endereço fixo: 2 min depois de a sessão terminar, volta para a tela de espera.
+    var enderecoFixo = !/r=publico(%2F|\/)sessao/i.test(window.location.search);
+    var encerradaDesde = 0;
+
     setInterval(function () {
+        if (enderecoFixo && ultimoEstado && ultimoEstado.status_sessao === 'ENCERRADA') {
+            if (!encerradaDesde) encerradaDesde = Date.now();
+            if (Date.now() - encerradaDesde > 120000) window.location.reload();
+        } else {
+            encerradaDesde = 0;
+        }
         var parado = Date.now() - ultimaAtualizacao;
         // Só recarrega se o servidor está respondendo (senão o telão ficaria numa página de erro).
         if (parado > 60000 && Date.now() - servidorRespondeuEm < 5000) {

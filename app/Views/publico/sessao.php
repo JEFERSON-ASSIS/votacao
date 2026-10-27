@@ -56,10 +56,50 @@ $progressoLabel = (string) ($estadoInicial['progresso_label'] ?? '');
     </header>
 
     <?php if (!$sessao): ?>
-        <div class="public-telao-empty" id="publico-aguardando">
-            <p class="public-telao-empty-title">Nenhuma sessão em andamento no telão</p>
-            <p>O presidente precisa <strong>iniciar a sessão</strong> (status Em andamento). Esta tela atualiza sozinha.</p>
-            <p class="public-telao-empty-hint" id="publico-aguardando-hint">Verificando a cada 3 segundos…</p>
+        <?php
+        $espera = $espera ?? ['sessao' => null, 'quando' => '', 'nome' => '', 'pauta' => []];
+        $pautaEspera = $espera['pauta'] ?? [];
+        $maxPauta = 5;
+        $brasaoUrl = asset_url('assets/img/brasao-vera-mt.png');
+        ?>
+        <div class="telao-espera" id="publico-aguardando" data-tem-proxima="<?= $espera['sessao'] ? '1' : '0' ?>">
+            <img class="telao-espera-marca" src="<?= e($brasaoUrl) ?>" alt="" aria-hidden="true">
+
+            <section class="telao-espera-slide telao-espera-slide--casa is-ativo" aria-label="Câmara Municipal de Vera">
+                <img class="telao-espera-brasao" src="<?= e($brasaoUrl) ?>" alt="Brasão do Município de Vera - MT">
+                <p class="telao-espera-casa"><strong>Câmara Municipal de Vera</strong><span>Estado de Mato Grosso</span></p>
+                <h1 class="telao-espera-titulo"><span>Plenário</span><span class="telao-espera-titulo-b">Vera</span></h1>
+                <p class="telao-espera-lema">Sistema de votação eletrônica do Poder Legislativo Municipal.</p>
+            </section>
+
+            <?php if ($espera['sessao']): ?>
+                <section class="telao-espera-slide telao-espera-slide--proxima" aria-label="Próxima sessão">
+                    <p class="telao-espera-rotulo">Próxima sessão</p>
+                    <h2 class="telao-espera-sessao"><?= e((string) $espera['nome']) ?></h2>
+                    <?php if ($espera['quando'] !== ''): ?>
+                        <p class="telao-espera-quando"><?= e((string) $espera['quando']) ?></p>
+                    <?php endif; ?>
+                    <?php if ($pautaEspera !== []): ?>
+                        <ol class="telao-espera-pauta">
+                            <?php foreach (array_slice($pautaEspera, 0, $maxPauta) as $item): ?>
+                                <li>
+                                    <strong><?= e($item['rotulo']) ?></strong>
+                                    <?php if ($item['ementa'] !== ''): ?>
+                                        <span><?= e(mb_strimwidth($item['ementa'], 0, 150, '…')) ?></span>
+                                    <?php endif; ?>
+                                </li>
+                            <?php endforeach; ?>
+                        </ol>
+                        <?php if (count($pautaEspera) > $maxPauta): ?>
+                            <p class="telao-espera-mais">e mais <?= count($pautaEspera) - $maxPauta ?> matérias na pauta</p>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <p class="telao-espera-mais">A pauta será divulgada em breve.</p>
+                    <?php endif; ?>
+                </section>
+            <?php endif; ?>
+
+            <p class="telao-espera-status" id="publico-aguardando-hint" aria-live="polite">Aguardando o início da sessão</p>
         </div>
         <script>
         (function () {
@@ -73,18 +113,31 @@ $progressoLabel = (string) ($estadoInicial['progresso_label'] ?? '');
                     .then(function (r) { return r.json(); })
                     .then(function (d) {
                         if (d && d.ok && d.sessao_id) {
-                            if (hint) hint.textContent = 'Sessão encontrada: ' + (d.titulo || '') + ' — abrindo…';
-                            window.location.href = d.url || (window.location.pathname + '?r=publico/sessao/' + d.sessao_id);
+                            if (hint) hint.textContent = 'A sessão começou. Abrindo…';
+                            window.location.reload(); // o endereço fixo (publico/index) abre a sessão em andamento
                             return;
                         }
-                        if (hint) hint.textContent = 'Ainda sem sessão aberta. Verificando novamente…';
+                        if (hint) hint.textContent = 'Aguardando o início da sessão';
                     })
                     .catch(function () {
-                        if (hint) hint.textContent = 'Falha ao consultar. Tentando de novo…';
+                        if (hint) hint.textContent = 'Aguardando o início da sessão (reconectando)';
                     });
             }
             checar();
             setInterval(checar, 3000);
+
+            // Alterna entre a tela da Câmara e a da próxima sessão a cada 15 s.
+            var slides = document.querySelectorAll('.telao-espera-slide');
+            var atual = 0;
+            if (slides.length > 1) {
+                setInterval(function () {
+                    slides[atual].classList.remove('is-ativo');
+                    atual = (atual + 1) % slides.length;
+                    slides[atual].classList.add('is-ativo');
+                }, 15000);
+            }
+            // Recarrega a cada 10 min para pegar mudanças na pauta da próxima sessão.
+            setTimeout(function () { window.location.reload(); }, 600000);
         })();
         </script>
     <?php else: ?>
