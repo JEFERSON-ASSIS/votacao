@@ -15,13 +15,13 @@ final class Sessao
         return $row ?: null;
     }
 
-    /** Sessão já criada e ainda não iniciada (a mais próxima pela data; sem data por último). */
+    /** Sessão já criada, ainda não iniciada e sem data marcada (data passada não conta). */
     public static function criadaAguardando(): ?array
     {
         $stmt = DB::conn()->query(
             "SELECT * FROM sessoes
-             WHERE status = 'CRIADO'
-             ORDER BY (data_sessao IS NULL) ASC, ABS(DATEDIFF(data_sessao, CURDATE())) ASC, id DESC
+             WHERE status = 'CRIADO' AND data_sessao IS NULL
+             ORDER BY id DESC
              LIMIT 1"
         );
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
