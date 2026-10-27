@@ -57,6 +57,16 @@ final class Router
             }
         }
 
+        // Consultas ao vivo só leem: soltam a trava do login logo, para não
+        // segurarem as outras chamadas da mesma tela (voto, avançar passo...).
+        $consultasAoVivo = [
+            'parlamentar.estado', 'parlamentar.votacaoativa', 'presidencia.pedidosPalavra',
+            'presidencia.estadoConducao', 'votacao.estadoRodada', 'publico.estado', 'publico.atual',
+        ];
+        if (in_array($chaveRota, $consultasAoVivo, true) && session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+
         $params = array_map(static function (string $param): int|string {
             return ctype_digit($param) ? (int) $param : $param;
         }, array_slice($parts, 2));

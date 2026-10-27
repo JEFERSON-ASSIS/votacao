@@ -36,6 +36,13 @@ register_shutdown_function(static function (): void {
 
 $sessionName = (string) (($config['session']['name'] ?? null) ?: 'plenario_session');
 session_name($sessionName);
+// Login no Redis com trava: uma tela ao vivo faz várias consultas ao mesmo tempo.
+// Com espera curta (40 ms) a consulta que não pegava a trava "perdia" o login e a
+// tela mostrava "Sua sessão expirou". Espera até 5 s.
+if (ini_get('session.save_handler') === 'redis') {
+    @ini_set('redis.session.lock_retries', '100');
+    @ini_set('redis.session.lock_wait_time', '50000');
+}
 session_start();
 
 spl_autoload_register(static function (string $class): void {
