@@ -7239,3 +7239,12 @@ body.public-page--telao .public-hero-mark--brasao { background: #fff; }
 .public-vereador-grid--carrossel:not(.public-vereador-grid--denso) .public-vereador-info span {
     font-size: clamp(0.7rem, 0.9vw, 0.85rem);
 }
+/* Posição na fila de pedidos de palavra (1º, 2º, 3º...) */
+.conducao-pedido-pos {
+    flex-shrink: 0;
+    min-width: 30px;
+    font-size: 15px;
+    font-weight: 800;
+    text-align: center;
+    color: var(--pedido-cor, #b45309);
+}

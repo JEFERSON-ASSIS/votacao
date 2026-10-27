@@ -52,9 +52,13 @@
         return f;
     }
 
-    function itemPedido(p, novo) {
+    function itemPedido(p, novo, posicao) {
         var li = el('li', 'conducao-pedido' + (novo ? ' is-novo' : ''));
         li.setAttribute('data-id', p.id);
+
+        var num = el('span', 'conducao-pedido-pos', String(posicao) + 'º');
+        num.title = posicao + 'º a pedir a palavra';
+        li.appendChild(num);
 
         var foto = el('img', 'conducao-pedido-foto');
         foto.src = p.foto_url || '';
@@ -123,11 +127,11 @@
         var chegouNovo = false;
         var idsAtuais = {};
         lista.innerHTML = '';
-        pedidos.forEach(function (p) {
+        pedidos.forEach(function (p, i) {
             idsAtuais[p.id] = true;
             var novo = !vistos[p.id] && !primeiraCarga;
             if (novo) chegouNovo = true;
-            lista.appendChild(itemPedido(p, novo || (primeiraCarga && (p.desde_seg || 0) < 10)));
+            lista.appendChild(itemPedido(p, novo || (primeiraCarga && (p.desde_seg || 0) < 10), i + 1));
         });
         vistos = idsAtuais;
 
