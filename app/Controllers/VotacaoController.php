@@ -487,6 +487,12 @@ final class VotacaoController
             return;
         }
 
+        $sessaoPresenca = SessaoCrud::find($sessaoId);
+        if (!$sessaoPresenca || strtoupper((string) ($sessaoPresenca['status'] ?? '')) === 'ENCERRADA') {
+            header('Location: ' . base_url('?r=votacao/index&presenca_erro=sessao_encerrada'));
+            exit;
+        }
+
         $userId = (int) ($_POST['user_id'] ?? 0);
         $presente = (string) ($_POST['presente'] ?? '1') === '1';
         $alvo = $userId > 0 ? User::find($userId) : null;

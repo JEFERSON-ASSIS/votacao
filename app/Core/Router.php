@@ -48,6 +48,12 @@ final class Router
             return;
         }
 
+        try {
+            Auth::sincronizar();
+        } catch (\Throwable $e) {
+            app_log('auth: não sincronizou o usuário — ' . $e->getMessage());
+        }
+
         $chaveRota = PermissaoCatalog::chaveRota($controller, $action);
         if (!in_array($chaveRota, PermissaoCatalog::rotasPublicas(), true)) {
             Auth::requireLogin();

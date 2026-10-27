@@ -5,6 +5,7 @@ namespace App\Controllers;
 
 use App\Core\Auth;
 use App\Core\View;
+use App\Helpers\LoginLimite;
 use App\Models\Sessao;
 use App\Models\User;
 
@@ -18,26 +19,27 @@ final class AuthController
             $email = trim((string) ($_POST['email'] ?? ''));
             $senha = (string) ($_POST['senha'] ?? '');
 
-            app_log('login: POST recebido email=' . ($email !== '' ? $email : '(vazio)'));
-
             try {
                 if ($email === '') {
                     $error = 'Informe o e-mail.';
                     app_log('login: e-mail vazio');
+                } elseif (LoginLimite::bloqueado($email)) {
+                    app_log('login: bloqueado por excesso de tentativas');
+                    $error = 'Muitas tentativas com senha errada. Aguarde 15 minutos ou fale com a secretaria da Câmara.';
                 } else {
-                    app_log('login: buscando usuário no banco...');
                     $user = User::findByEmail($email);
+                    // Confere a senha mesmo sem usuário, para o tempo de resposta não revelar quais e-mails existem.
+                    $hash = (string) ($user['senha_hash'] ?? '$2y$10$fNWhbJ91Gclxpfb.PEbQq.fdpHdO2vYbGCevbDKW1cc8Eu4d223c2');
+                    $senhaOk = password_verify($senha, $hash);
 
-                    if (!$user) {
-                        app_log('login: usuário não encontrado para email=' . $email);
-                        $error = 'Credenciais inválidas.';
-                    } elseif (!password_verify($senha, (string) ($user['senha_hash'] ?? ''))) {
-                        app_log('login: senha inválida para user_id=' . (int) ($user['id'] ?? 0));
-                        $error = 'Credenciais inválidas.';
+                    if (!$user || !$senhaOk) {
+                        app_log('login: credenciais inválidas');
+                        LoginLimite::registrarFalha($email);
+                        $error = 'E-mail ou senha incorretos.';
                     } else {
                         app_log('login: ok user_id=' . (int) $user['id'] . ' role=' . (string) ($user['role'] ?? ''));
+                        LoginLimite::limpar($email);
                         Auth::login($user);
-                        app_log('login: sessão criada, redirecionando dashboard');
                         redirect_route('dashboard/index');
                     }
                 }
@@ -47,7 +49,7 @@ final class AuthController
                     . ' — ' . $e->getMessage()
                     . ' @ ' . $e->getFile() . ':' . $e->getLine()
                 );
-                $error = 'Erro ao entrar: ' . $e->getMessage();
+                $error = 'Não foi possível entrar agora. Tente novamente em instantes.';
             }
         }
 

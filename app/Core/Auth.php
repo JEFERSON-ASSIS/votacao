@@ -50,9 +50,31 @@ final class Auth
         }
     }
 
+    /**
+     * Relê o usuário no banco a cada acesso: perfil trocado, permissão removida
+     * ou conta excluída valem na hora, sem esperar a pessoa sair do sistema.
+     */
+    public static function sincronizar(): void
+    {
+        if (!self::check()) {
+            return;
+        }
+        $user = \App\Models\User::find((int) ($_SESSION['user']['id'] ?? 0));
+        if (!$user) {
+            self::logout();
+            return;
+        }
+        $role = UserPerfil::normalize((string) ($user['role'] ?? ''));
+        $_SESSION['user']['nome'] = (string) ($user['nome'] ?? '');
+        $_SESSION['user']['email'] = (string) ($user['email'] ?? '');
+        $_SESSION['user']['role'] = $role;
+        Permissao::carregarSessao((int) $user['id'], $role);
+    }
+
     public static function login(array $user): void
     {
         session_regenerate_id(true);
+        unset($_SESSION['_csrf']);
         $role = UserPerfil::normalize((string) $user['role']);
         $_SESSION['user'] = [
             'id' => (int) $user['id'],
@@ -65,7 +87,7 @@ final class Auth
 
     public static function logout(): void
     {
-        unset($_SESSION['user'], $_SESSION['permissoes'], $_SESSION['permissoes_personalizado']);
+        unset($_SESSION['user'], $_SESSION['permissoes'], $_SESSION['permissoes_personalizado'], $_SESSION['_csrf']);
         session_regenerate_id(true);
     }
 }

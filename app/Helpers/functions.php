@@ -332,7 +332,7 @@ function materia_extrair_url(?string $texto): ?string
     if ($t === '') {
         return null;
     }
-    if (filter_var($t, FILTER_VALIDATE_URL)) {
+    if (filter_var($t, FILTER_VALIDATE_URL) && url_http_segura($t)) {
         return $t;
     }
     if (preg_match('#\bhttps?://[^\s<>"\']+#i', $t, $m)) {
@@ -475,7 +475,10 @@ function materia_sapl_url_absoluta(string $path, ?string $referenciaUrl = null):
         return '';
     }
     if (filter_var($path, FILTER_VALIDATE_URL)) {
-        return $path;
+        return url_http_segura($path) ? $path : '';
+    }
+    if (preg_match('#^[a-z][a-z0-9+.-]*:#i', $path)) {
+        return ''; // javascript:, data: etc. nunca viram link
     }
     if ($referenciaUrl !== null && preg_match('#^(https?://[^/]+)#i', $referenciaUrl, $m)) {
         return $m[1] . (str_starts_with($path, '/') ? $path : '/' . $path);
@@ -606,4 +609,10 @@ function partido_rotulo(?string $sigla): string
     [$siglaOficial, $nome] = $partidos[$chave];
 
     return strcasecmp($siglaOficial, $nome) === 0 ? $nome : $siglaOficial . ' – ' . $nome;
+}
+
+/** Só links http(s): bloqueia javascript:, data: e afins em href/src. */
+function url_http_segura(string $url): bool
+{
+    return in_array(strtolower((string) parse_url($url, PHP_URL_SCHEME)), ['http', 'https'], true);
 }

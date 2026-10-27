@@ -18,7 +18,11 @@ try {
     }
     http_response_code(500);
     header('Content-Type: text/plain; charset=utf-8');
-    echo 'Erro interno: ' . $e->getMessage() . "\n";
-    echo 'Arquivo: ' . $e->getFile() . ':' . $e->getLine() . "\n";
-    echo "Veja também logs/app.log e error_log no servidor.\n";
+    // Detalhes só no log (e na tela apenas em modo de depuração local).
+    if (function_exists('config') && config('debug')) {
+        echo 'Erro interno: ' . $e->getMessage() . "\n";
+        echo 'Arquivo: ' . $e->getFile() . ':' . $e->getLine() . "\n";
+    } else {
+        echo "Ocorreu um erro inesperado. Tente novamente em instantes.\n";
+    }
 }

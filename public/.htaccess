@@ -4,9 +4,24 @@
     # XAMPP local: descomente se o site estiver em /producao/votacao/public/
     # RewriteBase /producao/votacao/public/
 
+    # Arquivos enviados nunca são executados nem abertos como página.
+    RewriteRule ^uploads/.*\.(php\d?|phtml|phar|pht|phps|cgi|pl|py|sh|html?|xhtml|shtml|svgz?|js|htaccess)$ - [F,NC,L]
+
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
     RewriteRule ^ index.php [QSA,L]
+</IfModule>
+
+# Cabeçalhos de segurança
+<IfModule mod_headers.c>
+    # Só o próprio sistema pode se embutir (PDFs da pauta); outros sites não
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Content-Security-Policy "frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self'"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "same-origin"
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    # Só HTTPS (o navegador ignora em http, então não afeta o XAMPP)
+    Header always set Strict-Transport-Security "max-age=31536000"
 </IfModule>

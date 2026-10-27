@@ -56,14 +56,34 @@ final class PautaController
                 if (!is_dir($uploadDir)) {
                     @mkdir($uploadDir, 0775, true);
                 }
+                // Só documentos e imagens, com nome aleatório (nunca o nome enviado).
                 $storeUpload = function (string $field) use ($uploadDir): string {
                     if (empty($_FILES[$field]) || !is_array($_FILES[$field]) || (int) ($_FILES[$field]['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
                         return '';
                     }
-                    $name = basename((string) $_FILES[$field]['name']);
-                    $safe = preg_replace('/[^a-zA-Z0-9._-]+/', '_', $name) ?: ('arquivo_' . time());
-                    $target = $uploadDir . '/' . date('Ymd_His') . '_' . $safe;
-                    if (@move_uploaded_file((string) $_FILES[$field]['tmp_name'], $target)) {
+                    $tmp = (string) $_FILES[$field]['tmp_name'];
+                    $tamanho = (int) ($_FILES[$field]['size'] ?? 0);
+                    $ext = strtolower((string) pathinfo((string) $_FILES[$field]['name'], PATHINFO_EXTENSION));
+                    $permitidas = ['pdf', 'doc', 'docx', 'odt', 'rtf', 'txt', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'webp'];
+                    if (!is_uploaded_file($tmp) || $tamanho < 1 || $tamanho > 20 * 1024 * 1024 || !in_array($ext, $permitidas, true)) {
+                        app_log('[PautaController::form] upload recusado campo=' . $field . ' ext=' . $ext);
+                        return '';
+                    }
+                    if (function_exists('finfo_open')) {
+                        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                        $mime = $finfo ? (string) finfo_file($finfo, $tmp) : '';
+                        if ($finfo) {
+                            finfo_close($finfo);
+                        }
+                        $imagem = in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true);
+                        if (preg_match('/php|html|x-executable|x-dosexec|x-sharedlib|svg|javascript/i', $mime)
+                            || ($imagem && !str_starts_with($mime, 'image/'))) {
+                            app_log('[PautaController::form] upload recusado campo=' . $field . ' mime=' . $mime);
+                            return '';
+                        }
+                    }
+                    $target = $uploadDir . '/' . date('Ymd') . '_' . bin2hex(random_bytes(12)) . '.' . $ext;
+                    if (@move_uploaded_file($tmp, $target)) {
                         return str_replace(dirname(__DIR__, 2) . '/', '', $target);
                     }
                     return '';

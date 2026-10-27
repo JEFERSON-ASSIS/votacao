@@ -132,6 +132,18 @@ final class DB
         }
 
         try {
+            $pdo->exec(
+                $driver === 'sqlite'
+                    ? 'CREATE TABLE IF NOT EXISTS login_falhas (id INTEGER PRIMARY KEY AUTOINCREMENT, chave TEXT NOT NULL, criado_em TEXT NOT NULL)'
+                    : 'CREATE TABLE IF NOT EXISTS login_falhas (id INT NOT NULL AUTO_INCREMENT, chave VARCHAR(80) NOT NULL, criado_em DATETIME NOT NULL, PRIMARY KEY (id), KEY idx_login_falhas (chave, criado_em)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
+            );
+        } catch (\Throwable $e) {
+            if (function_exists('app_log')) {
+                app_log('DB: falha ao criar login_falhas — ' . $e->getMessage());
+            }
+        }
+
+        try {
             self::ensurePedidosPalavraTable($pdo);
         } catch (\Throwable $e) {
             if (function_exists('app_log')) {

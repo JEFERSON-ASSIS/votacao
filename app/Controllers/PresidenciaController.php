@@ -207,7 +207,7 @@ final class PresidenciaController
 
     public function destacarParlamentar(int $sessaoId): void
     {
-        Permissao::exigir('presidencia.conduzir');
+        Permissao::exigir('presidencia.destacarParlamentar');
         if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !csrf_check($_POST['csrf_token'] ?? null)) {
             http_response_code(400);
             echo 'Requisição inválida.';
@@ -241,7 +241,7 @@ final class PresidenciaController
 
     public function limparDestaque(int $sessaoId): void
     {
-        Permissao::exigir('presidencia.conduzir');
+        Permissao::exigir('presidencia.limparDestaque');
         if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !csrf_check($_POST['csrf_token'] ?? null)) {
             http_response_code(400);
             echo 'Requisição inválida.';

@@ -36,6 +36,8 @@ final class Permissao
             'presidencia.retirarPauta', 'presidencia.desfazerRetirada',
             'votacao.painel', 'votacao.abrirRodada', 'votacao.encerrarRodada', 'votacao.votarRodada',
             'votacao.estadoRodada', 'votacao.streamRodada', 'votacao.situacaoEleitor',
+            // Mudam a sessão em andamento: só quem está conduzindo.
+            'roteiro.resetarExecucao', 'votacao.encerrar', 'votacao.presenca',
         ];
         if (in_array($chave, $chavesCondutor, true)) {
             $sessaoId = SessaoConducao::sessaoIdDaRota($chave);
