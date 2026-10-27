@@ -7248,3 +7248,132 @@ body.public-page--telao .public-hero-mark--brasao { background: #fff; }
     text-align: center;
     color: var(--pedido-cor, #b45309);
 }
+
+/* =====================================================================
+   Login institucional (Câmara Municipal de Vera)
+   Sóbrio, como os sistemas de governo: identificação da Casa no topo,
+   título forte, brasão grande e discreto ao fundo.
+   ===================================================================== */
+.inst {
+    --inst-azul: #04305a;
+    --inst-azul-2: #0b4278;
+    --inst-ouro: #f2c230;
+    --inst-tinta: rgba(255, 255, 255, 0.78);
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 0;
+    padding: clamp(32px, 6vh, 56px) clamp(36px, 5vw, 72px);
+    background: linear-gradient(160deg, var(--inst-azul) 0%, var(--inst-azul-2) 100%);
+    border-top: 6px solid var(--inst-ouro);
+    isolation: isolate;
+}
+.inst::before { display: none; }
+
+.inst-marca-dagua {
+    position: absolute;
+    right: -12%;
+    bottom: -14%;
+    width: min(70%, 620px);
+    opacity: 0.07;
+    filter: grayscale(1) brightness(2.2);
+    pointer-events: none;
+    z-index: -1;
+}
+
+.inst-casa {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+.inst-brasao { width: 56px; height: auto; flex-shrink: 0; }
+.inst-casa div { display: flex; flex-direction: column; gap: 2px; }
+.inst-casa strong { font-size: 18px; font-weight: 700; color: #fff; }
+.inst-casa span { font-size: 14px; color: var(--inst-tinta); }
+
+.inst-centro { align-self: center; max-width: 34rem; }
+.inst-titulo {
+    margin: 0;
+    font-family: 'Archivo', 'Public Sans', sans-serif;
+    font-stretch: 112%;
+    font-variation-settings: 'wdth' 112;
+    font-weight: 800;
+    font-size: clamp(3rem, 6vw, 5.6rem);
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    color: #fff;
+}
+.inst-titulo span { display: block; }
+.inst-titulo-b { color: var(--inst-ouro); }
+.inst-lema {
+    margin: 22px 0 0;
+    padding-top: 20px;
+    border-top: 3px solid var(--inst-ouro);
+    max-width: 26rem;
+    font-size: clamp(16px, 1.3vw, 19px);
+    line-height: 1.5;
+    color: var(--inst-tinta);
+}
+
+.inst-rodape { font-size: 14px; color: var(--inst-tinta); }
+.inst-ao-vivo {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: rgba(63, 191, 95, 0.14);
+    border: 1px solid rgba(134, 239, 172, 0.45);
+    color: #d1fadc;
+    font-weight: 600;
+}
+.inst-ao-vivo span {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #3fbf5f;
+    animation: inst-pulso 1.6s ease-in-out infinite;
+}
+@keyframes inst-pulso {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(63, 191, 95, 0.6); }
+    50% { box-shadow: 0 0 0 6px rgba(63, 191, 95, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .inst-ao-vivo span { animation: none; }
+}
+
+/* Celular: só a identificação da Casa e o título, compactos */
+@media (max-width: 960px) {
+    .inst {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        padding: 24px 22px 26px;
+    }
+    .inst-marca-dagua, .inst-rodape { display: none; }
+    .inst-brasao { width: 44px; }
+    .inst-casa strong { font-size: 16px; }
+    .inst-casa span { font-size: 13px; }
+    .inst-titulo { font-size: clamp(2.2rem, 10vw, 3rem); }
+    .inst-lema { margin-top: 12px; padding-top: 12px; font-size: 15px; }
+}
+/* Lado azul centralizado */
+.inst { grid-template-columns: minmax(0, 1fr); justify-content: stretch; justify-items: center; text-align: center; }
+.inst-casa { flex-direction: column; gap: 10px; }
+.inst-casa div { align-items: center; }
+.inst-brasao { width: 72px; }
+.inst-centro { justify-self: center; }
+.inst-lema { margin-left: auto; margin-right: auto; }
+.inst-marca-dagua {
+    right: auto;
+    left: 50%;
+    bottom: auto;
+    top: 50%;
+    width: min(78%, 560px);
+    transform: translate(-50%, -50%);
+    opacity: 0.05;
+}
+@media (max-width: 960px) {
+    .inst { align-items: center; }
+    .inst-casa { flex-direction: row; }
+    .inst-casa div { align-items: flex-start; text-align: left; }
+}

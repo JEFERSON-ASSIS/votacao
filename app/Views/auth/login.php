@@ -15,25 +15,37 @@ $inicioNome = implode(' ', $partesNome);
     <link rel="icon" href="<?= e(favicon_url()) ?>" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800;900&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..900&family=Public+Sans:wght@400;500;600;700;800;900&display=swap">
     <link rel="stylesheet" href="<?= e(asset_url('assets/css/app.css')) ?>">
 </head>
 <body class="login-page">
 <main class="login">
-    <section class="login-marca">
-        <p class="login-sobretitulo">Câmara Municipal de Vera · MT</p>
+    <section class="login-marca inst">
+        <img class="inst-marca-dagua" src="<?= e(asset_url('assets/img/brasao-vera-mt.png')) ?>" alt="" aria-hidden="true">
 
-        <div class="login-destaque">
-            <div class="login-chamada">
-                <h1 class="login-titulo">
-                    <?= e($inicioNome) ?><?php if ($destaqueNome !== ''): ?> <span><?= e($destaqueNome) ?></span><?php endif; ?>
-                </h1>
-                <p class="login-lema">Sessões, pautas, presença e votação em um só lugar.</p>
+        <header class="inst-casa">
+            <img class="inst-brasao" src="<?= e(asset_url('assets/img/brasao-vera-mt.png')) ?>" alt="Brasão do Município de Vera - MT">
+            <div>
+                <strong>Câmara Municipal de Vera</strong>
+                <span>Estado de Mato Grosso</span>
             </div>
-            <img class="login-brasao" src="<?= e(asset_url('assets/img/brasao-vera-mt.png')) ?>" alt="Brasão do Município de Vera - MT">
+        </header>
+
+        <div class="inst-centro">
+            <h1 class="inst-titulo">
+                <span><?= e($inicioNome) ?></span>
+                <?php if ($destaqueNome !== ''): ?><span class="inst-titulo-b"><?= e($destaqueNome) ?></span><?php endif; ?>
+            </h1>
+            <p class="inst-lema">Sistema de votação eletrônica do Poder Legislativo Municipal.</p>
         </div>
 
-        <p class="login-assinatura">Sistema de votação eletrônica do Poder Legislativo de Vera</p>
+        <footer class="inst-rodape">
+            <?php if (!empty($sessaoAoVivo)): ?>
+                <span class="inst-ao-vivo"><span aria-hidden="true"></span>Sessão em andamento: <?= e(sessao_nome_curto($sessaoAoVivo)) ?></span>
+            <?php else: ?>
+                <span>Sessões, pautas, presença e votação nominal.</span>
+            <?php endif; ?>
+        </footer>
     </section>
 
     <section class="login-acesso">
@@ -79,7 +91,7 @@ $inicioNome = implode(' ', $partesNome);
                         <span class="login-sessao-rotulo">Ao vivo agora</span>
                         <span class="login-sessao-nome"><?= e(sessao_nome_curto($sessaoAoVivo)) ?></span>
                     </span>
-                    <span class="login-sessao-acao">Acompanhar →</span>
+                    <span class="login-sessao-acao">Acompanhar</span>
                 </a>
             <?php elseif (!empty($proximaSessao)): ?>
                 <a class="login-sessao" href="<?= e(route_url('publico/index')) ?>">
@@ -88,7 +100,7 @@ $inicioNome = implode(' ', $partesNome);
                         <span class="login-sessao-rotulo">Próxima sessão</span>
                         <span class="login-sessao-nome"><?= e(sessao_quando($proximaSessao) ?: sessao_nome_curto($proximaSessao)) ?></span>
                     </span>
-                    <span class="login-sessao-acao">Visão pública →</span>
+                    <span class="login-sessao-acao">Visão pública</span>
                 </a>
             <?php else: ?>
                 <a class="login-sessao" href="<?= e(route_url('publico/index')) ?>">
@@ -97,7 +109,7 @@ $inicioNome = implode(' ', $partesNome);
                         <span class="login-sessao-rotulo">Visão pública</span>
                         <span class="login-sessao-nome">Acompanhe as sessões ao vivo</span>
                     </span>
-                    <span class="login-sessao-acao">Abrir →</span>
+                    <span class="login-sessao-acao">Abrir</span>
                 </a>
             <?php endif; ?>
         </div>
