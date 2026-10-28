@@ -7795,3 +7795,29 @@ body.public-page--telao .public-hero-mark--brasao { background: #fff; }
 .conducao-desempate { margin: auto; }
 .conducao-desempate .btn-soft { background: #fff; color: #0b3a66; border-color: rgba(15, 23, 42, 0.25); }
 .conducao-desempate .btn-soft:hover { background: #f1f5f9; }
+
+/* Pedidos de palavra na coluna da direita: cartão em duas linhas, botões sempre visíveis */
+.conducao-lateral .conducao-pedidos-lista { display: flex; flex-direction: column; gap: 8px; }
+.conducao-lateral .conducao-pedido {
+    display: grid;
+    grid-template-columns: auto 30px minmax(0, 1fr);
+    grid-template-areas: "pos foto info" "acoes acoes acoes";
+    align-items: center;
+    gap: 6px 8px;
+    padding: 8px 10px;
+    font-size: 13px;
+}
+.conducao-lateral .conducao-pedido-pos { grid-area: pos; font-size: 12px; }
+.conducao-lateral .conducao-pedido-foto { grid-area: foto; width: 30px; height: 30px; }
+.conducao-lateral .conducao-pedido-info { grid-area: info; min-width: 0; display: flex; flex-direction: column; gap: 1px; line-height: 1.25; }
+.conducao-lateral .conducao-pedido-nome { font-size: 13px; }
+.conducao-lateral .conducao-pedido-partido,
+.conducao-lateral .conducao-pedido-quando { font-size: 11.5px; }
+.conducao-lateral .conducao-pedido-acoes { grid-area: acoes; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 100%; }
+.conducao-lateral .conducao-pedido-acoes .conducao-pedido-form,
+.conducao-lateral .conducao-pedido-acoes .btn { width: 100%; }
+.conducao-lateral .conducao-pedido-acoes .btn { min-height: 32px; padding: 0 8px; font-size: 13px; justify-content: center; }
+.conducao-lateral .conducao-pedidos-head { font-size: 14px; }
+.conducao-lateral .conducao-pedidos-lista { max-height: none; flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: 2px; }
+.conducao-lateral .conducao-pedido { padding: 6px 8px; gap: 5px 8px; }
+.conducao-lateral .conducao-pedido-acoes .btn { min-height: 30px; }
