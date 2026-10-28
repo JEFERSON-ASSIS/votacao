@@ -743,6 +743,8 @@ $parlamentaresTransferencia = array_values(array_filter(
                     <div class="sapl-ok conducao-retirada-ok" role="status">A matéria voltou para a pauta.</div>
                 <?php endif; ?>
                 <?php if ($materiaAtual): ?>
+                    <details class="conducao-retirada-box">
+                    <summary class="conducao-retirada-resumo">Retirar de pauta…</summary>
                     <form method="post" action="<?= e(route_url('presidencia/retirarPauta/' . (int) $sessao['id'])) ?>"
                           class="conducao-retirada"
                           data-confirm-title="Retirar de pauta"
@@ -760,6 +762,7 @@ $parlamentaresTransferencia = array_values(array_filter(
                         </select>
                         <button class="btn btn-soft" type="submit">Retirar de pauta</button>
                     </form>
+                    </details>
                 <?php endif; ?>
                 <nav class="conducao-nav conducao-nav--stage conducao-nav--lateral" aria-label="Navegação do roteiro">
                     <p class="conducao-nav-passo">

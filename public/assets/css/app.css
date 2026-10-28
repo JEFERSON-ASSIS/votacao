@@ -7821,3 +7821,24 @@ body.public-page--telao .public-hero-mark--brasao { background: #fff; }
 .conducao-lateral .conducao-pedidos-lista { max-height: none; flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: 2px; }
 .conducao-lateral .conducao-pedido { padding: 6px 8px; gap: 5px 8px; }
 .conducao-lateral .conducao-pedido-acoes .btn { min-height: 30px; }
+
+/* Retirar de pauta na lateral: recolhido numa linha; abre motivo e botão ao clicar */
+.conducao-retirada-box { margin: 0; flex-shrink: 0; }
+.conducao-retirada-resumo {
+    list-style: none;
+    cursor: pointer;
+    padding: 8px 12px;
+    border: 1px dashed var(--border-strong);
+    border-radius: 10px;
+    background: var(--panel);
+    font-size: 13px;
+    font-weight: 600;
+    color: #b02a37;
+    text-align: center;
+}
+.conducao-retirada-resumo::-webkit-details-marker { display: none; }
+.conducao-retirada-box[open] > .conducao-retirada-resumo { border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom-style: none; }
+.conducao-lateral .conducao-retirada-box .conducao-retirada { margin-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; gap: 6px; padding: 8px 12px; }
+.conducao-lateral .conducao-retirada-box .conducao-retirada-materia { flex: 0 0 auto; font-size: 12px; }
+.conducao-lateral .conducao-retirada-box .field,
+.conducao-lateral .conducao-retirada-box .btn { width: 100%; height: 34px; min-height: 34px; }
