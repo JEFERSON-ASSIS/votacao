@@ -23,7 +23,14 @@ $permissoesSalvo = ($_GET['permissoes_salvo'] ?? '') === '1';
             </div>
         <?php endif; ?>
     </article>
-    <article class="panel-card">
+<?php
+    // Chave da sessão em andamento, no mesmo critério de publico/atual (só ABERTA/EM_VOTACAO).
+    $statusAtual = strtoupper((string) ($sessaoAtual['status'] ?? ''));
+    $chaveSessaoAtual = ($sessaoAtual && in_array($statusAtual, ['ABERTA', 'EM_VOTACAO'], true))
+        ? (int) $sessaoAtual['id'] . ':' . $statusAtual
+        : '0';
+?>
+    <article class="panel-card" id="dashboard-sessao-atual" data-chave="<?= e($chaveSessaoAtual) ?>">
         <div class="panel-label">Sessão atual</div>
         <div class="panel-value"><?= e($sessaoAtual['titulo'] ?? 'Sem sessão ativa') ?></div>
         <div class="panel-meta"><?= e(isset($sessaoAtual['status']) ? sessao_status_label((string) $sessaoAtual['status']) : 'Inativa') ?></div>
@@ -78,6 +85,45 @@ $permissoesSalvo = ($_GET['permissoes_salvo'] ?? '') === '1';
         </div>
     </article>
 </section>
+<script>
+(function () {
+    'use strict';
+    // A sessão aparece aqui assim que o presidente inicia (e muda ao abrir/fechar votação ou encerrar),
+    // sem recarregar a página: consulta a sessão em andamento e, quando muda, troca só este cartão.
+    var cartao = document.getElementById('dashboard-sessao-atual');
+    if (!cartao || !window.fetch) { return; }
+    var url = <?= json_encode(route_url('publico/atual'), JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?>;
+    var ocupado = false;
+
+    function chaveDe(d) {
+        return d && d.ok && d.sessao_id ? (d.sessao_id + ':' + String(d.status || '')) : '0';
+    }
+
+    function atualizarCartao() {
+        return fetch(window.location.href, { credentials: 'same-origin', cache: 'no-store' })
+            .then(function (r) { return r.ok ? r.text() : Promise.reject(r.status); })
+            .then(function (html) {
+                var novo = new DOMParser().parseFromString(html, 'text/html').getElementById('dashboard-sessao-atual');
+                if (novo) { cartao.replaceWith(novo); cartao = novo; }
+            });
+    }
+
+    function conferir() {
+        if (ocupado || document.hidden) { return; }
+        ocupado = true;
+        fetch(url, { credentials: 'same-origin', cache: 'no-store' })
+            .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+            .then(function (d) {
+                if (chaveDe(d) !== cartao.getAttribute('data-chave')) { return atualizarCartao(); }
+            })
+            .catch(function () {})
+            .then(function () { ocupado = false; });
+    }
+
+    setInterval(conferir, 8000);
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) { conferir(); } });
+})();
+</script>
 <?php $content = ob_get_clean(); ?>
 <?php
 $title = 'Dashboard';
