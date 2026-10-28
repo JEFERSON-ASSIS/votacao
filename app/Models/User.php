@@ -169,7 +169,7 @@ final class User
 
         return array_values(array_filter(
             array_map([self::class, 'hydrate'], $rows),
-            static fn (array $u): bool => UserPerfil::ehParlamentar($u['role'] ?? '')
+            static fn (array $u): bool => UserPerfil::ehVereador($u['role'] ?? '')
         ));
     }
 

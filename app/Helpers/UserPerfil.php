@@ -101,4 +101,14 @@ final class UserPerfil
     {
         return self::matches($role, self::PARLAMENTAR);
     }
+
+    /**
+     * Vereador da Câmara: o parlamentar e também o presidente titular (que é
+     * vereador). Use para presença, votação, telão, destaque e condução; os
+     * menus e telas do perfil seguem em ehParlamentar().
+     */
+    public static function ehVereador(?string $role): bool
+    {
+        return self::matches($role, [self::PARLAMENTAR, self::PRESIDENTE]);
+    }
 }

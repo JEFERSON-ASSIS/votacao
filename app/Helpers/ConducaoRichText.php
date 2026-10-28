@@ -61,7 +61,11 @@ final class ConducaoRichText
             return $safe;
         }
 
-        return nl2br(htmlspecialchars($safe, ENT_QUOTES, 'UTF-8'));
+        // Texto sem formatação pode trazer entidades do editor (ex.: &nbsp;):
+        // decodifica antes de escapar para não exibir "&nbsp;" escrito na tela.
+        $texto = html_entity_decode($safe, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        return nl2br(htmlspecialchars($texto, ENT_QUOTES, 'UTF-8'));
     }
 
     public static function render(string $value): string

@@ -59,7 +59,7 @@ final class SessaoConducao
             throw new \RuntimeException('Somente o condutor atual pode passar a condução.');
         }
         $alvo = User::find($novoCondutorId);
-        if (!$alvo || !UserPerfil::ehParlamentar((string) ($alvo['role'] ?? ''))) {
+        if (!$alvo || !UserPerfil::ehVereador((string) ($alvo['role'] ?? ''))) {
             throw new \RuntimeException('Escolha um parlamentar válido.');
         }
         if (!in_array($novoCondutorId, SessaoPresenca::idsPresentes($sessaoId), true)) {
@@ -144,7 +144,7 @@ final class SessaoConducao
             throw new \RuntimeException('A presidência desta sessão ainda não foi definida.');
         }
         $alvo = User::find($userId);
-        if (!$alvo || !UserPerfil::ehParlamentar((string) ($alvo['role'] ?? ''))) {
+        if (!$alvo || !UserPerfil::ehVereador((string) ($alvo['role'] ?? ''))) {
             throw new \RuntimeException('Escolha um parlamentar válido.');
         }
         if (!in_array($userId, SessaoPresenca::idsPresentes($sessaoId), true)) {

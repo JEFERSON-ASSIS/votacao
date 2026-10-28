@@ -155,7 +155,7 @@ final class PublicoSessaoEstado
     {
         $votosPorUser = [];
         foreach (SessaoVoto::allByRodada($rodadaId) as $v) {
-            if (!UserPerfil::ehParlamentar((string) ($v['role'] ?? ''))) {
+            if (!UserPerfil::ehVereador((string) ($v['role'] ?? ''))) {
                 continue;
             }
             $votosPorUser[(int) $v['user_id']] = $v;

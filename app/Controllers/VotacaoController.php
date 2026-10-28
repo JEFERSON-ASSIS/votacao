@@ -496,7 +496,7 @@ final class VotacaoController
         $userId = (int) ($_POST['user_id'] ?? 0);
         $presente = (string) ($_POST['presente'] ?? '1') === '1';
         $alvo = $userId > 0 ? User::find($userId) : null;
-        if (!$alvo || !UserPerfil::ehParlamentar((string) ($alvo['role'] ?? ''))) {
+        if (!$alvo || !UserPerfil::ehVereador((string) ($alvo['role'] ?? ''))) {
             header('Location: ' . base_url('?r=votacao/index&presenca_erro=nao_parlamentar'));
             exit;
         }
