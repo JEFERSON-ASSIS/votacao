@@ -567,8 +567,7 @@ function sessao_tempo_formatar(int $segundosRestantes): string
 }
 
 /**
- * Partido para o telão: "UNIÃO – União Brasil". Sigla desconhecida aparece sozinha.
- * Nomes conforme o registro dos partidos no TSE.
+ * Partido para o telão: só a sigla oficial ("UNIÃO", "MDB"). Sigla desconhecida aparece como foi cadastrada.
  */
 function partido_rotulo(?string $sigla): string
 {
@@ -606,9 +605,7 @@ function partido_rotulo(?string $sigla): string
     if (!isset($partidos[$chave])) {
         return $sigla;
     }
-    [$siglaOficial, $nome] = $partidos[$chave];
-
-    return strcasecmp($siglaOficial, $nome) === 0 ? $nome : $siglaOficial . ' – ' . $nome;
+    return $partidos[$chave][0];
 }
 
 /** Só links http(s): bloqueia javascript:, data: e afins em href/src. */
