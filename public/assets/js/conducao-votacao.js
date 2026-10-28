@@ -69,8 +69,41 @@
         resumoBox.innerHTML = html;
     }
 
+    // Desempate do presidente na própria tela de condução (janela, sem ir ao painel).
+    var desempate = document.getElementById('conducao-desempate');
+    var abrirDesempate = document.getElementById('conducao-abrir-desempate');
+    var desempateDispensado = false;
+    function abrirJanelaDesempate() {
+        if (desempate && !desempate.open && typeof desempate.showModal === 'function') { desempate.showModal(); }
+    }
+    if (desempate) {
+        desempate.querySelectorAll('[data-fechar-desempate]').forEach(function (b) {
+            b.addEventListener('click', function () { desempateDispensado = true; desempate.close(); });
+        });
+        desempate.addEventListener('cancel', function () { desempateDispensado = true; });
+        if (desempate.getAttribute('data-auto-abrir') === '1') { abrirJanelaDesempate(); }
+    }
+    if (abrirDesempate) {
+        abrirDesempate.addEventListener('click', function () { desempateDispensado = false; abrirJanelaDesempate(); });
+    }
+    function aplicarDesempate(estado) {
+        var precisa = !!estado.presidente_pode_votar && !estado.presidente_votou_desempate;
+        if (abrirDesempate) abrirDesempate.hidden = !precisa;
+        if (!desempate) return;
+        var placar = desempate.querySelector('[data-desempate-placar]');
+        if (placar && estado.resumo) {
+            placar.textContent = (estado.resumo.SIM || 0) + ' a ' + (estado.resumo.NAO || 0);
+        }
+        if (precisa && !desempateDispensado) { abrirJanelaDesempate(); }
+        if (!precisa) {
+            desempateDispensado = false;
+            if (desempate.open) desempate.close();
+        }
+    }
+
     function aplicarEstado(estado) {
         if (!estado || !estado.ok || !estado.aberta) return;
+        aplicarDesempate(estado);
 
         var pendentes = Array.isArray(estado.pendentes) ? estado.pendentes : [];
         var podeEncerrar = !!estado.pode_encerrar;

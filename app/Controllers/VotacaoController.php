@@ -405,7 +405,7 @@ final class VotacaoController
             }
             SessaoVotoDesempate::registrar($sessaoId, $rodadaId, $authId, $voto);
             Auditoria::log('desempatar', 'votacao_rodada', $rodadaId, 'Voto de desempate do condutor em exercício');
-            header('Location: ' . base_url('?r=votacao/painel/' . $sessaoId . '&rodada=' . $rodadaId));
+            header('Location: ' . base_url(self::destinoAposVoto($sessaoId, $rodadaId)));
             exit;
         }
 
@@ -453,8 +453,18 @@ final class VotacaoController
             );
         }
 
-        header('Location: ' . base_url('?r=votacao/painel/' . $sessaoId . '&rodada=' . $rodadaId));
+        header('Location: ' . base_url(self::destinoAposVoto($sessaoId, $rodadaId)));
         exit;
+    }
+
+    /** Voto de desempate dado na tela de condução volta para a condução; os demais, para o painel. */
+    private static function destinoAposVoto(int $sessaoId, int $rodadaId): string
+    {
+        if ((string) ($_POST['return_to'] ?? '') === 'conduzir') {
+            return '?r=presidencia/conduzir/' . $sessaoId . '&desempate_ok=1';
+        }
+
+        return '?r=votacao/painel/' . $sessaoId . '&rodada=' . $rodadaId;
     }
 
     public function apuracaoRodada(int $rodadaId): void

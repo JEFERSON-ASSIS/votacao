@@ -373,7 +373,7 @@ $parlamentaresTransferencia = array_values(array_filter(
             <?php endif; ?>
         </article>
     <?php else: ?>
-        <div class="conducao-presidente-grid">
+        <div class="conducao-presidente-grid roteiro-oculto" id="conducao-presidente-grid">
             <div class="conducao-presidente-main">
                 <article class="conducao-stage" aria-live="polite">
                     <?php if (!empty($passo['titulo']) || !empty($passo['pauta_titulo'])): ?>
@@ -453,6 +453,9 @@ $parlamentaresTransferencia = array_values(array_filter(
                                     <div class="conducao-votacao-sub"><?= e($tituloVotacao) ?></div>
                                 </div>
                             </div>
+                            <?php if (!empty($_GET['desempate_ok'])): ?>
+                                <div class="sapl-ok conducao-votacao-msg">Voto de desempate registrado. Agora é só concluir a votação.</div>
+                            <?php endif; ?>
                             <?php if (!empty($_GET['votacao_ok'])): ?>
                                 <div class="sapl-ok conducao-votacao-msg">Votação encerrada. Confira o resultado abaixo ou na apuração.</div>
                             <?php endif; ?>
@@ -519,6 +522,10 @@ $parlamentaresTransferencia = array_values(array_filter(
                                             <?= e($msgEncerrarRodada) ?>
                                         <?php endif; ?>
                                     </div>
+                                    <?php
+                                    $precisaDesempate = !empty($estadoVotacao['presidente_pode_votar']) && empty($estadoVotacao['presidente_votou_desempate']);
+                                    ?>
+                                    <button type="button" class="btn btn-warning" id="conducao-abrir-desempate" <?= $precisaDesempate ? '' : 'hidden' ?>>Votar desempate</button>
                                     <form
                                         method="post"
                                         action="<?= e(base_url('?r=votacao/encerrarRodada/' . (int) $sessao['id'] . '/' . (int) $rodada['id'])) ?>"
@@ -537,6 +544,23 @@ $parlamentaresTransferencia = array_values(array_filter(
                                         >Concluir votação</button>
                                     </form>
                                 </div>
+                                <dialog class="conducao-desempate" id="conducao-desempate" aria-labelledby="conducao-desempate-titulo" data-auto-abrir="<?= $precisaDesempate ? '1' : '0' ?>">
+                                    <form method="post" action="<?= e(base_url('?r=votacao/votarRodada/' . (int) $sessao['id'] . '/' . (int) $rodada['id'])) ?>">
+                                        <?= csrf_field() ?>
+                                        <input type="hidden" name="user_id" value="<?= (int) $authIdConducao ?>">
+                                        <input type="hidden" name="return_to" value="conduzir">
+                                        <h2 class="conducao-desempate-titulo" id="conducao-desempate-titulo">Empate: seu voto decide</h2>
+                                        <p class="conducao-desempate-texto">
+                                            Sim e Não empataram em <strong data-desempate-placar><?= (int) ($placarVotos['SIM'] ?? 0) ?> a <?= (int) ($placarVotos['NAO'] ?? 0) ?></strong>.
+                                            Como presidente, registre o voto de desempate de <strong><?= e($tituloVotacao) ?></strong>.
+                                        </p>
+                                        <div class="conducao-desempate-botoes">
+                                            <button type="submit" name="voto" value="SIM" class="btn parl-voto-btn parl-voto-btn--sim">Sim</button>
+                                            <button type="submit" name="voto" value="NAO" class="btn parl-voto-btn parl-voto-btn--nao">Não</button>
+                                        </div>
+                                        <button type="button" class="btn btn-soft conducao-desempate-depois" data-fechar-desempate>Agora não</button>
+                                    </form>
+                                </dialog>
                             <?php elseif ($rodada && ($rodada['status'] ?? '') === 'ENCERRADA'): ?>
                                 <?php $descricaoResultado = \App\Services\ResultadoRoteiro::descricao((int) $rodada['id']); ?>
                                 <div class="conducao-resultado-box">
@@ -585,6 +609,9 @@ $parlamentaresTransferencia = array_values(array_filter(
                         </div>
                     <?php endif; ?>
                 </article>
+            </div>
+
+            <aside class="conducao-lateral" aria-label="Comandos da condução">
 
                 <?php if ($sessaoIniciada): ?>
                     <?php
@@ -611,6 +638,7 @@ $parlamentaresTransferencia = array_values(array_filter(
                             <span class="conducao-pedidos-count" data-pedidos-count><?= count($pedidosPalavra) ?></span>
                         </div>
                         <ul class="conducao-pedidos-lista" data-pedidos-lista aria-live="assertive"></ul>
+                        <p class="conducao-pedidos-vazio">Nenhum pedido agora.</p>
                     </section>
 
                     <aside class="conducao-destaque-box conducao-destaque-box--fora conducao-destaque-box--compacta" aria-label="Destacar parlamentar no telão">
@@ -694,22 +722,6 @@ $parlamentaresTransferencia = array_values(array_filter(
                     </aside>
                 <?php endif; ?>
 
-                <nav class="conducao-nav conducao-nav--stage" aria-label="Navegação do roteiro">
-                    <form method="post" action="<?= e(base_url('?r=presidencia/voltar/' . (int) $sessao['id'])) ?>">
-                        <?= csrf_field() ?>
-                        <button class="btn btn-soft btn-has-icon conducao-nav-btn" type="submit" <?= (!$sessaoIniciada || ($indiceAtual ?? 0) <= 0 || $rodadaAberta) ? 'disabled' : '' ?><?= $rodadaAberta ? ' title="Encerre a votação antes de voltar"' : '' ?>>
-                            <span class="icon-glyph" aria-hidden="true">&#8592;</span>
-                            <span>Anterior</span>
-                        </button>
-                    </form>
-                    <form method="post" action="<?= e(base_url('?r=presidencia/avancar/' . (int) $sessao['id'])) ?>" class="conducao-nav-next-form">
-                        <?= csrf_field() ?>
-                        <button class="btn btn-primary btn-has-icon conducao-nav-btn conducao-nav-btn--next" type="submit" <?= !$sessaoIniciada ? 'disabled' : '' ?>>
-                            <span>Próximo passo</span>
-                            <span class="icon-glyph" aria-hidden="true">&#8594;</span>
-                        </button>
-                    </form>
-                </nav>
 
                 <?php
                 $materiaAtual = $sessaoIniciada ? \App\Services\RetiradaPauta::materiaDoPasso($passo ?: null) : null;
@@ -749,11 +761,32 @@ $parlamentaresTransferencia = array_values(array_filter(
                         <button class="btn btn-soft" type="submit">Retirar de pauta</button>
                     </form>
                 <?php endif; ?>
-            </div>
+                <nav class="conducao-nav conducao-nav--stage conducao-nav--lateral" aria-label="Navegação do roteiro">
+                    <p class="conducao-nav-passo">
+                        Passo <?= (int) $numeroPasso ?> de <?= (int) $totalConducao ?> ·
+                        <button type="button" class="conducao-link-roteiro" id="conducao-toggle-roteiro" aria-controls="conducao-timeline-panel" aria-expanded="false">Ver roteiro</button>
+                    </p>
+                    <form method="post" action="<?= e(base_url('?r=presidencia/voltar/' . (int) $sessao['id'])) ?>">
+                        <?= csrf_field() ?>
+                        <button class="btn btn-soft btn-has-icon conducao-nav-btn" type="submit" <?= (!$sessaoIniciada || ($indiceAtual ?? 0) <= 0 || $rodadaAberta) ? 'disabled' : '' ?><?= $rodadaAberta ? ' title="Encerre a votação antes de voltar"' : '' ?>>
+                            <span class="icon-glyph" aria-hidden="true">&#8592;</span>
+                            <span>Anterior</span>
+                        </button>
+                    </form>
+                    <form method="post" action="<?= e(base_url('?r=presidencia/avancar/' . (int) $sessao['id'])) ?>" class="conducao-nav-next-form">
+                        <?= csrf_field() ?>
+                        <button class="btn btn-primary btn-has-icon conducao-nav-btn conducao-nav-btn--next" type="submit" <?= !$sessaoIniciada ? 'disabled' : '' ?>>
+                            <span>Próximo passo</span>
+                            <span class="icon-glyph" aria-hidden="true">&#8594;</span>
+                        </button>
+                    </form>
+                </nav>
+            </aside>
 
-            <aside class="conducao-timeline-panel" aria-label="Roteiro completo">
+            <aside class="conducao-timeline-panel" id="conducao-timeline-panel" aria-label="Roteiro completo">
                 <div class="conducao-timeline-head">
                     <span class="conducao-timeline-title">Roteiro</span>
+                    <button type="button" class="conducao-timeline-fechar" data-fechar-roteiro aria-label="Fechar roteiro">&times;</button>
                     <span class="conducao-timeline-count"><?= e((string) $totalConducao) ?> passos</span>
                 </div>
                 <ol class="conducao-timeline" id="conducao-timeline-list">
@@ -786,12 +819,35 @@ $parlamentaresTransferencia = array_values(array_filter(
 
         <script>
         document.addEventListener('DOMContentLoaded', function () {
-            var current = document.querySelector('.conducao-timeline-item.is-current');
-            var list = document.getElementById('conducao-timeline-list');
-            if (current && list) {
-                var top = current.offsetTop - list.clientHeight / 2 + current.clientHeight / 2;
-                list.scrollTop = Math.max(0, top);
+            function centralizarPassoAtual() {
+                var current = document.querySelector('.conducao-timeline-item.is-current');
+                var list = document.getElementById('conducao-timeline-list');
+                if (current && list) {
+                    var top = current.offsetTop - list.clientHeight / 2 + current.clientHeight / 2;
+                    list.scrollTop = Math.max(0, top);
+                }
             }
+            // Roteiro completo abre por cima (gaveta) pelo "Ver roteiro"; fecha no X ou com Esc.
+            var grade = document.getElementById('conducao-presidente-grid');
+            var botao = document.getElementById('conducao-toggle-roteiro');
+            function aplicar(visivel) {
+                if (!grade || !botao) { return; }
+                grade.classList.toggle('roteiro-oculto', !visivel);
+                botao.setAttribute('aria-expanded', visivel ? 'true' : 'false');
+                var rotulo = botao.querySelector('[data-rotulo]');
+                if (visivel) { centralizarPassoAtual(); }
+            }
+            if (grade && botao) {
+                aplicar(false);
+                botao.addEventListener('click', function () { aplicar(grade.classList.contains('roteiro-oculto')); });
+                document.querySelectorAll('[data-fechar-roteiro]').forEach(function (b) {
+                    b.addEventListener('click', function () { aplicar(false); botao.focus(); });
+                });
+                document.addEventListener('keydown', function (ev) {
+                    if (ev.key === 'Escape' && !grade.classList.contains('roteiro-oculto')) { aplicar(false); botao.focus(); }
+                });
+            }
+            centralizarPassoAtual();
         });
         </script>
     <?php endif; ?>
