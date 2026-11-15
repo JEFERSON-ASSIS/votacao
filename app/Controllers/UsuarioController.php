@@ -123,6 +123,18 @@ final class UsuarioController
                 ->execute(['nome' => $nomeParlamentar !== '' ? $nomeParlamentar : null, 'id' => $userId]);
         }
 
+        $eraVice = User::ehVicePresidente($existing);
+        $seraVice = !empty($_POST['vice_presidente']) && UserPerfil::ehParlamentar((string) $dados['role']);
+        User::definirVicePresidente($userId, $seraVice);
+        if ($eraVice !== $seraVice) {
+            \App\Helpers\Auditoria::log(
+                $seraVice ? 'marcar_vice' : 'desmarcar_vice',
+                'usuario',
+                $userId,
+                (string) $dados['nome'] . ($seraVice ? ' definido como vice-presidente' : ' deixou de ser vice-presidente')
+            );
+        }
+
         $current = Auth::user();
         if ($current && (int) $current['id'] === $userId) {
             $fresh = User::find($userId);

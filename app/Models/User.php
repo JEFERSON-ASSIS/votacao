@@ -173,6 +173,33 @@ final class User
         ));
     }
 
+    /**
+     * Marca (ou desmarca) o vice-presidente. Só um vereador pode ser vice por
+     * vez: marcar um desmarca o anterior. Só vale para o perfil Parlamentar.
+     */
+    public static function definirVicePresidente(int $id, bool $vice): void
+    {
+        $pdo = DB::conn();
+        $user = self::find($id);
+        if (!$user) {
+            return;
+        }
+        if ($vice && UserPerfil::ehParlamentar((string) $user['role'])) {
+            $pdo->prepare('UPDATE users SET vice_presidente = 0 WHERE id != :id AND vice_presidente = 1')->execute(['id' => $id]);
+            $pdo->prepare('UPDATE users SET vice_presidente = 1 WHERE id = :id')->execute(['id' => $id]);
+            return;
+        }
+        $pdo->prepare('UPDATE users SET vice_presidente = 0 WHERE id = :id')->execute(['id' => $id]);
+    }
+
+    /** @param array<string, mixed>|null $user linha de users */
+    public static function ehVicePresidente(?array $user): bool
+    {
+        return $user !== null
+            && !empty($user['vice_presidente'])
+            && UserPerfil::ehParlamentar((string) ($user['role'] ?? ''));
+    }
+
     public static function create(array $data): int
     {
         $row = self::rowBindings($data);

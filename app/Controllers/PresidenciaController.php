@@ -7,6 +7,7 @@ use App\Core\View;
 use App\Core\Auth;
 use App\Helpers\Auditoria;
 use App\Helpers\Permissao;
+use App\Helpers\UserPerfil;
 use App\Helpers\SessaoBloqueio;
 use App\Models\Sessao;
 use App\Models\SessaoCrud;
@@ -79,6 +80,14 @@ final class PresidenciaController
         }
 
         $parlamentares = User::parlamentaresParaVotacao();
+        // O vice só abre a sessão na ausência do presidente: o presidente não entra como presente.
+        // Se ele chegar depois, assume a presidência e a presença é marcada nessa hora.
+        if (User::ehVicePresidente(User::find((int) (Auth::user()['id'] ?? 0)))) {
+            $parlamentares = array_values(array_filter(
+                $parlamentares,
+                static fn (array $u): bool => !UserPerfil::matches((string) ($u['role'] ?? ''), UserPerfil::PRESIDENTE)
+            ));
+        }
         $idsPermitidos = array_map(static fn (array $u): int => (int) $u['id'], $parlamentares);
         $presentesPost = $_POST['presentes'] ?? [];
         if (!is_array($presentesPost)) {
@@ -101,7 +110,14 @@ final class PresidenciaController
 
         Sessao::updateStatus($sessaoId, 'ABERTA');
         Auditoria::log('iniciar', 'sessao', $sessaoId, (string) ($sessao['titulo'] ?? '') . ' — ' . count($presentesIds) . ' parlamentar(es) presente(s)');
-        SessaoEvento::registrar($sessaoId, 'status', 'Sessão iniciada pelo presidente com ' . count($presentesIds) . ' parlamentar(es) presente(s)');
+        $abriuComoVice = User::ehVicePresidente(User::find($titularId));
+        if ($abriuComoVice) {
+            $nomeVice = (string) (Auth::user()['nome'] ?? 'Vice-presidente');
+            Auditoria::log('iniciar_vice', 'sessao', $sessaoId, 'Sessão aberta pelo vice-presidente ' . $nomeVice . ', presidente em exercício');
+            SessaoEvento::registrar($sessaoId, 'status', 'Sessão iniciada pelo vice-presidente ' . $nomeVice . ', presidente em exercício, com ' . count($presentesIds) . ' parlamentar(es) presente(s)');
+        } else {
+            SessaoEvento::registrar($sessaoId, 'status', 'Sessão iniciada pelo presidente com ' . count($presentesIds) . ' parlamentar(es) presente(s)');
+        }
 
         header('Location: ' . base_url('?r=presidencia/conduzir/' . $sessaoId . '&sessao_ok=iniciada'));
         exit;
@@ -200,6 +216,7 @@ final class PresidenciaController
             'parlamentares' => User::parlamentaresParaVotacao(),
             'presentesIds' => SessaoPresenca::idsPresentes($sessaoId),
             'conducaoEstado' => SessaoConducao::estado($sessaoId),
+            'souVicePresidente' => User::ehVicePresidente(User::find((int) (Auth::user()['id'] ?? 0))),
             'destaqueAtual' => self::destaqueAtualPayload($sessaoId),
             'pedidosPalavra' => SessaoPedidoPalavra::pendentesPayload($sessaoId),
         ]);
@@ -385,6 +402,16 @@ final class PresidenciaController
         $autorId = (int) (Auth::user()['id'] ?? 0);
         try {
             $estado = SessaoConducao::estado($sessaoId);
+            if (SessaoConducao::presidentePodeAssumir($sessaoId, $autorId)) {
+                // Sessão aberta pelo vice: o presidente chegou e assume a presidência.
+                SessaoConducao::assumir($sessaoId, $autorId);
+                $nome = (string) (Auth::user()['nome'] ?? 'Presidente');
+                $anterior = (string) ($estado['condutor_nome'] ?? '');
+                Auditoria::log('assumir', 'sessao_conducao', $sessaoId, 'Presidência assumida por ' . $nome . ' (estava com ' . $anterior . ')');
+                SessaoEvento::registrar($sessaoId, 'conducao', 'Presidência assumida pelo presidente ' . $nome . ', que chegou à sessão (estava em exercício: ' . $anterior . ')');
+                header('Location: ' . base_url('?r=presidencia/conduzir/' . $sessaoId . '&conducao_ok=assumida_presidente'));
+                exit;
+            }
             SessaoConducao::retomar($sessaoId, $autorId);
             $nome = (string) ($estado['titular_nome'] ?? 'Presidente titular');
             Auditoria::log('retomar', 'sessao_conducao', $sessaoId, 'Presidência retomada por ' . $nome);

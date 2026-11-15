@@ -189,6 +189,14 @@ $parlamentaresTransferencia = array_values(array_filter(
             Você está presidindo esta sessão em exercício. Presidente titular: <strong><?= e((string) ($conducaoEstado['titular_nome'] ?? '')) ?></strong>.
         </div>
     <?php endif; ?>
+    <?php if (!empty($souVicePresidente) && $sessaoIniciada && !$condutorTemporario): ?>
+        <div class="conducao-presidente-alert conducao-presidente-alert--warn" role="status">
+            Você preside esta sessão como <strong>presidente em exercício</strong> (vice-presidente). Se o presidente chegar, ele pode assumir a presidência.
+        </div>
+    <?php endif; ?>
+    <?php if (($_GET['conducao_ok'] ?? '') === 'assumida_presidente'): ?>
+        <div class="conducao-presidente-alert conducao-presidente-alert--ok" role="status">Você assumiu a presidência desta sessão.</div>
+    <?php endif; ?>
     <?php if (!empty($_GET['conducao_erro'])): ?>
         <div class="conducao-presidente-alert" role="alert"><?= e((string) $_GET['conducao_erro']) ?></div>
     <?php endif; ?>
@@ -223,6 +231,9 @@ $parlamentaresTransferencia = array_values(array_filter(
     <?php if ($podeIniciarSessao): ?>
         <div class="conducao-presidente-alert conducao-presidente-alert--warn" role="status">
             Sessão <strong>criada</strong> e pronta. Clique em <strong>Iniciar sessão</strong> para liberar a condução, o telão e o voto dos parlamentares.
+            <?php if (!empty($souVicePresidente)): ?>
+                <br>Você é o <strong>vice-presidente</strong>: ao iniciar, passa a presidir esta sessão como presidente em exercício e só vota em caso de empate.
+            <?php endif; ?>
             <button class="btn btn-primary" type="button" id="abrir-presenca-modal" style="margin-top:10px;">Iniciar sessão</button>
         </div>
     <?php elseif (!$sessaoIniciada && $statusSessao !== 'ENCERRADA'): ?>
@@ -314,6 +325,8 @@ $parlamentaresTransferencia = array_values(array_filter(
                     <div class="presenca-inicial-lista">
                         <?php foreach ($parlamentares as $vereador): ?>
                             <?php $vereadorId = (int) ($vereador['id'] ?? 0); ?>
+                            <?php /* Vice abrindo a sessão: o presidente está ausente, não entra na chamada. */ ?>
+                            <?php if (!empty($souVicePresidente) && \App\Helpers\UserPerfil::matches((string) ($vereador['role'] ?? ''), \App\Helpers\UserPerfil::PRESIDENTE)) { continue; } ?>
                             <label class="presenca-inicial-item">
                                 <input
                                     type="checkbox"

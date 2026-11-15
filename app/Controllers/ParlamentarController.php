@@ -115,8 +115,19 @@ final class ParlamentarController
     public function sessoes(): void
     {
         Permissao::exigir('parlamentar.sessoes');
+        // Vice-presidente: vê também as sessões prontas que o presidente ainda não abriu.
+        $sessoesParaAbrir = [];
+        if (User::ehVicePresidente(User::find((int) Auth::user()['id']))) {
+            foreach (SessaoCrud::all() as $row) {
+                $sid = (int) $row['id'];
+                if (SessaoConducao::vicePodeAbrir($sid) && (int) (\App\Models\SessaoRoteiro::contagem($sid)['total'] ?? 0) > 0) {
+                    $sessoesParaAbrir[] = $row;
+                }
+            }
+        }
         View::render('parlamentar/sessoes', [
             'sessoes' => SessaoCrud::listParaParlamentar(),
+            'sessoesParaAbrir' => $sessoesParaAbrir,
         ]);
     }
 
@@ -142,6 +153,7 @@ final class ParlamentarController
             && $conducaoEstado !== null
             && (int) $conducaoEstado['titular_user_id'] === $authId
             && (int) $conducaoEstado['condutor_user_id'] !== $authId;
+        $ctx['presidentePodeAssumir'] = $sessaoEmAndamento && SessaoConducao::presidentePodeAssumir($sessaoId, $authId);
         $ctx['votoOk'] = ($_GET['voto'] ?? '') === '1';
         View::render('parlamentar/sessao', $ctx);
     }

@@ -56,6 +56,24 @@ $percentual = $totalPassos > 0 ? (int) round(($concluidos / $totalPassos) * 100)
     <?php if (!empty($_GET['conducao_erro'])): ?>
         <div class="conducao-presidente-alert" role="alert" style="grid-column:1/-1;"><?= e((string) $_GET['conducao_erro']) ?></div>
     <?php endif; ?>
+    <?php if (!empty($presidentePodeAssumir)): ?>
+        <div class="conducao-presidente-alert conducao-presidente-alert--warn" role="status" style="grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between;">
+            <span>
+                Esta sessão foi aberta na sua ausência e está sendo presidida por
+                <strong><?= e((string) ($conducaoEstado['condutor_nome'] ?? '')) ?></strong>, presidente em exercício.
+            </span>
+            <form
+                method="post"
+                action="<?= e(route_url('presidencia/retomarConducao/' . $sessaoId)) ?>"
+                data-confirm-title="Assumir a presidência"
+                data-confirm="Assumir a condução desta sessão agora? Quem está presidindo volta a ser parlamentar e passa a votar."
+                data-confirm-ok="Assumir a presidência"
+            >
+                <?= csrf_field() ?>
+                <button class="btn btn-primary btn--sm" type="submit">Assumir a presidência</button>
+            </form>
+        </div>
+    <?php endif; ?>
     <?php if (!empty($souTitularForaDaConducao)): ?>
         <div class="conducao-presidente-alert conducao-presidente-alert--warn" role="status" style="grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between;">
             <span>

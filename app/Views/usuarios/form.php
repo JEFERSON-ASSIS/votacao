@@ -71,6 +71,31 @@ $dataNasc = (string) ($user['data_nascimento_formatada'] ?? User::formatarDataNa
                         <?php endforeach; ?>
                     </select>
                 </div>
+                <div class="usuario-form-field" id="vice-presidente-campo">
+                    <label class="panel-label" for="vice_presidente">Vice-presidente</label>
+                    <label style="display:flex;align-items:flex-start;gap:8px;font-weight:400;">
+                        <input type="checkbox" id="vice_presidente" name="vice_presidente" value="1" <?= !empty($user['vice_presidente']) ? 'checked' : '' ?>>
+                        <span>
+                            Este parlamentar é o vice-presidente.
+                            <small class="panel-meta" style="display:block;">Quando o presidente não estiver, ele abre e conduz a sessão como presidente em exercício. Só um parlamentar pode ser vice: marcar este desmarca o anterior.</small>
+                        </span>
+                    </label>
+                </div>
+                <script>
+                    (function () {
+                        var perfil = document.querySelector('select[name="role"]');
+                        var campo = document.getElementById('vice-presidente-campo');
+                        var caixa = document.getElementById('vice_presidente');
+                        if (!perfil || !campo || !caixa) return;
+                        function ajustar() {
+                            var parlamentar = perfil.value === 'PARLAMENTAR';
+                            campo.hidden = !parlamentar;
+                            if (!parlamentar) caixa.checked = false;
+                        }
+                        perfil.addEventListener('change', ajustar);
+                        ajustar();
+                    })();
+                </script>
                 <div class="usuario-form-field">
                     <label class="panel-label"><?= $isEdit ? 'Nova senha (opcional)' : 'Senha' ?></label>
                     <input class="field" type="password" name="senha" autocomplete="new-password" <?= $isEdit ? '' : 'required' ?>>

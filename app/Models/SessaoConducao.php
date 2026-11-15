@@ -80,6 +80,76 @@ final class SessaoConducao
         self::alterar($sessaoId, (int) $estado['titular_user_id'], $autorId, 'DEVOLUCAO');
     }
 
+    /**
+     * O vice-presidente só abre a sessão quando o presidente não abriu:
+     * sessão criada, ainda sem ninguém na presidência.
+     */
+    public static function vicePodeAbrir(int $sessaoId): bool
+    {
+        $sessao = SessaoCrud::find($sessaoId);
+        return $sessao !== null
+            && strtoupper((string) ($sessao['status'] ?? '')) === 'CRIADO'
+            && self::estado($sessaoId) === null;
+    }
+
+    /**
+     * Sessão aberta pelo vice (ou por outro vereador) na ausência do presidente:
+     * o presidente que chega pode assumir a presidência.
+     */
+    public static function presidentePodeAssumir(int $sessaoId, int $userId): bool
+    {
+        $estado = self::estado($sessaoId);
+        if (!$estado || $userId <= 0 || (int) $estado['titular_user_id'] === $userId) {
+            return false;
+        }
+        $sessao = SessaoCrud::find($sessaoId);
+        if (!$sessao || !in_array(strtoupper((string) ($sessao['status'] ?? '')), ['ABERTA', 'EM_VOTACAO'], true)) {
+            return false;
+        }
+        $user = User::find($userId);
+        $titular = User::find((int) $estado['titular_user_id']);
+        return $user !== null
+            && UserPerfil::matches((string) ($user['role'] ?? ''), UserPerfil::PRESIDENTE)
+            && !UserPerfil::matches((string) ($titular['role'] ?? ''), UserPerfil::PRESIDENTE);
+    }
+
+    /**
+     * O presidente chega a uma sessão aberta pelo vice e assume: vira o titular
+     * e o condutor; o vice volta a ser parlamentar comum (vota e pede a palavra).
+     */
+    public static function assumir(int $sessaoId, int $presidenteId): void
+    {
+        if (!self::presidentePodeAssumir($sessaoId, $presidenteId)) {
+            throw new \RuntimeException('Somente o presidente pode assumir a presidência desta sessão.');
+        }
+        if (SessaoVotacaoRodada::findAberta($sessaoId)) {
+            throw new \RuntimeException('Aguarde o encerramento da votação aberta para assumir a presidência.');
+        }
+        $pdo = DB::conn();
+        $ownTransaction = !$pdo->inTransaction();
+        if ($ownTransaction) {
+            $pdo->beginTransaction();
+        }
+        try {
+            SessaoPresenca::set($sessaoId, $presidenteId, true);
+            if (self::condutorId($sessaoId) !== $presidenteId) {
+                self::alterar($sessaoId, $presidenteId, $presidenteId, 'ASSUNCAO');
+            }
+            $pdo->prepare(
+                'UPDATE sessao_conducao SET titular_user_id = :titular, atualizado_por = :autor,
+                 updated_at = CURRENT_TIMESTAMP WHERE sessao_id = :sessao_id'
+            )->execute(['titular' => $presidenteId, 'autor' => $presidenteId, 'sessao_id' => $sessaoId]);
+            if ($ownTransaction) {
+                $pdo->commit();
+            }
+        } catch (\Throwable $e) {
+            if ($ownTransaction && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
+        }
+    }
+
     /** Presidente titular reassume a condução quando volta ao plenário. */
     public static function retomar(int $sessaoId, int $autorId): void
     {

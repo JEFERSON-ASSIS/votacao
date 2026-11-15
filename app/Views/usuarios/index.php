@@ -72,6 +72,9 @@ $erro = $_GET['erro'] ?? '';
                                 <span class="status-chip <?= e(UserPerfil::chipClass($u['role'] ?? '')) ?>">
                                     <?= e(UserPerfil::label($u['role'] ?? '')) ?>
                                 </span>
+                                <?php if (User::ehVicePresidente($u)): ?>
+                                    <span class="status-chip perfil-presidente">Vice-presidente</span>
+                                <?php endif; ?>
                             </td>
                             <td>
                                 <div class="action-row">

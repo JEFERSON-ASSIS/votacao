@@ -7,6 +7,17 @@
         <div class="panel-value">Sessões plenárias</div>
         <div class="panel-meta">Acompanhe a sessão em tempo real: leitura da ata, pauta e votações quando o presidente abrir.</div>
     </article>
+    <?php foreach (($sessoesParaAbrir ?? []) as $sa): ?>
+        <article class="panel-card" style="grid-column:1/-1;" data-vice-abrir="<?= (int) $sa['id'] ?>">
+            <div class="panel-label">Vice-presidente</div>
+            <div class="panel-value" style="font-size:1.15rem;"><?= e($sa['titulo']) ?> <span class="panel-meta">#<?= (int) $sa['numero'] ?>/<?= (int) $sa['ano'] ?></span></div>
+            <div class="panel-meta" style="margin:6px 0 12px;">
+                Esta sessão está pronta e ainda não foi aberta. Se o presidente não estiver, você pode abrir e conduzir
+                como <strong>presidente em exercício</strong>. Se ele chegar depois, assume a presidência e você volta a votar.
+            </div>
+            <a class="btn btn-primary" href="<?= e(base_url('?r=presidencia/conduzir/' . (int) $sa['id'] . '&abrir_presenca=1')) ?>">Abrir sessão como presidente em exercício</a>
+        </article>
+    <?php endforeach; ?>
     <article class="panel-card" style="grid-column:1/-1;">
         <div class="table-wrap">
             <table class="leg-table">
