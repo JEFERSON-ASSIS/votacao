@@ -25,7 +25,11 @@ final class SessaoController
 
     public function index(): void
     {
-        if (UserPerfil::ehParlamentar(Auth::user()['role'] ?? '') && Permissao::usuarioAtualPode('parlamentar.sessoes')) {
+        // Vereador comum vai para a lista de acompanhamento. O vice-presidente com acesso à lista
+        // completa fica nela, como o presidente: importa do SAPL, prepara e inicia a sessão.
+        $viceComListaCompleta = !empty(Auth::user()['vice_presidente']) && Permissao::usuarioAtualPode('sessao.index');
+        if (!$viceComListaCompleta
+            && UserPerfil::ehParlamentar(Auth::user()['role'] ?? '') && Permissao::usuarioAtualPode('parlamentar.sessoes')) {
             redirect_route('parlamentar/sessoes');
         }
         Permissao::exigir('sessao.index');
