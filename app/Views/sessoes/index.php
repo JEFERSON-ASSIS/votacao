@@ -115,6 +115,11 @@ $podeConduzir = user_can('presidencia.conduzir');
                                     <?php endif; ?>
                                     <?php if ($sessaoPodeIniciar): ?>
                                         <a class="btn btn-primary btn--sm" href="<?= e(base_url('?r=presidencia/conduzir/' . (int) $s['id'] . '&abrir_presenca=1')) ?>">Iniciar sessão</a>
+                                    <?php elseif ($sessaoPodeConduzir && in_array($statusLinha, ['ABERTA', 'EM_VOTACAO'], true)
+                                        && !empty(\App\Core\Auth::user()['vice_presidente'])
+                                        && !\App\Models\SessaoConducao::usuarioPodeConduzir((int) $s['id'], (int) (\App\Core\Auth::user()['id'] ?? 0))): ?>
+                                        <?php /* Vice com a sessão presidida por outra pessoa: acompanha como vereador. */ ?>
+                                        <a class="btn btn-primary btn--sm" href="<?= e(base_url('?r=parlamentar/sessao/' . (int) $s['id'])) ?>">Acompanhar</a>
                                     <?php elseif ($sessaoPodeConduzir && in_array($statusLinha, ['ABERTA', 'EM_VOTACAO'], true)): ?>
                                         <a class="btn btn-soft btn--sm" href="<?= e(base_url('?r=presidencia/conduzir/' . (int) $s['id'])) ?>">Conduzir</a>
                                     <?php elseif ($sessaoPodeConduzir): ?>

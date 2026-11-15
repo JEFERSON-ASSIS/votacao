@@ -165,6 +165,22 @@ try {
     $r = rodar_cenario(['user' => ['id' => $comum, 'role' => 'PARLAMENTAR', 'nome' => 'Comum'], 'metodo' => 'GET', 'get_r' => 'parlamentar/sessoes']);
     confere(!str_contains($r['saida'], 'data-vice-abrir'), 'Vereador comum nao ve o botao de abrir sessao');
 
+    // Vice com acesso liberado à lista completa de sessões (Permissões): fica nela, como o
+    // presidente, para importar do SAPL e iniciar. Vereador comum com o mesmo acesso continua
+    // indo para a lista de acompanhamento.
+    foreach ([$vice, $comum] as $uid) {
+        foreach (['sessao.index', 'menu.sessoes', 'parlamentar.sessoes', 'sapl.sessoes', 'presidencia.conduzir', 'presidencia.iniciar'] as $chave) {
+            $pdo->prepare('INSERT INTO user_permissoes (user_id, permissao) VALUES (?, ?)')->execute([$uid, $chave]);
+        }
+    }
+    $r = rodar_cenario(['user' => $userVice, 'metodo' => 'GET', 'get_r' => 'sessao/index']);
+    confere($r['http'] === 200 && str_contains($r['saida'], 'Importar do SAPL'), 'Vice com acesso ve a lista completa com "Importar do SAPL" (http ' . $r['http'] . ')');
+    confere(str_contains($r['saida'], 'presidencia/conduzir/' . $outra . '&amp;abrir_presenca=1') || str_contains($r['saida'], 'presidencia/conduzir/' . $outra . '&abrir_presenca=1'), 'Vice ve "Iniciar sessao" na lista completa');
+    confere(str_contains($r['saida'], 'parlamentar/sessao/' . $sessaoHttp), 'Sessao presidida pelo presidente: vice ve "Acompanhar"');
+    $r = rodar_cenario(['user' => ['id' => $comum, 'role' => 'PARLAMENTAR', 'nome' => 'Comum'], 'metodo' => 'GET', 'get_r' => 'sessao/index']);
+    confere($r['http'] === 302 && !str_contains($r['saida'], 'Importar do SAPL'), 'Vereador comum segue para a lista de acompanhamento (http ' . $r['http'] . ')');
+    $pdo->exec("DELETE FROM user_permissoes WHERE user_id IN ($vice, $comum)");
+
     // Cadastro pela tela de usuários: a secretaria marca outro vereador como vice.
     $admin = criar_usuario_teste($pdo, 'Admin Vice Teste', 'ADMINISTRADOR');
     $dadosComum = User::find($comum);
@@ -192,6 +208,7 @@ try {
         try { $pdo->exec("DELETE FROM $t WHERE sessao_id IN ($ids)"); } catch (\Throwable $e) {}
     }
     $pdo->exec("DELETE FROM sessoes WHERE id IN ($ids)");
+    try { $pdo->exec("DELETE FROM user_permissoes WHERE user_id IN ($vice, $comum)"); } catch (\Throwable $e) {}
     try { $pdo->exec("DELETE FROM auditoria_log WHERE user_id IN ($presidente, $vice, $comum" . (isset($admin) ? ", $admin" : '') . ')'); } catch (\Throwable $e) {}
     $pdo->exec("DELETE FROM users WHERE id IN ($presidente, $vice, $comum" . (isset($admin) ? ", $admin" : '') . ')');
 }
