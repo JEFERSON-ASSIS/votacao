@@ -68,6 +68,7 @@ final class Auth
         $_SESSION['user']['nome'] = (string) ($user['nome'] ?? '');
         $_SESSION['user']['email'] = (string) ($user['email'] ?? '');
         $_SESSION['user']['role'] = $role;
+        $_SESSION['user']['vice_presidente'] = \App\Models\User::ehVicePresidente($user);
         Permissao::carregarSessao((int) $user['id'], $role);
     }
 
@@ -81,6 +82,7 @@ final class Auth
             'nome' => (string) $user['nome'],
             'email' => (string) $user['email'],
             'role' => $role,
+            'vice_presidente' => \App\Models\User::ehVicePresidente($user),
         ];
         Permissao::carregarSessao((int) $user['id'], $role);
     }

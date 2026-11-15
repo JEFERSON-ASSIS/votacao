@@ -461,6 +461,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `nome_parlamentar` varchar(120) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `sapl_parlamentar_id` int DEFAULT NULL,
+  `vice_presidente` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   UNIQUE KEY `email` (`email`),
   UNIQUE KEY `uq_users_cpf` (`cpf`)

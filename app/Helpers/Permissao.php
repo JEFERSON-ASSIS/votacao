@@ -46,7 +46,22 @@ final class Permissao
                 if ($chave === 'presidencia.conduzir' && SessaoConducao::titularId($sessaoId) === $userId) {
                     return true;
                 }
+                // Presidente que chega a uma sessão aberta pelo vice, e o vice quando o presidente
+                // já abriu: entram em "conduzir" e são levados para a visão parlamentar.
+                if ($chave === 'presidencia.conduzir'
+                    && (SessaoConducao::presidentePodeAssumir($sessaoId, $userId) || self::ehVicePresidente($user))) {
+                    return true;
+                }
                 return SessaoConducao::usuarioPodeConduzir($sessaoId, $userId);
+            }
+        }
+
+        // Vice-presidente: abre a sessão que o presidente ainda não abriu. Depois de aberta,
+        // ele é o condutor e as regras de "quem conduz" acima valem para ele.
+        if (self::ehVicePresidente($user) && in_array($chave, ['presidencia.conduzir', 'presidencia.iniciar'], true)) {
+            $sessaoId = SessaoConducao::sessaoIdDaRota($chave);
+            if ($sessaoId > 0 && SessaoConducao::vicePodeAbrir($sessaoId)) {
+                return true;
             }
         }
 
@@ -58,7 +73,8 @@ final class Permissao
                 return false;
             }
             if ($chave === 'presidencia.retomarConducao') {
-                return SessaoConducao::titularId($sessaoId) === $userId;
+                return SessaoConducao::titularId($sessaoId) === $userId
+                    || SessaoConducao::presidentePodeAssumir($sessaoId, $userId);
             }
             return $userId > 0;
         }
@@ -81,6 +97,11 @@ final class Permissao
                 && (SessaoConducao::condutorId($sessaoId) === $userId || SessaoConducao::titularId($sessaoId) === $userId)) {
                 return true;
             }
+            // Presidente que chegou depois de o vice abrir: acompanha a sessão para poder assumir.
+            if ($sessaoId > 0 && in_array($chave, ['parlamentar.sessao', 'parlamentar.estado', 'parlamentar.stream'], true)
+                && SessaoConducao::presidentePodeAssumir($sessaoId, $userId)) {
+                return true;
+            }
         }
 
         if (!empty($_SESSION['permissoes_personalizado'])) {
@@ -90,6 +111,14 @@ final class Permissao
         }
 
         return self::legadoPermite($role, $chave);
+    }
+
+    /** @param array<string, mixed>|null $user usuário logado (sessão) */
+    private static function ehVicePresidente(?array $user): bool
+    {
+        return $user !== null
+            && !empty($user['vice_presidente'])
+            && UserPerfil::ehParlamentar((string) ($user['role'] ?? ''));
     }
 
     public static function rotaPermitida(string $chaveRota): bool
